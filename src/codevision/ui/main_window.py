@@ -22,6 +22,57 @@ headerbar {
     border-bottom: 1px solid #1a2c48;
 }
 
+.app-name {
+    color: #e5edf8;
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+.menu-bar {
+    background: transparent;
+}
+
+.menu-button {
+    background: transparent;
+    color: #c8d5e7;
+    border: 0;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+
+.menu-button:hover {
+    background: #1a2d46;
+}
+
+.window-controls {
+    background: transparent;
+}
+
+.window-control {
+    min-width: 16px;
+    min-height: 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+}
+
+.window-control image {
+    color: #263342;
+    -gtk-icon-size: 10px;
+}
+
+.window-control.close {
+    background: #f15b5b;
+}
+
+.window-control.fullscreen {
+    background: #40c879;
+}
+
+.window-control.minimize {
+    background: #f4c24e;
+}
+
 .search-entry {
     background: #12243d;
     color: #dfeafc;
@@ -118,6 +169,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.set_default_size(1400, 900)
         self.set_size_request(1100, 700)
         self.set_name("codevision-window")
+        self.set_decorated(False)
 
         self._install_css()
 
@@ -125,16 +177,55 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.set_child(box)
 
         header = Gtk.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="CodeVision"))
-        header.set_show_title_buttons(True)
+        header.set_show_title_buttons(False)
         header.set_hexpand(True)
+
+        menu_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
+        menu_bar.add_css_class("menu-bar")
+        app_name = Gtk.Label(label="CodeVision")
+        app_name.add_css_class("app-name")
+        menu_bar.append(app_name)
+        for menu_name in ("File", "Edit", "View", "Analyze", "Project", "Help"):
+            menu_button = Gtk.MenuButton(label=menu_name)
+            menu_button.add_css_class("menu-button")
+            popover = Gtk.Popover()
+            menu_content = Gtk.Label(label="No actions yet")
+            menu_content.set_margin_top(10)
+            menu_content.set_margin_bottom(10)
+            menu_content.set_margin_start(12)
+            menu_content.set_margin_end(12)
+            popover.set_child(menu_content)
+            menu_button.set_popover(popover)
+            menu_bar.append(menu_button)
+        header.pack_start(menu_bar)
 
         search = Gtk.SearchEntry()
         search.set_placeholder_text("Search anything...")
         search.add_css_class("search-entry")
         search.set_size_request(220, 28)
-        header.pack_end(search)
 
+        controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        controls.add_css_class("window-controls")
+        controls.append(search)
+
+        close_button = self._create_window_control(
+            "window-close-symbolic", "Close window", "close"
+        )
+        close_button.connect("clicked", lambda _button: self.close())
+        controls.append(close_button)
+
+        fullscreen_button = self._create_window_control(
+            "view-fullscreen-symbolic", "Toggle fullscreen", "fullscreen"
+        )
+        fullscreen_button.connect("clicked", lambda _button: self._toggle_fullscreen())
+        controls.append(fullscreen_button)
+
+        minimize_button = self._create_window_control(
+            "window-minimize-symbolic", "Minimize window", "minimize"
+        )
+        minimize_button.connect("clicked", lambda _button: self.minimize())
+        controls.append(minimize_button)
+        header.pack_end(controls)
         box.append(header)
 
         workspace = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
@@ -179,6 +270,22 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         status.append(version)
 
         box.append(status)
+
+    def _create_window_control(
+        self, icon_name: str, tooltip: str, color_class: str
+    ) -> Gtk.Button:
+        button = Gtk.Button()
+        button.set_child(Gtk.Image.new_from_icon_name(icon_name))
+        button.set_tooltip_text(tooltip)
+        button.add_css_class("window-control")
+        button.add_css_class(color_class)
+        return button
+
+    def _toggle_fullscreen(self) -> None:
+        if self.is_fullscreen():
+            self.unfullscreen()
+        else:
+            self.fullscreen()
 
     def _install_css(self) -> None:
         provider = Gtk.CssProvider()
