@@ -7,3 +7,4 @@ dist/
 *.egg-info/
 src/**/__pycache__/
 src/*.egg-info/
+.ui.log
