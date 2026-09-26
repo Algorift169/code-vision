@@ -20,12 +20,15 @@ headerbar {
     background-color: #0b1830;
     color: #e5edf8;
     border-bottom: 1px solid #1a2c48;
+    min-height: 11px;
+    padding: 0 3px;
 }
 
 .app-name {
     color: #e5edf8;
     font-weight: 700;
-    margin-right: 8px;
+    font-size: 10px;
+    margin-right: 4px;
 }
 
 .menu-bar {
@@ -37,7 +40,9 @@ headerbar {
     color: #c8d5e7;
     border: 0;
     border-radius: 4px;
-    padding: 4px 8px;
+    min-height: 11px;
+    padding: 0 4px;
+    font-size: 10px;
 }
 
 .menu-button:hover {
@@ -49,16 +54,11 @@ headerbar {
 }
 
 .window-control {
-    min-width: 16px;
-    min-height: 16px;
+    min-width: 9px;
+    min-height: 5px;
     padding: 0;
     border: 0;
-    border-radius: 999px;
-}
-
-.window-control image {
-    color: #263342;
-    -gtk-icon-size: 10px;
+    border-radius: 3px;
 }
 
 .window-control.close {
@@ -78,6 +78,9 @@ headerbar {
     color: #dfeafc;
     border-radius: 8px;
     border: 1px solid #1d3556;
+    min-height: 11px;
+    padding: 0 3px;
+    font-size: 10px;
 }
 
 .panel {
@@ -202,29 +205,26 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         search = Gtk.SearchEntry()
         search.set_placeholder_text("Search anything...")
         search.add_css_class("search-entry")
-        search.set_size_request(220, 28)
+        search.set_size_request(160, 11)
 
-        controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         controls.add_css_class("window-controls")
         controls.append(search)
 
-        close_button = self._create_window_control(
-            "window-close-symbolic", "Close window", "close"
-        )
-        close_button.connect("clicked", lambda _button: self.close())
-        controls.append(close_button)
+        minimize_button = self._create_window_control("Minimize window", "minimize")
+        minimize_button.connect("clicked", lambda _button: self.minimize())
+        controls.append(minimize_button)
 
         fullscreen_button = self._create_window_control(
-            "view-fullscreen-symbolic", "Toggle fullscreen", "fullscreen"
+            "Toggle fullscreen", "fullscreen"
         )
         fullscreen_button.connect("clicked", lambda _button: self._toggle_fullscreen())
         controls.append(fullscreen_button)
 
-        minimize_button = self._create_window_control(
-            "window-minimize-symbolic", "Minimize window", "minimize"
-        )
-        minimize_button.connect("clicked", lambda _button: self.minimize())
-        controls.append(minimize_button)
+        close_button = self._create_window_control("Close window", "close")
+        close_button.connect("clicked", lambda _button: self.close())
+        controls.append(close_button)
+
         header.pack_end(controls)
         box.append(header)
 
@@ -272,11 +272,12 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         box.append(status)
 
     def _create_window_control(
-        self, icon_name: str, tooltip: str, color_class: str
+        self, tooltip: str, color_class: str
     ) -> Gtk.Button:
         button = Gtk.Button()
-        button.set_child(Gtk.Image.new_from_icon_name(icon_name))
         button.set_tooltip_text(tooltip)
+        button.set_size_request(9, 5)
+        button.set_valign(Gtk.Align.CENTER)
         button.add_css_class("window-control")
         button.add_css_class(color_class)
         return button
