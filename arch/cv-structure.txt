@@ -1,0 +1,258 @@
+           _____
+          (``~ ')
+          ( ~ ~ )
+          (  O  )
+   ________\   /________
+  /  ______ \ / ______  \
+ /  /      \   /      \  \
+|  |                   | |
+|  |        ---        | |
+|  |                   | |
+ \  \                  / /
+  \  \______________ _/ /
+   \___________________/
+      ||     ||     ||
+      ||     ||     ||
+     (__)   (__)   (__)
+
+So this will be the full project tree(Hopefully) of this project.
+
+CodeVision/
+│
+├── .venv/
+│
+├── README.md
+├── LICENSE
+├── deps.sh
+├── Makefile
+├── requirements.txt
+├── pyproject.toml
+│
+├── docs/
+│   ├── architecture.md
+│   ├── features.md
+│   ├── parser.md
+│   ├── analysis.md
+│   └── development.md
+│
+├── tests/
+│   ├── __init__.py
+│   ├── test_parser.py
+│   ├── test_ast.py
+│   ├── test_functions.py
+│   ├── test_variables.py
+│   ├── test_complexity.py
+│   ├── test_cfg.py
+│   ├── test_call_graph.py
+│   └── test_execution.py
+│
+├── src/
+│   └── codevision/
+│       ├── __init__.py
+│       ├── main.py
+│       ├── config.py
+│       ├── constants.py
+│       │
+│       ├── app/
+│       │   ├── __init__.py
+│       │   ├── application.py
+│       │   └── actions.py
+│       │
+│       ├── ui/
+│       │   ├── __init__.py
+│       │   ├── main_window.py
+│       │   ├── header_bar.py
+│       │   ├── sidebar.py
+│       │   ├── editor.py
+│       │   ├── overview.py
+│       │   ├── function_panel.py
+│       │   ├── variable_panel.py
+│       │   ├── structure_panel.py
+│       │   ├── diagnostics_panel.py
+│       │   ├── complexity_panel.py
+│       │   ├── execution_panel.py
+│       │   ├── memory_panel.py
+│       │   │
+│       │   ├── graphs/
+│       │   │   ├── __init__.py
+│       │   │   ├── graph_view.py
+│       │   │   ├── cfg_view.py
+│       │   │   ├── call_graph_view.py
+│       │   │   └── dependency_view.py
+│       │   │
+│       │   ├── dialogs/
+│       │   │   ├── __init__.py
+│       │   │   ├── open_file.py
+│       │   │   ├── save_file.py
+│       │   │   ├── settings.py
+│       │   │   └── about.py
+│       │   │
+│       │   └── widgets/
+│       │       ├── __init__.py
+│       │       ├── metric_card.py
+│       │       ├── code_tree.py
+│       │       ├── function_item.py
+│       │       ├── variable_item.py
+│       │       ├── graph_canvas.py
+│       │       └── terminal_view.py
+│       │
+│       ├── editor/
+│       │   ├── __init__.py
+│       │   ├── buffer.py
+│       │   ├── syntax.py
+│       │   ├── highlighting.py
+│       │   ├── line_numbers.py
+│       │   ├── search.py
+│       │   └── navigation.py
+│       │
+│       ├── parser/
+│       │   ├── __init__.py
+│       │   ├── parser.py
+│       │   ├── language.py
+│       │   ├── tree.py
+│       │   ├── nodes.py
+│       │   └── source.py
+│       │
+│       ├── model/
+│       │   ├── __init__.py
+│       │   ├── program.py
+│       │   ├── file.py
+│       │   ├── function.py
+│       │   ├── variable.py
+│       │   ├── parameter.py
+│       │   ├── statement.py
+│       │   ├── expression.py
+│       │   ├── scope.py
+│       │   ├── include.py
+│       │   └── location.py
+│       │
+│       ├── analysis/
+│       │   ├── __init__.py
+│       │   ├── analyzer.py
+│       │   ├── functions.py
+│       │   ├── variables.py
+│       │   ├── scopes.py
+│       │   ├── loops.py
+│       │   ├── conditions.py
+│       │   ├── includes.py
+│       │   ├── dependencies.py
+│       │   ├── diagnostics.py
+│       │   └── patterns.py
+│       │
+│       ├── complexity/
+│       │   ├── __init__.py
+│       │   ├── cyclomatic.py
+│       │   ├── cognitive.py
+│       │   ├── big_o.py
+│       │   └── metrics.py
+│       │
+│       ├── graphs/
+│       │   ├── __init__.py
+│       │   ├── graph.py
+│       │   ├── cfg.py
+│       │   ├── call_graph.py
+│       │   ├── dependency_graph.py
+│       │   └── graphviz.py
+│       │
+│       ├── execution/
+│       │   ├── __init__.py
+│       │   ├── simulator.py
+│       │   ├── state.py
+│       │   ├── step.py
+│       │   ├── environment.py
+│       │   ├── evaluator.py
+│       │   ├── conditions.py
+│       │   ├── loops.py
+│       │   └── call_stack.py
+│       │
+│       ├── memory/
+│       │   ├── __init__.py
+│       │   ├── memory.py
+│       │   ├── stack.py
+│       │   ├── heap.py
+│       │   ├── variable.py
+│       │   ├── pointer.py
+│       │   └── address.py
+│       │
+│       ├── diagnostics/
+│       │   ├── __init__.py
+│       │   ├── diagnostic.py
+│       │   ├── rules.py
+│       │   ├── severity.py
+│       │   └── engine.py
+│       │
+│       ├── compiler/
+│       │   ├── __init__.py
+│       │   ├── compiler.py
+│       │   ├── gcc.py
+│       │   ├── gpp.py
+│       │   └── process.py
+│       │
+│       ├── project/
+│       │   ├── __init__.py
+│       │   ├── manager.py
+│       │   ├── workspace.py
+│       │   ├── project_file.py
+│       │   └── recent.py
+│       │
+│       ├── export/
+│       │   ├── __init__.py
+│       │   ├── report.py
+│       │   ├── pdf.py
+│       │   ├── json.py
+│       │   └── svg.py
+│       │
+│       ├── services/
+│       │   ├── __init__.py
+│       │   ├── file_service.py
+│       │   ├── parser_service.py
+│       │   ├── analysis_service.py
+│       │   ├── graph_service.py
+│       │   └── execution_service.py
+│       │
+│       └── utils/
+│           ├── __init__.py
+│           ├── logging.py
+│           ├── paths.py
+│           ├── text.py
+│           └── validation.py
+│
+├── resources/
+│   ├── icons/
+│   │   ├── codevision.svg
+│   │   ├── open.svg
+│   │   ├── save.svg
+│   │   ├── search.svg
+│   │   ├── play.svg
+│   │   └── settings.svg
+│   │
+│   ├── styles/
+│   │   ├── main.css
+│   │   ├── editor.css
+│   │   └── graphs.css
+│   │
+│   ├── ui/
+│   │   └── menus.ui
+│   │
+│   └── templates/
+│       └── report.html
+│
+├── examples/
+│   ├── hello.c
+│   ├── calculator.c
+│   ├── loops.c
+│   ├── recursion.c
+│   ├── pointers.c
+│   ├── arrays.c
+│   ├── linked_list.c
+│   └── sample.cpp
+│
+├── reports/
+│   └── .gitkeep
+│
+├── build/
+│   └── .gitkeep
+│
+└── dist/
+    └── .gitkeep
+```
