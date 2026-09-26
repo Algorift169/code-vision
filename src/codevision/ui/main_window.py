@@ -135,6 +135,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         status.append(version)
 
         box.append(status)
+        self._enable_edge_resize()
 
     def _create_window_control(
         self, tooltip: str, color_class: str
@@ -152,6 +153,85 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             self.unfullscreen()
         else:
             self.fullscreen()
+
+    def _enable_edge_resize(self) -> None:
+        drag = Gtk.GestureDrag.new()
+        drag.set_button(1)
+        drag.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        drag.connect("drag-begin", self._on_resize_drag_begin)
+        self.add_controller(drag)
+
+        motion = Gtk.EventControllerMotion.new()
+        motion.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        motion.connect("motion", self._on_resize_motion)
+        motion.connect("leave", lambda _controller: self.set_cursor(None))
+        self.add_controller(motion)
+
+    def _on_resize_drag_begin(
+        self, gesture: Gtk.GestureDrag, start_x: float, start_y: float
+    ) -> None:
+        edge = self._resize_edge_at(start_x, start_y)
+        surface = self.get_surface()
+        if edge is None or surface is None or not isinstance(surface, Gdk.Toplevel):
+            gesture.set_state(Gtk.EventSequenceState.DENIED)
+            return
+
+        surface.begin_resize(
+            edge,
+            gesture.get_current_event_device(),
+            gesture.get_current_button(),
+            start_x,
+            start_y,
+            gesture.get_current_event_time(),
+        )
+        gesture.set_state(Gtk.EventSequenceState.CLAIMED)
+
+    def _on_resize_motion(
+        self, _controller: Gtk.EventControllerMotion, x: float, y: float
+    ) -> None:
+        edge = self._resize_edge_at(x, y)
+        cursors = {
+            Gdk.SurfaceEdge.NORTH_WEST: "nw-resize",
+            Gdk.SurfaceEdge.NORTH: "n-resize",
+            Gdk.SurfaceEdge.NORTH_EAST: "ne-resize",
+            Gdk.SurfaceEdge.WEST: "w-resize",
+            Gdk.SurfaceEdge.EAST: "e-resize",
+            Gdk.SurfaceEdge.SOUTH_WEST: "sw-resize",
+            Gdk.SurfaceEdge.SOUTH: "s-resize",
+            Gdk.SurfaceEdge.SOUTH_EAST: "se-resize",
+        }
+        if edge is None:
+            self.set_cursor(None)
+        else:
+            self.set_cursor_from_name(cursors[edge])
+
+    def _resize_edge_at(self, x: float, y: float) -> Gdk.SurfaceEdge | None:
+        if self.is_fullscreen():
+            return None
+
+        border = 8
+        left = x < border
+        right = x >= self.get_width() - border
+        top = y < border
+        bottom = y >= self.get_height() - border
+
+        if top and left:
+            return Gdk.SurfaceEdge.NORTH_WEST
+        if top and right:
+            return Gdk.SurfaceEdge.NORTH_EAST
+        if bottom and left:
+            return Gdk.SurfaceEdge.SOUTH_WEST
+        if bottom and right:
+            return Gdk.SurfaceEdge.SOUTH_EAST
+        if top:
+            return Gdk.SurfaceEdge.NORTH
+        if bottom:
+            return Gdk.SurfaceEdge.SOUTH
+        if left:
+            return Gdk.SurfaceEdge.WEST
+        if right:
+            return Gdk.SurfaceEdge.EAST
+        return None
 
     def _install_css(self) -> None:
         display = Gdk.Display.get_default()
