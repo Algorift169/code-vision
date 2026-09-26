@@ -54,8 +54,8 @@ headerbar {
 }
 
 .window-control {
-    min-width: 9px;
-    min-height: 5px;
+    min-width: 16px;
+    min-height: 10px;
     padding: 0;
     border: 0;
     border-radius: 3px;
@@ -207,7 +207,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         search.add_css_class("search-entry")
         search.set_size_request(160, 11)
 
-        controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         controls.add_css_class("window-controls")
         controls.append(search)
 
@@ -276,7 +276,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
     ) -> Gtk.Button:
         button = Gtk.Button()
         button.set_tooltip_text(tooltip)
-        button.set_size_request(9, 5)
+        button.set_size_request(16, 10)
         button.set_valign(Gtk.Align.CENTER)
         button.add_css_class("window-control")
         button.add_css_class(color_class)
