@@ -1,0 +1,41 @@
+headerbar {
+    background-color: #0b1830;
+    color: #e5edf8;
+    border-bottom: 1px solid #1a2c48;
+    min-height: 11px;
+    padding: 0 3px;
+}
+
+.menu-bar {
+    background: transparent;
+}
+
+.window-title {
+    color: #e5edf8;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.menu-button {
+    background: transparent;
+    color: #c8d5e7;
+    border: 0;
+    border-radius: 4px;
+    min-height: 11px;
+    padding: 0 4px;
+    font-size: 10px;
+}
+
+.menu-button:hover {
+    background: #1a2d46;
+}
+
+.search-entry {
+    background: #12243d;
+    color: #dfeafc;
+    border: 1px solid #1d3556;
+    border-radius: 8px;
+    min-height: 11px;
+    padding: 0 3px;
+    font-size: 10px;
+}

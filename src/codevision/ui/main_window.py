@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -10,157 +12,15 @@ from .editor import EditorPanel
 from .project_tree import ProjectTreePanel
 
 
-CSS = """
-window {
-    background-color: #071421;
-    color: #e5edf8;
-}
-
-headerbar {
-    background-color: #0b1830;
-    color: #e5edf8;
-    border-bottom: 1px solid #1a2c48;
-    min-height: 11px;
-    padding: 0 3px;
-}
-
-.app-name {
-    color: #e5edf8;
-    font-weight: 700;
-    font-size: 10px;
-    margin-right: 4px;
-}
-
-.menu-bar {
-    background: transparent;
-}
-
-.menu-button {
-    background: transparent;
-    color: #c8d5e7;
-    border: 0;
-    border-radius: 4px;
-    min-height: 11px;
-    padding: 0 4px;
-    font-size: 10px;
-}
-
-.menu-button:hover {
-    background: #1a2d46;
-}
-
-.window-controls {
-    background: transparent;
-}
-
-.window-control {
-    min-width: 16px;
-    min-height: 10px;
-    padding: 0;
-    border: 0;
-    border-radius: 3px;
-}
-
-.window-control.close {
-    background: #f15b5b;
-}
-
-.window-control.fullscreen {
-    background: #40c879;
-}
-
-.window-control.minimize {
-    background: #f4c24e;
-}
-
-.search-entry {
-    background: #12243d;
-    color: #dfeafc;
-    border-radius: 8px;
-    border: 1px solid #1d3556;
-    min-height: 11px;
-    padding: 0 3px;
-    font-size: 10px;
-}
-
-.panel {
-    background-color: #0d1a2a;
-    border: 1px solid #1a2d46;
-    border-radius: 8px;
-}
-
-.panel-header {
-    background: transparent;
-    padding: 0 0 6px;
-}
-
-.section-title {
-    color: #e8eef9;
-    font-weight: 700;
-}
-
-.muted-label {
-    color: #9db5d4;
-    font-size: 12px;
-}
-
-.card {
-    background-color: rgba(19, 34, 52, 0.85);
-    border: 1px solid #1a2d46;
-    border-radius: 10px;
-    padding: 12px;
-}
-
-.card-title {
-    color: #edf4ff;
-    font-weight: 700;
-}
-
-.metric-value {
-    color: #dfeafc;
-    font-weight: 600;
-}
-
-#project-panel, #editor-panel, #analysis-panel {
-    background: #0d1a2a;
-}
-
-#code-editor {
-    background-color: #0b1628;
-    color: #dfeafc;
-    border: 0;
-    caret-color: #dfeafc;
-}
-
-#code-editor text {
-    background-color: #0b1628;
-    color: #dfeafc;
-}
-
-#code-editor gutter,
-#code-editor gutter line-numbers {
-    background-color: #0b1628;
-    color: #7f91a8;
-}
-
-#code-editor selection {
-    background-color: #284f7a;
-}
-
-scrolledwindow {
-    background: transparent;
-}
-
-treeview {
-    background: transparent;
-    color: #dfeafc;
-}
-
-textview {
-    background: #0b1628;
-    color: #dfeafc;
-}
-"""
+STYLESHEETS = (
+    "main-window.css",
+    "headerbar.css",
+    "window-controls.css",
+    "panels.css",
+    "project-explorer.css",
+    "editor.css",
+    "analysis-panel.css",
+)
 
 
 class CodeVisionWindow(Gtk.ApplicationWindow):
@@ -185,9 +45,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
         menu_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         menu_bar.add_css_class("menu-bar")
-        app_name = Gtk.Label(label="CodeVision")
-        app_name.add_css_class("app-name")
-        menu_bar.append(app_name)
+        menu_bar.set_margin_start(60)
         for menu_name in ("File", "Edit", "View", "Analyze", "Project", "Help"):
             menu_button = Gtk.MenuButton(label=menu_name)
             menu_button.add_css_class("menu-button")
@@ -202,14 +60,21 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             menu_bar.append(menu_button)
         header.pack_start(menu_bar)
 
+        title_search = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        title_search.set_margin_start(120)
+        title = Gtk.Label(label="CodeVision")
+        title.add_css_class("window-title")
+        title_search.append(title)
+
         search = Gtk.SearchEntry()
         search.set_placeholder_text("Search anything...")
         search.add_css_class("search-entry")
-        search.set_size_request(160, 11)
+        search.set_size_request(220, 11)
+        title_search.append(search)
+        header.set_title_widget(title_search)
 
         controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         controls.add_css_class("window-controls")
-        controls.append(search)
 
         minimize_button = self._create_window_control("Minimize window", "minimize")
         minimize_button.connect("clicked", lambda _button: self.minimize())
@@ -289,12 +154,21 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             self.fullscreen()
 
     def _install_css(self) -> None:
-        provider = Gtk.CssProvider()
-        provider.load_from_string(CSS)
         display = Gdk.Display.get_default()
-        if display is not None:
+        if display is None:
+            return
+
+        styles_dir = Path(__file__).resolve().parents[3] / "resources" / "styles"
+        if not styles_dir.is_dir():
+            styles_dir = Path.cwd() / "resources" / "styles"
+
+        self._css_providers = []
+        for stylesheet in STYLESHEETS:
+            provider = Gtk.CssProvider()
+            provider.load_from_path(str(styles_dir / stylesheet))
             Gtk.StyleContext.add_provider_for_display(
                 display,
                 provider,
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
+            self._css_providers.append(provider)
