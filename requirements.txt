@@ -1,0 +1,18 @@
+# Project runtime dependencies.
+# GTK/GObject bindings are intentionally not listed here because this environment
+# provides them via the system packages (python3-gi / libgtk-4-dev). Keeping them
+# out of pip avoids the PyGObject source-build failure on Debian/Ubuntu.
+#
+# Install the system packages before creating the project venv:
+#   sudo apt-get install python3-gi python3-gi-cairo libgtk-4-dev libgirepository1.0-dev
+
+tree-sitter>=0.21.0
+tree-sitter-c>=0.20.0
+tree-sitter-cpp>=0.20.0
+networkx>=3.0.0
+graphviz>=0.20.0
+reportlab>=4.0.0
+
+# Packaging and testing dependencies.
+pyinstaller>=6.0.0
+pytest>=8.0.0

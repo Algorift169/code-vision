@@ -1,0 +1,45 @@
+# Build metadata for the CodeVision Python package.
+# This provides a simple setuptools-based package configuration for a desktop
+# analysis application while keeping the project easy to run and test locally.
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codevision"
+version = "0.1.0"
+description = "CodeVision - C/C++ analysis and visualization tool"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "tree-sitter>=0.21.0",
+    "tree-sitter-c>=0.20.0",
+    "tree-sitter-cpp>=0.20.0",
+    "networkx>=3.0.0",
+    "graphviz>=0.20.0",
+    "reportlab>=4.0.0",
+    "pyinstaller>=6.0.0",
+    "pytest>=8.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "black>=24.0.0",
+    "ruff>=0.4.0",
+]
+
+[project.scripts]
+codevision = "codevision.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+codevision = ["*"]

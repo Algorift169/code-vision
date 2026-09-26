@@ -1,3 +1,0 @@
-Temporary build artifacts.
-This directory is reserved for intermediate files generated during builds,
-compilation, packaging, or other automated build processes.
