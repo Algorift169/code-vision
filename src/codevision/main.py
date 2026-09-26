@@ -16,6 +16,7 @@ def main() -> int:
         app = Gtk.Application(application_id="org.codevision.app")
 
         def on_activate(app: Gtk.Application) -> None:
+            
             win = CodeVisionWindow(app)
             win.present()
 
