@@ -18,11 +18,8 @@ def main() -> int:
 
         app = Gtk.Application(application_id="org.codevision.app")
 
-""" This function is a callback that is called when the application is 
-activated. It creates a new application window, sets its title and default size, 
-and presents it to the user. """
         def on_activate(app: Gtk.Application) -> None:
-            # The first milestone is just proving the GTK app can open a window.
+            """Create the initial application window and present it to the user."""
             win = Gtk.ApplicationWindow(application=app)
             win.set_title("CodeVision")
             win.set_default_size(900, 600)
