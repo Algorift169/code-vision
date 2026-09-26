@@ -8,12 +8,14 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk
 
 from .analysis_panel import AnalysisPanel
+from .border import WindowBorder
 from .editor import EditorPanel
 from .project_tree import ProjectTreePanel
 
 
 STYLESHEETS = (
     "main-window.css",
+    "window-border.css",
     "headerbar.css",
     "window-controls.css",
     "panels.css",
@@ -37,7 +39,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._install_css()
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.set_child(box)
+        self.set_child(WindowBorder(box))
 
         header = Gtk.HeaderBar()
         header.set_show_title_buttons(False)
