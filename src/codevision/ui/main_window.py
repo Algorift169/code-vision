@@ -128,14 +128,13 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         header.set_title_widget(Gtk.Label(label="CodeVision"))
         header.set_show_title_buttons(True)
         header.set_hexpand(True)
+        self.set_titlebar(header)
 
         search = Gtk.SearchEntry()
         search.set_placeholder_text("Search anything...")
         search.add_css_class("search-entry")
         search.set_size_request(220, 28)
         header.pack_end(search)
-
-        box.append(header)
 
         workspace = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
         workspace.set_wide_handle(True)
