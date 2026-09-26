@@ -1,0 +1,4 @@
+Program graph generation.
+This directory constructs graph representations of analyzed programs.
+It will generate control-flow graphs, function-call graphs, dependency graphs,
+and provide Graphviz integration for graph layout and rendering.

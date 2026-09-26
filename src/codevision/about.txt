@@ -1,0 +1,4 @@
+Main CodeVision Python package.
+This is the core application package containing the GUI, parser, internal code
+model, analysis engines, graph systems, execution simulator, memory model,
+project management, exporting, and supporting services.

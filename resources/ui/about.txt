@@ -1,0 +1,3 @@
+GTK UI definitions.
+This directory contains GTK UI resources and declarative interface definitions
+used for menus and other reusable interface components.

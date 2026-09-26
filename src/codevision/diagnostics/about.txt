@@ -1,0 +1,4 @@
+Code diagnostics and warnings.
+This directory implements the system that detects and reports potential problems,
+unsafe patterns, suspicious constructs, and other static-analysis diagnostics.
+It defines diagnostic objects, rules, severity levels, and the diagnostic engine.

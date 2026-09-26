@@ -1,0 +1,4 @@
+Code complexity analysis.
+This directory calculates and represents software complexity metrics such as
+cyclomatic complexity, cognitive complexity, estimated Big-O behavior, and
+other CodeVision complexity measurements.

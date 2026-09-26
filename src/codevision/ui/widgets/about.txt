@@ -1,0 +1,3 @@
+Reusable GTK widgets.
+This directory contains custom reusable interface components such as metric cards,
+code trees, function items, variable items, graph canvases, and terminal views.

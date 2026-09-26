@@ -1,0 +1,4 @@
+Static source-code analysis engine.
+This directory contains the main analysis logic operating on the CodeVision model.
+It analyzes functions, variables, scopes, loops, conditions, includes, dependencies,
+code patterns, and potential problems.

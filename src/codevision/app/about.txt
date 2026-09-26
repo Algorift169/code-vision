@@ -1,0 +1,3 @@
+Application lifecycle and coordination.
+This module manages the GTK application instance, application startup/shutdown,
+global actions, application-level commands, and coordination between major components.

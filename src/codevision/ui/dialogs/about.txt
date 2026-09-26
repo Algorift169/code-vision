@@ -1,0 +1,3 @@
+GTK dialogs.
+This directory contains dedicated dialog windows for opening files, saving files,
+application settings, application information, and other user interactions.

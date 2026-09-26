@@ -1,0 +1,3 @@
+Application resources.
+This directory contains non-Python resources required by the CodeVision GUI,
+including icons, stylesheets, UI definitions, and report templates.

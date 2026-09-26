@@ -1,0 +1,3 @@
+CodeVision architecture documentation.
+This directory contains high-level architectural decisions, system structure,
+module relationships, data flow, and design notes for the CodeVision project.

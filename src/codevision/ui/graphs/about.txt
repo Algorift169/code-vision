@@ -1,0 +1,3 @@
+Graph visualization UI.
+This directory contains GTK components responsible for displaying control-flow,
+function-call, dependency, and other CodeVision graphs.

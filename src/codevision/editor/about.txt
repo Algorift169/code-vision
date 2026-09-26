@@ -1,0 +1,4 @@
+Code editor system.
+This directory implements the CodeVision source-code editor using GtkSourceView.
+It will handle buffers, syntax highlighting, line numbers, searching, navigation,
+editing operations, and editor-related behavior.

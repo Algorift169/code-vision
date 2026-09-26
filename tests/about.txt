@@ -1,0 +1,5 @@
+Automated testing.
+This directory contains unit and integration tests for CodeVision.
+Tests will verify parsing, AST processing, function and variable analysis,
+complexity calculations, graph generation, execution simulation, and other
+core functionality.

@@ -1,0 +1,3 @@
+Output templates.
+This directory contains templates used when CodeVision generates reports or
+other structured output formats.

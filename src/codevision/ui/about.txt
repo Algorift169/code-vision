@@ -1,0 +1,3 @@
+GTK user interface.
+This directory contains all CodeVision GTK 4 interface components, windows,
+panels, views, dialogs, widgets, and graph visualization interfaces.

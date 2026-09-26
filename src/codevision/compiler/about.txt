@@ -1,0 +1,4 @@
+C and C++ compilation integration.
+This directory provides controlled integration with system compilers such as GCC
+and G++ so CodeVision can compile source files, capture compiler output, detect
+compilation errors, and optionally use compilation results during analysis.

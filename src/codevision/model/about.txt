@@ -1,0 +1,4 @@
+CodeVision internal code representation.
+This directory defines the normalized internal representation of analyzed programs.
+It contains models for programs, files, functions, variables, parameters, statements,
+expressions, scopes, includes, and source-code locations.

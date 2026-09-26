@@ -1,0 +1,4 @@
+Application service layer.
+This directory coordinates communication between the UI and core systems.
+Services will provide centralized operations for files, parsing, analysis,
+graphs, execution, and other application workflows.

@@ -1,0 +1,3 @@
+Memory visualization model.
+This directory represents and visualizes program memory concepts such as stack
+frames, heap allocations, variables, pointers, and memory addresses during execution.

@@ -1,0 +1,4 @@
+C and C++ source parser.
+This directory integrates Tree-sitter with CodeVision to parse C and C++ source code.
+It converts source text into syntax trees and provides controlled access to parsed nodes,
+languages, source locations, and parser information.

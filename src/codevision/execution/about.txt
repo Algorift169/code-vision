@@ -1,0 +1,4 @@
+Program execution visualization and simulation.
+This directory contains the CodeVision execution engine.
+It will simulate supported C/C++ program behavior step-by-step, maintain execution
+state, evaluate expressions and conditions, handle loops, and track the call stack.

@@ -1,0 +1,4 @@
+Shared utility functions.
+This directory contains small reusable utilities that do not belong to a
+specific CodeVision subsystem, including logging, path handling, text utilities,
+and validation helpers.

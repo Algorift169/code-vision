@@ -1,0 +1,3 @@
+Project documentation.
+This directory contains detailed documentation covering CodeVision architecture,
+features, parser design, analysis engine, development workflow, and technical decisions.

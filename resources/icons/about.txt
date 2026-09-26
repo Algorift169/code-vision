@@ -1,0 +1,3 @@
+CodeVision icons and graphical assets.
+This directory contains application icons used by the GTK interface, including
+application branding and icons for actions such as open, save, search, play, and settings.

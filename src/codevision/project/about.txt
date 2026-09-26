@@ -1,0 +1,3 @@
+Project and workspace management.
+This directory manages CodeVision projects, workspaces, source files, project state,
+recent files, and project-level operations.

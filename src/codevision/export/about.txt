@@ -1,0 +1,4 @@
+Analysis export system.
+This directory generates external representations of CodeVision results.
+It will support PDF reports, JSON analysis data, SVG graph output, and other
+export formats added later.

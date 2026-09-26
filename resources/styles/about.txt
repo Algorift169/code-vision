@@ -1,0 +1,3 @@
+GTK styling resources.
+This directory contains CSS files controlling the visual appearance of CodeVision,
+including the main interface, code editor, panels, graphs, buttons, and widgets.

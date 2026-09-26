@@ -1,0 +1,3 @@
+Project utility scripts.
+This directory contains shell scripts used for dependency installation,
+development setup, building, testing, running, and other project automation.
