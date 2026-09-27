@@ -5,12 +5,13 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, Gtk
 
 from .analysis_panel import AnalysisPanel
 from .border import WindowBorder
 from .editor import EditorPanel
-from .project_tree import ProjectTreePanel
+from .project_explorer import ProjectExplorer
 
 
 STYLESHEETS = (
@@ -20,6 +21,7 @@ STYLESHEETS = (
     "window-controls.css",
     "panels.css",
     "project-explorer.css",
+    "folder-picker.css",
     "editor.css",
     "analysis-panel.css",
 )
@@ -100,14 +102,14 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         workspace.set_hexpand(True)
         workspace.set_vexpand(True)
 
-        project_panel = ProjectTreePanel()
-        project_panel.set_name("project-panel")
-
         right_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
         right_pane.set_wide_handle(True)
 
         editor_panel = EditorPanel()
         editor_panel.set_name("editor-panel")
+
+        project_panel = ProjectExplorer(on_file_open=editor_panel.open_file)
+        project_panel.set_name("project-panel")
 
         analysis_panel = AnalysisPanel()
         analysis_panel.set_name("analysis-panel")
@@ -166,7 +168,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         motion = Gtk.EventControllerMotion.new()
         motion.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         motion.connect("motion", self._on_resize_motion)
-        motion.connect("leave", lambda _controller: self.set_cursor(None))
+        motion.connect("leave", lambda *_args: self.set_cursor(None))
         self.add_controller(motion)
 
     def _on_resize_drag_begin(
@@ -189,8 +191,11 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         gesture.set_state(Gtk.EventSequenceState.CLAIMED)
 
     def _on_resize_motion(
-        self, _controller: Gtk.EventControllerMotion, x: float, y: float
+        self, controller: Gtk.EventControllerMotion, x: float, y: float
     ) -> None:
+        if controller.get_widget() is not self:
+            return
+
         edge = self._resize_edge_at(x, y)
         cursors = {
             Gdk.SurfaceEdge.NORTH_WEST: "nw-resize",

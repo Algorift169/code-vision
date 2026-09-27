@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -26,6 +28,7 @@ class EditorPanel(Gtk.Box):
         title.set_halign(Gtk.Align.START)
         title.add_css_class("section-title")
         header.append(title)
+        self.title = title
 
         self.append(header)
 
@@ -49,8 +52,17 @@ class EditorPanel(Gtk.Box):
         if language is not None:
             buffer.set_language(language)
         source_view.set_buffer(buffer)
+        self.buffer = buffer
+        self.language_manager = manager
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled.set_child(source_view)
         self.append(scrolled)
+
+    def open_file(self, path: Path) -> None:
+        """Display a selected project file in the editor."""
+        self.buffer.set_text(path.read_text(encoding="utf-8", errors="replace"))
+        language = self.language_manager.guess_language(str(path), None)
+        self.buffer.set_language(language)
+        self.title.set_text(path.name)

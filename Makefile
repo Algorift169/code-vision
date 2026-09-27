@@ -21,13 +21,14 @@ install:
 
 run:
 	# Run from the source tree while also resolving the build-local package copy.
-	PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m codevision
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m codevision
 
 test:
 	# Keep test runs aligned with the same source import path.
-	PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m pytest -q
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m pytest -q
 
 clean:
 	# Remove cached Python artifacts and generated build output.
-	rm -rf .pytest_cache $(BUILD_DIR) dist *.egg-info src/*.egg-info src/**/__pycache__
+	rm -rf .pytest_cache $(BUILD_DIR) dist *.egg-info src/*.egg-info
+	find src -type d -name __pycache__ -prune -exec rm -rf {} +
 	mkdir -p $(BUILD_DIR)
