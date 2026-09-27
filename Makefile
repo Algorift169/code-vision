@@ -13,22 +13,22 @@ install:
 	mkdir -p $(BUILD_DIR)
 	# Use system GTK bindings when available; this avoids the PyGObject source build issue on Debian/Ubuntu.
 	python3 -m venv --system-site-packages $(VENV)
-	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements.txt
+	PYTHONPYCACHEPREFIX="$(BUILD_DIR)/pycache" $(PIP) install --upgrade pip
+	PYTHONPYCACHEPREFIX="$(BUILD_DIR)/pycache" $(PIP) install -r requirements.txt
 	rm -rf $(SITE_PACKAGES)
 	# Install the package into the dedicated build area instead of leaving metadata in src/.
-	$(PIP) install --no-deps --target $(SITE_PACKAGES) .
+	PYTHONPYCACHEPREFIX="$(BUILD_DIR)/pycache" $(PIP) install --no-deps --target $(SITE_PACKAGES) .
 
 run:
 	# Run from the source tree while also resolving the build-local package copy.
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m codevision
+	PYTHONPYCACHEPREFIX="$(BUILD_DIR)/pycache" PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m codevision
 
 test:
 	# Keep test runs aligned with the same source import path.
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m pytest -q
+	PYTHONPYCACHEPREFIX="$(BUILD_DIR)/pycache" PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m pytest -q
 
 clean:
 	# Remove cached Python artifacts and generated build output.
 	rm -rf .pytest_cache $(BUILD_DIR) dist *.egg-info src/*.egg-info
-	find src -type d -name __pycache__ -prune -exec rm -rf {} +
+	find src tests -type d -name __pycache__ -prune -exec rm -rf {} +
 	mkdir -p $(BUILD_DIR)

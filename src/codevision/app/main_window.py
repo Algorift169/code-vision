@@ -10,6 +10,7 @@ gi.require_version("Gio", "2.0")
 from gi.repository import Gdk, Gio, Gtk
 
 from ..editor.editor import EditorPanel
+from ..editor.tab import EditorTabs
 from ..services.save import SaveService
 from ..ui.analysis_panel import AnalysisPanel
 from ..ui.border import WindowBorder
@@ -25,6 +26,7 @@ STYLESHEETS = (
     "project-explorer.css",
     "folder-picker.css",
     "editor.css",
+    "editor-tabs.css",
     "analysis-panel.css",
 )
 
@@ -109,10 +111,6 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         right_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
         right_pane.set_wide_handle(True)
 
-        editor_panel = EditorPanel()
-        editor_panel.set_name("editor-panel")
-        self.editor_panel = editor_panel
-
         welcome_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         welcome_page.set_name("welcome-page")
         welcome_page.set_hexpand(True)
@@ -133,7 +131,9 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.center_stack.set_hexpand(True)
         self.center_stack.set_vexpand(True)
         self.center_stack.add_named(welcome_page, "welcome")
-        self.center_stack.add_named(editor_panel, "editor")
+
+        self.editor_tabs = EditorTabs(self._on_active_editor_changed)
+        self.center_stack.add_named(self.editor_tabs, "editor")
         self.center_stack.set_visible_child_name("welcome")
 
         project_panel = ProjectExplorer(on_file_open=self._open_file)
@@ -176,22 +176,32 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
     def _open_file(self, path: Path) -> None:
         try:
-            self.editor_panel.open_file(path)
+            editor = self.editor_tabs.open_file(path)
         except OSError as error:
             self.status_label.set_text(f"Could not open {path.name}: {error}")
             return
 
         self.center_stack.set_visible_child_name("editor")
-        self.status_label.set_text(str(path))
+        self.status_label.set_text(str(editor.file_path))
+
+    def _on_active_editor_changed(self, editor: EditorPanel | None) -> None:
+        if editor is None:
+            self.center_stack.set_visible_child_name("welcome")
+            self.status_label.set_text("CodeVision")
+            return
+
+        self.center_stack.set_visible_child_name("editor")
+        self.status_label.set_text(str(editor.file_path or editor.title.get_text()))
 
     def _on_save_action(
         self, _action: Gio.SimpleAction, _parameter: object | None
     ) -> None:
-        if self.center_stack.get_visible_child_name() != "editor":
+        editor = self.editor_tabs.active_editor
+        if editor is None:
             return
 
-        if self.editor_panel.file_path is not None:
-            self._save_to_path(self.editor_panel.file_path)
+        if editor.file_path is not None:
+            self._save_to_path(editor.file_path)
             return
 
         dialog = Gtk.FileChooserNative.new(
@@ -222,7 +232,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
     def _save_to_path(self, path: Path) -> None:
         try:
-            saved_path = self.editor_panel.save_file(self.save_service, path)
+            saved_path = self.editor_tabs.save_active(self.save_service, path)
         except OSError as error:
             self.status_label.set_text(f"Could not save {path.name}: {error}")
             return
