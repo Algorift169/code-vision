@@ -62,6 +62,11 @@ class FolderPickerWindow(Gtk.Window):
         self.path_label.add_css_class("folder-picker-path")
         toolbar.append(self.path_label)
 
+        self.show_hidden_toggle = Gtk.CheckButton(label="Show hidden files")
+        self.show_hidden_toggle.add_css_class("folder-picker-hidden-toggle")
+        self.show_hidden_toggle.connect("toggled", self._on_show_hidden_toggled)
+        toolbar.append(self.show_hidden_toggle)
+
         self.up_button = Gtk.Button()
         self.up_button.set_child(Gtk.Image.new_from_icon_name("go-up-symbolic"))
         self.up_button.set_tooltip_text("Go to parent folder")
@@ -125,7 +130,9 @@ class FolderPickerWindow(Gtk.Window):
     def _navigate(self, directory: Path) -> None:
         try:
             directory = directory.expanduser().resolve(strict=True)
-            entries = self._service.list_entries(directory)
+            entries = self._service.list_entries(
+                directory, show_hidden=self.show_hidden_toggle.get_active()
+            )
         except OSError as error:
             self.status.set_text(str(error))
             return
@@ -180,6 +187,9 @@ class FolderPickerWindow(Gtk.Window):
         parent = self._service.parent_directory(self._current_directory)
         if parent is not None:
             self._navigate(parent)
+
+    def _on_show_hidden_toggled(self, _button: Gtk.CheckButton) -> None:
+        self._navigate(self._current_directory)
 
     def _on_pointer_motion(
         self, _controller: Gtk.EventControllerMotion, _x: float, y: float

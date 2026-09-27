@@ -18,6 +18,11 @@
     font-size: 11px;
 }
 
+.folder-picker-hidden-toggle {
+    color: #c8d5e7;
+    font-size: 11px;
+}
+
 .folder-picker-icon-button {
     min-width: 28px;
     min-height: 28px;

@@ -17,7 +17,9 @@ class BrowserEntry:
 class FolderBrowserService:
     """Filesystem operations used by the in-app folder picker."""
 
-    def list_entries(self, directory: Path) -> list[BrowserEntry]:
+    def list_entries(
+        self, directory: Path, *, show_hidden: bool
+    ) -> list[BrowserEntry]:
         directory = directory.expanduser()
         if not directory.is_dir():
             raise NotADirectoryError(directory)
@@ -25,6 +27,8 @@ class FolderBrowserService:
         entries: list[BrowserEntry] = []
         with os.scandir(directory) as items:
             for item in items:
+                if not show_hidden and item.name.startswith("."):
+                    continue
                 entries.append(
                     BrowserEntry(
                         name=item.name,

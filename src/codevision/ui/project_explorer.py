@@ -168,7 +168,7 @@ class ProjectExplorer(Gtk.Box):
                 self._store.remove(child_iter)
 
         try:
-            entries = self._folder_browser.list_entries(path)
+            entries = self._folder_browser.list_entries(path, show_hidden=True)
         except OSError:
             self._store.set_value(parent_iter, 3, True)
             return
