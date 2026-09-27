@@ -69,7 +69,7 @@ class ProjectExplorer(Gtk.Box):
         self.tree.set_name("project-tree")
         self.tree.set_headers_visible(False)
         self.tree.set_enable_search(True)
-        self.tree.set_activate_on_single_click(False)
+        self.tree.set_activate_on_single_click(True)
         self.tree.set_hexpand(True)
         self.tree.set_vexpand(True)
         self.tree.connect("row-expanded", self._on_row_expanded)

@@ -8,6 +8,8 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("GtkSource", "5")
 from gi.repository import Gtk, GtkSource
 
+from ..services.save import SaveService
+
 
 class EditorPanel(Gtk.Box):
     """Center editor panel using GtkSourceView."""
@@ -54,6 +56,7 @@ class EditorPanel(Gtk.Box):
         source_view.set_buffer(buffer)
         self.buffer = buffer
         self.language_manager = manager
+        self.file_path: Path | None = None
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -62,7 +65,25 @@ class EditorPanel(Gtk.Box):
 
     def open_file(self, path: Path) -> None:
         """Display a selected project file in the editor."""
-        self.buffer.set_text(path.read_text(encoding="utf-8", errors="replace"))
-        language = self.language_manager.guess_language(str(path), None)
+        self.file_path = path.expanduser().resolve()
+        self.buffer.set_text(
+            self.file_path.read_text(encoding="utf-8", errors="replace")
+        )
+        language = self.language_manager.guess_language(str(self.file_path), None)
         self.buffer.set_language(language)
-        self.title.set_text(path.name)
+        self.buffer.set_modified(False)
+        self.title.set_text(self.file_path.name)
+
+    def save_file(self, save_service: SaveService, path: Path | None = None) -> Path:
+        """Save the current buffer to its existing or newly selected path."""
+        target = path or self.file_path
+        if target is None:
+            raise ValueError("A file path is required to save this buffer")
+
+        start, end = self.buffer.get_bounds()
+        content = self.buffer.get_text(start, end, True)
+        saved_path = save_service.save_file(target, content).resolve()
+        self.file_path = saved_path
+        self.buffer.set_modified(False)
+        self.title.set_text(saved_path.name)
+        return saved_path

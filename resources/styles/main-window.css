@@ -7,3 +7,12 @@ window {
     color: #9db5d4;
     font-size: 12px;
 }
+
+.welcome-page {
+    background-color: #0b1628;
+}
+
+.welcome-message {
+    color: #8297b2;
+    font-size: 18px;
+}

@@ -6,12 +6,14 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, Gtk
+gi.require_version("Gio", "2.0")
+from gi.repository import Gdk, Gio, Gtk
 
 from .analysis_panel import AnalysisPanel
 from .border import WindowBorder
 from .editor import EditorPanel
 from .project_explorer import ProjectExplorer
+from ..services.save import SaveService
 
 
 STYLESHEETS = (
@@ -37,6 +39,8 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.set_size_request(1100, 700)
         self.set_name("codevision-window")
         self.set_decorated(False)
+        self.save_service = SaveService()
+        self._save_dialog: Gtk.FileChooserNative | None = None
 
         self._install_css()
 
@@ -107,8 +111,32 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
         editor_panel = EditorPanel()
         editor_panel.set_name("editor-panel")
+        self.editor_panel = editor_panel
 
-        project_panel = ProjectExplorer(on_file_open=editor_panel.open_file)
+        welcome_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        welcome_page.set_name("welcome-page")
+        welcome_page.set_hexpand(True)
+        welcome_page.set_vexpand(True)
+        welcome_page.set_halign(Gtk.Align.FILL)
+        welcome_page.set_valign(Gtk.Align.FILL)
+
+        welcome_message = Gtk.Label(label="Welcome to Code Vision")
+        welcome_message.set_hexpand(True)
+        welcome_message.set_vexpand(True)
+        welcome_message.set_halign(Gtk.Align.CENTER)
+        welcome_message.set_valign(Gtk.Align.CENTER)
+        welcome_message.add_css_class("welcome-message")
+        welcome_page.append(welcome_message)
+
+        self.center_stack = Gtk.Stack()
+        self.center_stack.set_name("editor-stack")
+        self.center_stack.set_hexpand(True)
+        self.center_stack.set_vexpand(True)
+        self.center_stack.add_named(welcome_page, "welcome")
+        self.center_stack.add_named(editor_panel, "editor")
+        self.center_stack.set_visible_child_name("welcome")
+
+        project_panel = ProjectExplorer(on_file_open=self._open_file)
         project_panel.set_name("project-panel")
 
         analysis_panel = AnalysisPanel()
@@ -118,7 +146,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         workspace.set_end_child(right_pane)
         workspace.set_position(260)
 
-        right_pane.set_start_child(editor_panel)
+        right_pane.set_start_child(self.center_stack)
         right_pane.set_end_child(analysis_panel)
         right_pane.set_position(820)
 
@@ -133,13 +161,73 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         status_label = Gtk.Label(label="CodeVision")
         status_label.add_css_class("muted-label")
         status.append(status_label)
+        self.status_label = status_label
 
         version = Gtk.Label(label="v0.1.0")
         version.add_css_class("muted-label")
         status.append(version)
 
         box.append(status)
+        save_action = Gio.SimpleAction.new("save", None)
+        save_action.connect("activate", self._on_save_action)
+        self.add_action(save_action)
+        application.set_accels_for_action("win.save", ["<Primary>s"])
         self._enable_edge_resize()
+
+    def _open_file(self, path: Path) -> None:
+        try:
+            self.editor_panel.open_file(path)
+        except OSError as error:
+            self.status_label.set_text(f"Could not open {path.name}: {error}")
+            return
+
+        self.center_stack.set_visible_child_name("editor")
+        self.status_label.set_text(str(path))
+
+    def _on_save_action(
+        self, _action: Gio.SimpleAction, _parameter: object | None
+    ) -> None:
+        if self.center_stack.get_visible_child_name() != "editor":
+            return
+
+        if self.editor_panel.file_path is not None:
+            self._save_to_path(self.editor_panel.file_path)
+            return
+
+        dialog = Gtk.FileChooserNative.new(
+            "Save File As",
+            self,
+            Gtk.FileChooserAction.SAVE,
+            "_Save",
+            "_Cancel",
+        )
+        dialog.set_current_name("Untitled")
+        dialog.connect("response", self._on_save_as_response)
+        self._save_dialog = dialog
+        dialog.show()
+
+    def _on_save_as_response(
+        self, dialog: Gtk.FileChooserNative, response: int
+    ) -> None:
+        if response == Gtk.ResponseType.ACCEPT:
+            selected = dialog.get_file()
+            path = selected.get_path() if selected is not None else None
+            if path is not None:
+                self._save_to_path(Path(path))
+            else:
+                self.status_label.set_text("Choose a local file path to save")
+
+        dialog.destroy()
+        self._save_dialog = None
+
+    def _save_to_path(self, path: Path) -> None:
+        try:
+            saved_path = self.editor_panel.save_file(self.save_service, path)
+        except OSError as error:
+            self.status_label.set_text(f"Could not save {path.name}: {error}")
+            return
+
+        self.status_label.set_text(f"Saved {saved_path}")
 
     def _create_window_control(
         self, tooltip: str, color_class: str
