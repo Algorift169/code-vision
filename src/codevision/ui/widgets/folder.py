@@ -183,6 +183,9 @@ class FolderPickerWindow(Gtk.Window):
         self.list_box.append(row)
         self._entries_by_row[row] = entry
 
+    def _on_row_activated(self, _list_box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
+        self._activate_row(row)
+
     def _navigate_up(self) -> None:
         parent = self._service.parent_directory(self._current_directory)
         if parent is not None:
@@ -222,9 +225,6 @@ class FolderPickerWindow(Gtk.Window):
             return True
         return False
 
-    def _on_row_activated(self, _list_box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
-        self._activate_row(row)
-
     def _activate_row(self, row: Gtk.ListBoxRow) -> None:
         entry = self._entries_by_row.get(row)
         if entry is None:
@@ -232,6 +232,10 @@ class FolderPickerWindow(Gtk.Window):
 
         if entry.is_directory:
             self._navigate(entry.path)
+            return
+
+        if not entry.path.is_file():
+            self.status.set_text("This item is not a regular file")
             return
 
         try:
