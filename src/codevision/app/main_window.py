@@ -107,9 +107,13 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         workspace.set_wide_handle(True)
         workspace.set_hexpand(True)
         workspace.set_vexpand(True)
+        workspace.set_shrink_start_child(False)
+        workspace.set_shrink_end_child(False)
 
         right_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
         right_pane.set_wide_handle(True)
+        right_pane.set_shrink_start_child(False)
+        right_pane.set_shrink_end_child(False)
 
         welcome_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         welcome_page.set_name("welcome-page")
@@ -130,6 +134,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.center_stack.set_name("editor-stack")
         self.center_stack.set_hexpand(True)
         self.center_stack.set_vexpand(True)
+        self.center_stack.set_size_request(320, -1)
         self.center_stack.add_named(welcome_page, "welcome")
 
         self.editor_tabs = EditorTabs(self._on_active_editor_changed)
