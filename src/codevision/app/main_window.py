@@ -9,11 +9,11 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Gio", "2.0")
 from gi.repository import Gdk, Gio, Gtk
 
-from .analysis_panel import AnalysisPanel
-from .border import WindowBorder
-from .editor import EditorPanel
-from .project_explorer import ProjectExplorer
+from ..editor.editor import EditorPanel
 from ..services.save import SaveService
+from ..ui.analysis_panel import AnalysisPanel
+from ..ui.border import WindowBorder
+from ..ui.project_explorer import ProjectExplorer
 
 
 STYLESHEETS = (

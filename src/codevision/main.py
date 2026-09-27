@@ -1,30 +1,19 @@
+"""Thin command-line entry point for CodeVision."""
+
 from __future__ import annotations
 
 import sys
 
 
 def main() -> int:
-    """Launch the CodeVision application window with the workspace layout."""
+    """Delegate startup to the application lifecycle package."""
     try:
-        import gi
-
-        gi.require_version("Gtk", "4.0")
-        from gi.repository import Gtk
-
-        from codevision.ui.main_window import CodeVisionWindow
-
-        app = Gtk.Application(application_id="org.codevision.app")
-
-        def on_activate(app: Gtk.Application) -> None:
-            
-            win = CodeVisionWindow(app)
-            win.present()
-
-        app.connect("activate", on_activate)
-        return app.run()
-    except (ImportError, ValueError, RuntimeError) as exc:
-        print(f"Failed to initialize CodeVision GTK UI: {exc}", file=sys.stderr)
+        from .app.application import main as run_application
+    except (ImportError, ValueError, RuntimeError) as error:
+        print(f"Failed to initialize CodeVision GTK UI: {error}", file=sys.stderr)
         return 1
+
+    return run_application()
 
 
 if __name__ == "__main__":
