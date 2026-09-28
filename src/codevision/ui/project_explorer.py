@@ -6,9 +6,13 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from gi.repository import GLib, Gtk
 
 from ..services.folder_browser import FolderBrowserService
+from .explorer_actions.collapse_all import CollapseAllAction
+from .explorer_actions.new_file import NewFileAction
+from .explorer_actions.new_folder import NewFolderAction
+from .explorer_actions.refresh import RefreshAction
 from .widgets.folder import FolderPickerWindow
 
 
@@ -17,7 +21,7 @@ class ProjectExplorer(Gtk.Box):
 
     def __init__(self, on_file_open: Callable[[Path], None]) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self.set_name("project-panel")
+        self.set_name("project-tree")
         self.add_css_class("panel")
         self.set_size_request(220, -1)
         self._on_file_open = on_file_open
@@ -53,15 +57,26 @@ class ProjectExplorer(Gtk.Box):
         spacer.set_hexpand(True)
         actions.append(spacer)
 
-        self._action_buttons: list[Gtk.Button] = []
-        self._add_action(actions, "document-new-symbolic", "New File", self._new_file)
-        self._add_action(
-            actions, "folder-new-symbolic", "New Folder", self._new_folder
+        self.new_folder_action = NewFolderAction(
+            self,
+            self._get_target_directory,
+            self._on_folder_created,
         )
-        self._add_action(actions, "view-refresh-symbolic", "Refresh", self.refresh)
-        self._add_action(
-            actions, "view-list-symbolic", "Collapse All", self._collapse_all
+        self.refresh_action = RefreshAction(
+            self.refresh
         )
+        self.collapse_all_action = CollapseAllAction(
+            self._collapse_all
+        )
+        self.new_file_action = NewFileAction(
+            self,
+            self._get_target_directory,
+            self._on_file_created,
+        )
+        actions.append(self.new_folder_action)
+        actions.append(self.new_file_action)
+        actions.append(self.refresh_action)
+        actions.append(self.collapse_all_action)
         self.append(actions)
 
         self._store = Gtk.TreeStore(str, str, bool, bool, str, bool)
@@ -105,27 +120,11 @@ class ProjectExplorer(Gtk.Box):
         self.content.add_named(scrolled, "tree")
         self.content.set_visible_child_name("empty")
         self.append(self.content)
+        self._set_project_action_state(False)
 
-        self._set_project_actions_enabled(False)
-
-    def _add_action(
-        self,
-        container: Gtk.Box,
-        icon_name: str,
-        tooltip: str,
-        callback: Callable[[], None],
-    ) -> None:
-        button = Gtk.Button()
-        button.set_child(Gtk.Image.new_from_icon_name(icon_name))
-        button.set_tooltip_text(tooltip)
-        button.add_css_class("explorer-action")
-        button.connect("clicked", lambda *_args: callback())
-        self._action_buttons.append(button)
-        container.append(button)
-
-    def _set_project_actions_enabled(self, enabled: bool) -> None:
-        for button in self._action_buttons:
-            button.set_sensitive(enabled)
+    def _set_project_action_state(self, enabled: bool) -> None:
+        self.refresh_action.set_sensitive(enabled)
+        self.collapse_all_action.set_sensitive(enabled)
 
     def open_folder(self) -> None:
         parent = self.get_root()
@@ -138,7 +137,7 @@ class ProjectExplorer(Gtk.Box):
             parent=parent_window,
             initial_directory=self._root_path or Path.home(),
             on_folder_opened=self._set_project_folder,
-            on_file_opened=self._on_file_open,
+            on_file_opened=self._open_file_from_picker,
             service=self._folder_browser,
         )
         self._folder_picker.connect("close-request", self._on_folder_picker_closed)
@@ -148,6 +147,79 @@ class ProjectExplorer(Gtk.Box):
         if self._folder_picker is window:
             self._folder_picker = None
         return False
+
+    def _open_file_from_picker(self, path: Path) -> None:
+        if self._root_path is None or not path.is_relative_to(self._root_path):
+            self._set_project_folder(path.parent)
+        self._on_file_open(path)
+
+    def _get_target_directory(self) -> Path:
+        if self._root_path is None:
+            return Path.home()
+
+        _model, selected_iter = self.tree.get_selection().get_selected()
+        if selected_iter is None:
+            return self._root_path
+
+        selected_path = Path(self._store.get_value(selected_iter, 1))
+        if self._store.get_value(selected_iter, 2):
+            return selected_path
+        return selected_path.parent
+
+    def _on_file_created(self, path: Path) -> None:
+        if self._root_path is None:
+            self._set_project_folder(path.parent)
+        else:
+            self._insert_created_entry(path)
+        self._on_file_open(path)
+
+    def _on_folder_created(self, path: Path) -> None:
+        if self._root_path is None:
+            self._set_project_folder(path.parent)
+        else:
+            self._insert_created_entry(path)
+
+    def _insert_created_entry(self, path: Path) -> None:
+        parent_path = path.parent.resolve()
+        parent_iter = self._find_path_iter(parent_path)
+        if parent_iter is None:
+            self.refresh()
+            return
+
+        if not self._store.get_value(parent_iter, 3):
+            self._load_directory(parent_iter, parent_path)
+            return
+
+        is_directory = path.is_dir()
+        new_key = (not is_directory, path.name.casefold())
+        sibling = None
+        for index in range(self._store.iter_n_children(parent_iter)):
+            child_iter = self._store.iter_nth_child(parent_iter, index)
+            if child_iter is None:
+                continue
+            child_key = (
+                not self._store.get_value(child_iter, 2),
+                self._store.get_value(child_iter, 0).casefold(),
+            )
+            if new_key < child_key:
+                sibling = child_iter
+                break
+
+        row_iter = self._store.insert_before(parent_iter, sibling)
+        self._store.set(
+            row_iter,
+            [0, 1, 2, 3, 4, 5],
+            [
+                path.name,
+                str(path),
+                is_directory,
+                False,
+                "folder-symbolic" if is_directory else "text-x-generic-symbolic",
+                True,
+            ],
+        )
+        if is_directory:
+            self._store.append(row_iter, ["", "", False, True, "", False])
 
     def _set_project_folder(self, path: Path) -> None:
         self._root_path = path.resolve()
@@ -159,7 +231,7 @@ class ProjectExplorer(Gtk.Box):
         self._load_directory(root_iter, self._root_path)
         self.tree.expand_row(self._store.get_path(root_iter), False)
         self.content.set_visible_child_name("tree")
-        self._set_project_actions_enabled(True)
+        self._set_project_action_state(True)
 
     def _load_directory(self, parent_iter: Gtk.TreeIter, path: Path) -> None:
         while self._store.iter_children(parent_iter) is not None:
@@ -198,12 +270,18 @@ class ProjectExplorer(Gtk.Box):
     def _on_row_expanded(
         self, tree: Gtk.TreeView, row_iter: Gtk.TreeIter, path: Gtk.TreePath
     ) -> None:
-        if (
-            tree.row_expanded(path)
-            and self._store.get_value(row_iter, 2)
-            and not self._store.get_value(row_iter, 3)
-        ):
-            self._load_directory(row_iter, Path(self._store.get_value(row_iter, 1)))
+        if self._store.get_value(row_iter, 2) and not self._store.get_value(row_iter, 3):
+            GLib.idle_add(self._load_expanded_directory, path.copy())
+
+    def _load_expanded_directory(self, path: Gtk.TreePath) -> bool:
+        row_iter = self._store.get_iter(path)
+        if self._store.get_value(row_iter, 2):
+            if not self._store.get_value(row_iter, 3):
+                self._load_directory(
+                    row_iter, Path(self._store.get_value(row_iter, 1))
+                )
+            self.tree.expand_row(path, False)
+        return GLib.SOURCE_REMOVE
 
     def _on_row_activated(
         self, tree: Gtk.TreeView, path: Gtk.TreePath, column: Gtk.TreeViewColumn
@@ -223,72 +301,59 @@ class ProjectExplorer(Gtk.Box):
         if file_path:
             self._on_file_open(Path(file_path))
 
-    def _new_file(self) -> None:
-        self._prompt_new_item("New File", is_directory=False)
-
-    def _new_folder(self) -> None:
-        self._prompt_new_item("New Folder", is_directory=True)
-
-    def _prompt_new_item(self, title: str, is_directory: bool) -> None:
-        if self._root_path is None:
-            return
-
-        root = self.get_root()
-        parent = root if isinstance(root, Gtk.Window) else None
-        dialog = Gtk.Dialog(title=title, transient_for=parent, modal=True)
-        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("Create", Gtk.ResponseType.ACCEPT)
-
-        content = dialog.get_content_area()
-        content.set_spacing(8)
-        content.set_margin_top(12)
-        content.set_margin_bottom(12)
-        content.set_margin_start(12)
-        content.set_margin_end(12)
-
-        entry = Gtk.Entry()
-        entry.set_placeholder_text("Name")
-        entry.set_activates_default(True)
-        content.append(entry)
-
-        error_label = Gtk.Label()
-        error_label.set_halign(Gtk.Align.START)
-        error_label.add_css_class("explorer-error")
-        error_label.set_visible(False)
-        content.append(error_label)
-
-        def on_response(dialog: Gtk.Dialog, response: int) -> None:
-            if response != Gtk.ResponseType.ACCEPT:
-                dialog.close()
-                return
-
-            name = entry.get_text().strip()
-            if not name or Path(name).name != name or name in {".", ".."}:
-                error_label.set_text("Enter a valid name")
-                error_label.set_visible(True)
-                return
-
-            target = self._root_path / name
-            try:
-                if is_directory:
-                    target.mkdir()
-                else:
-                    target.touch(exist_ok=False)
-            except OSError as error:
-                error_label.set_text(str(error))
-                error_label.set_visible(True)
-                return
-
-            dialog.close()
-            self.refresh()
-
-        dialog.connect("response", on_response)
-        dialog.present()
-        entry.grab_focus()
-
     def refresh(self) -> None:
         if self._root_path is not None:
+            expanded_paths = self._expanded_directory_paths()
             self._set_project_folder(self._root_path)
+            for directory in sorted(expanded_paths, key=lambda path: len(path.parts)):
+                row_iter = self._find_path_iter(directory)
+                if row_iter is not None:
+                    self.tree.expand_row(self._store.get_path(row_iter), False)
+
+    def _expanded_directory_paths(self) -> set[Path]:
+        expanded: set[Path] = set()
+        root_iter = self._store.get_iter_first()
+        if root_iter is None:
+            return expanded
+
+        def visit(row_iter: Gtk.TreeIter) -> None:
+            row_path = self._store.get_path(row_iter)
+            if self.tree.row_expanded(row_path):
+                if self._store.get_value(row_iter, 2):
+                    expanded.add(Path(self._store.get_value(row_iter, 1)))
+
+                for index in range(self._store.iter_n_children(row_iter)):
+                    child_iter = self._store.iter_nth_child(row_iter, index)
+                    if child_iter is not None:
+                        visit(child_iter)
+
+        visit(root_iter)
+        return expanded
+
+    def _find_path_iter(self, target: Path) -> Gtk.TreeIter | None:
+        if self._root_path is None or not target.is_relative_to(self._root_path):
+            return None
+
+        row_iter = self._store.get_iter_first()
+        if row_iter is None:
+            return None
+
+        for part in target.relative_to(self._root_path).parts:
+            match = None
+            for index in range(self._store.iter_n_children(row_iter)):
+                child_iter = self._store.iter_nth_child(row_iter, index)
+                if (
+                    child_iter is not None
+                    and self._store.get_value(child_iter, 0) == part
+                ):
+                    match = child_iter
+                    break
+            if match is None:
+                return None
+            row_iter = match
+
+        return row_iter
 
     def _collapse_all(self) -> None:
-        self.tree.collapse_all()
+        if self._root_path is not None:
+            self.tree.collapse_all()
