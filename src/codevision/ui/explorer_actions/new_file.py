@@ -32,7 +32,10 @@ class NewFileAction(Gtk.Button):
         self.connect("clicked", lambda *_args: self.activate())
 
     def activate(self) -> None:
-        self._show_create_dialog(self._get_directory())
+        self.activate_in(self._get_directory())
+
+    def activate_in(self, directory: Path) -> None:
+        self._show_create_dialog(directory)
 
     def _show_create_dialog(self, directory: Path) -> None:
         root = self._parent.get_root()

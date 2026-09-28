@@ -12,9 +12,12 @@ from gi.repository import Gdk, Gio, Gtk
 from ..editor.editor import EditorPanel
 from ..editor.tab import EditorTabs
 from ..services.save import SaveService
+from ..services.managed_terminal import ManagedTerminalService
 from ..ui.analysis_panel import AnalysisPanel
 from ..ui.border import WindowBorder
 from ..ui.project_explorer import ProjectExplorer
+from ..ui.widgets.menu import ContextMenu
+from ..ui.widgets.menu_context import MenuContext
 
 
 STYLESHEETS = (
@@ -24,6 +27,7 @@ STYLESHEETS = (
     "window-controls.css",
     "panels.css",
     "project-explorer.css",
+    "context-menu.css",
     "folder-picker.css",
     "editor.css",
     "editor-tabs.css",
@@ -42,6 +46,8 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.set_name("codevision-window")
         self.set_decorated(False)
         self.save_service = SaveService()
+        self.terminal_service = ManagedTerminalService()
+        self._context_menu_root: Gtk.Widget | None = None
         self._save_dialog: Gtk.FileChooserNative | None = None
 
         self._install_css()
@@ -141,7 +147,11 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.center_stack.add_named(self.editor_tabs, "editor")
         self.center_stack.set_visible_child_name("welcome")
 
-        project_panel = ProjectExplorer(on_file_open=self._open_file)
+        project_panel = ProjectExplorer(
+            on_file_open=self._open_file,
+            terminal_service=self.terminal_service,
+        )
+        self.project_explorer = project_panel
         project_panel.set_name("project-panel")
 
         analysis_panel = AnalysisPanel()
@@ -177,6 +187,8 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         save_action.connect("activate", self._on_save_action)
         self.add_action(save_action)
         application.set_accels_for_action("win.save", ["<Primary>s"])
+        self._context_menu_root = box
+        self.context_menu = ContextMenu(box, self._window_menu_context_at)
         self._enable_edge_resize()
 
     def _open_file(self, path: Path) -> None:
@@ -192,6 +204,73 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
         self.center_stack.set_visible_child_name("editor")
         self.status_label.set_text(str(editor.file_path))
+
+    def _window_menu_context_at(self, x: float, y: float) -> MenuContext:
+        root = self._context_menu_root
+        if root is None:
+            return self._generic_menu_context()
+
+        target = root.pick(x, y, Gtk.PickFlags.DEFAULT)
+        tree = self.project_explorer.tree
+        if target is not None and self._is_within(target, tree):
+            translated = root.translate_coordinates(tree, x, y)
+            if translated is not None:
+                tree_x, tree_y = translated
+                return self.project_explorer.menu_context_at(tree_x, tree_y)
+
+        editor = self.editor_tabs.active_editor
+        if editor is not None and target is not None and self._is_within(
+            target, editor.source_view
+        ):
+            translated = root.translate_coordinates(editor.source_view, x, y)
+            if translated is not None:
+                editor_x, editor_y = translated
+                return self._editor_menu_context_at(editor, editor_x, editor_y)
+
+        if target is not None and self._is_within(target, self.project_explorer.content):
+            return self.project_explorer.empty_menu_context()
+        return self._generic_menu_context(target)
+
+    def _generic_menu_context(
+        self, target: Gtk.Widget | None = None
+    ) -> MenuContext:
+        directory = self.project_explorer.root_path or Path.cwd()
+        return MenuContext(
+            widget=target or self,
+            kind="window",
+            project_root=self.project_explorer.root_path,
+            terminal_service=self.terminal_service,
+            create_file=lambda: self.project_explorer.create_file_in(directory),
+            on_files_pasted=self.project_explorer._refresh_pasted_files,
+            set_status=self.status_label.set_text,
+        )
+
+    @staticmethod
+    def _is_within(widget: Gtk.Widget, ancestor: Gtk.Widget) -> bool:
+        current: Gtk.Widget | None = widget
+        while current is not None:
+            if current is ancestor:
+                return True
+            current = current.get_parent()
+        return False
+
+    def _editor_menu_context_at(self, editor: EditorPanel, _x: float, _y: float) -> MenuContext:
+        directory = (
+            editor.file_path.parent
+            if editor.file_path is not None
+            else self.project_explorer.root_path or Path.cwd()
+        )
+        return MenuContext(
+            widget=editor.source_view,
+            kind="editor",
+            path=editor.file_path,
+            project_root=self.project_explorer.root_path,
+            editor_view=editor.source_view,
+            terminal_service=self.terminal_service,
+            create_file=lambda: self.project_explorer.create_file_in(directory),
+            on_files_pasted=self.project_explorer._refresh_pasted_files,
+            set_status=self.status_label.set_text,
+        )
 
     def _on_active_editor_changed(self, editor: EditorPanel | None) -> None:
         if editor is None:

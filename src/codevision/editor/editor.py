@@ -47,6 +47,7 @@ class EditorPanel(Gtk.Box):
         source_view.set_margin_bottom(6)
         source_view.set_margin_start(6)
         source_view.set_margin_end(6)
+        self.source_view = source_view
 
         manager = GtkSource.LanguageManager()
         language = manager.get_language("cpp")

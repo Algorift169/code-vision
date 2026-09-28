@@ -1,0 +1,33 @@
+popover#codevision-context-menu {
+    padding: 4px;
+    border: 1px solid #263a54;
+    border-radius: 6px;
+    background: #0d1a2a;
+    color: #dfeafc;
+}
+
+.context-menu-content {
+    min-width: 210px;
+}
+
+.context-menu-content separator {
+    margin: 3px 5px;
+    background: #263a54;
+}
+
+.context-menu-item {
+    min-height: 28px;
+    padding: 3px 8px;
+    border: 0;
+    border-radius: 3px;
+    background: transparent;
+    color: #dfeafc;
+}
+
+.context-menu-item:hover {
+    background: #1a2d46;
+}
+
+.context-menu-item:disabled {
+    color: #71839a;
+}

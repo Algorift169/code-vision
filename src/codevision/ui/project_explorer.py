@@ -9,17 +9,23 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import GLib, Gtk
 
 from ..services.folder_browser import FolderBrowserService
+from ..services.managed_terminal import ManagedTerminalService
 from .explorer_actions.collapse_all import CollapseAllAction
 from .explorer_actions.new_file import NewFileAction
 from .explorer_actions.new_folder import NewFolderAction
 from .explorer_actions.refresh import RefreshAction
 from .widgets.folder import FolderPickerWindow
+from .widgets.menu_context import MenuContext
 
 
 class ProjectExplorer(Gtk.Box):
     """Folder-backed project explorer with file and directory actions."""
 
-    def __init__(self, on_file_open: Callable[[Path], None]) -> None:
+    def __init__(
+        self,
+        on_file_open: Callable[[Path], None],
+        terminal_service: ManagedTerminalService | None = None,
+    ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.set_name("project-tree")
         self.add_css_class("panel")
@@ -28,6 +34,7 @@ class ProjectExplorer(Gtk.Box):
         self._root_path: Path | None = None
         self._folder_browser = FolderBrowserService()
         self._folder_picker: FolderPickerWindow | None = None
+        self._terminal_service = terminal_service or ManagedTerminalService()
 
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         header.set_margin_top(10)
@@ -84,6 +91,7 @@ class ProjectExplorer(Gtk.Box):
         self.tree.set_name("project-tree")
         self.tree.set_headers_visible(False)
         self.tree.set_enable_search(True)
+        self.tree.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
         self.tree.set_activate_on_single_click(True)
         self.tree.set_hexpand(True)
         self.tree.set_vexpand(True)
@@ -125,6 +133,77 @@ class ProjectExplorer(Gtk.Box):
         self.append(self.content)
         self._set_project_action_state(False)
 
+    @property
+    def root_path(self) -> Path | None:
+        return self._root_path
+
+    def create_file_in(self, directory: Path) -> None:
+        self.new_file_action.activate_in(directory)
+
+    def menu_context_at(self, x: float, y: float) -> MenuContext:
+        hit = self.tree.get_path_at_pos(int(x), int(y))
+        tree_path = hit[0].copy() if hit is not None else None
+        selection = self.tree.get_selection()
+        selection.unselect_all()
+        selected_path = None
+        if tree_path is not None:
+            selection.select_path(tree_path)
+            row_iter = self._store.get_iter(tree_path)
+            path_text = self._store.get_value(row_iter, 1)
+            if path_text:
+                selected_path = Path(path_text)
+            else:
+                selection.unselect_all()
+                tree_path = None
+
+        return MenuContext(
+            widget=self.tree,
+            kind="explorer",
+            path=selected_path,
+            project_root=self._root_path,
+            tree=self.tree,
+            terminal_service=self._terminal_service,
+            create_file=self.new_file_action.activate,
+            on_files_pasted=self._refresh_pasted_files,
+            on_path_deleted=self._on_path_deleted,
+            on_path_renamed=self._on_path_renamed,
+            select_target=(
+                lambda: selection.select_path(tree_path)
+                if tree_path is not None
+                else None
+            ),
+        )
+
+    def empty_menu_context(self) -> MenuContext:
+        return MenuContext(
+            widget=self.empty_state,
+            kind="explorer",
+            project_root=self._root_path,
+            terminal_service=self._terminal_service,
+            create_file=self.new_file_action.activate,
+            on_files_pasted=self._refresh_pasted_files,
+            on_path_deleted=self._on_path_deleted,
+            on_path_renamed=self._on_path_renamed,
+        )
+
+    def _refresh_pasted_files(self, paths: list[Path]) -> None:
+        if self._root_path is None and paths:
+            self._set_project_folder(paths[0].parent)
+            return
+        for path in paths:
+            self._insert_created_entry(path)
+
+    def _on_path_deleted(self, _path: Path) -> None:
+        self.tree.get_selection().unselect_all()
+        self.refresh()
+
+    def _on_path_renamed(self, _old_path: Path, new_path: Path) -> None:
+        self.refresh()
+        row_iter = self._find_path_iter(new_path.resolve())
+        if row_iter is not None:
+            self.tree.get_selection().select_iter(row_iter)
+            self.tree.scroll_to_cell(self._store.get_path(row_iter), None, False, 0, 0)
+
     def _set_project_action_state(self, enabled: bool) -> None:
         self.refresh_action.set_sensitive(enabled)
         self.collapse_all_action.set_sensitive(enabled)
@@ -162,10 +241,11 @@ class ProjectExplorer(Gtk.Box):
         if self._root_path is None:
             return Path.cwd()
 
-        _model, selected_iter = self.tree.get_selection().get_selected()
-        if selected_iter is None:
+        model, selected_rows = self.tree.get_selection().get_selected_rows()
+        if not selected_rows:
             return self._root_path
 
+        selected_iter = model.get_iter(selected_rows[0])
         selected_path = Path(self._store.get_value(selected_iter, 1))
         if self._store.get_value(selected_iter, 2):
             return selected_path
