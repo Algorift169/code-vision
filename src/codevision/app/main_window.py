@@ -180,6 +180,10 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._enable_edge_resize()
 
     def _open_file(self, path: Path) -> None:
+        if not path.is_file():
+            self.status_label.set_text("Only files can be opened in the editor")
+            return
+
         try:
             editor = self.editor_tabs.open_file(path)
         except OSError as error:

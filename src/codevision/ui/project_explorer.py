@@ -89,6 +89,9 @@ class ProjectExplorer(Gtk.Box):
         self.tree.set_vexpand(True)
         self.tree.connect("row-expanded", self._on_row_expanded)
         self.tree.connect("row-activated", self._on_row_activated)
+        click_controller = Gtk.GestureClick.new()
+        click_controller.connect("pressed", self._on_tree_pressed)
+        self.tree.add_controller(click_controller)
 
         column = Gtk.TreeViewColumn()
         icon = Gtk.CellRendererPixbuf()
@@ -149,13 +152,15 @@ class ProjectExplorer(Gtk.Box):
         return False
 
     def _open_file_from_picker(self, path: Path) -> None:
+        if not path.is_file():
+            return
         if self._root_path is None or not path.is_relative_to(self._root_path):
             self._set_project_folder(path.parent)
         self._on_file_open(path)
 
     def _get_target_directory(self) -> Path:
         if self._root_path is None:
-            return Path.home()
+            return Path.cwd()
 
         _model, selected_iter = self.tree.get_selection().get_selected()
         if selected_iter is None:
@@ -166,6 +171,16 @@ class ProjectExplorer(Gtk.Box):
             return selected_path
         return selected_path.parent
 
+    def _on_tree_pressed(
+        self,
+        _gesture: Gtk.GestureClick,
+        _press_count: int,
+        x: float,
+        y: float,
+    ) -> None:
+        if self.tree.get_path_at_pos(int(x), int(y)) is None:
+            self.tree.get_selection().unselect_all()
+
     def _on_file_created(self, path: Path) -> None:
         if self._root_path is None:
             self._set_project_folder(path.parent)
@@ -175,7 +190,7 @@ class ProjectExplorer(Gtk.Box):
 
     def _on_folder_created(self, path: Path) -> None:
         if self._root_path is None:
-            self._set_project_folder(path.parent)
+            self._set_project_folder(path)
         else:
             self._insert_created_entry(path)
 
@@ -298,8 +313,9 @@ class ProjectExplorer(Gtk.Box):
             return
 
         file_path = self._store.get_value(row_iter, 1)
-        if file_path:
-            self._on_file_open(Path(file_path))
+        path = Path(file_path)
+        if path.is_file():
+            self._on_file_open(path)
 
     def refresh(self) -> None:
         if self._root_path is not None:
