@@ -4,16 +4,18 @@ from ..menu_context import MenuContext
 
 
 def is_enabled(context: MenuContext) -> bool:
-    return context.editor_view is not None or (
-        context.path is not None and context.select_target is not None
-    )
+    return True
 
 
 def run(context: MenuContext) -> None:
     if context.select_target is not None:
         context.select_target()
         return
+    if context.terminal_widget is not None:
+        context.terminal_widget.grab_focus()
+        return
     if context.editor_view is None:
+        context.widget.grab_focus()
         return
 
     buffer = context.editor_view.get_buffer()

@@ -144,22 +144,33 @@ class ProjectExplorer(Gtk.Box):
         hit = self.tree.get_path_at_pos(int(x), int(y))
         tree_path = hit[0].copy() if hit is not None else None
         selection = self.tree.get_selection()
-        selection.unselect_all()
         selected_path = None
         if tree_path is not None:
-            selection.select_path(tree_path)
             row_iter = self._store.get_iter(tree_path)
             path_text = self._store.get_value(row_iter, 1)
             if path_text:
                 selected_path = Path(path_text)
+                if not selection.path_is_selected(tree_path):
+                    selection.unselect_all()
+                    selection.select_path(tree_path)
             else:
                 selection.unselect_all()
                 tree_path = None
+        else:
+            selection.unselect_all()
+
+        _model, selected_rows = selection.get_selected_rows()
+        selected_paths = tuple(
+            Path(path_text)
+            for selected_row in selected_rows
+            if (path_text := self._store.get_value(self._store.get_iter(selected_row), 1))
+        )
 
         return MenuContext(
             widget=self.tree,
             kind="explorer",
             path=selected_path,
+            selected_paths=selected_paths,
             project_root=self._root_path,
             tree=self.tree,
             terminal_service=self._terminal_service,

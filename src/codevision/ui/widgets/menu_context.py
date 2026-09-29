@@ -19,9 +19,11 @@ class MenuContext:
     widget: Gtk.Widget
     kind: str
     path: Path | None = None
+    selected_paths: tuple[Path, ...] = ()
     project_root: Path | None = None
     tree: Gtk.TreeView | None = None
     editor_view: GtkSource.View | None = None
+    terminal_widget: Gtk.Widget | None = None
     terminal_service: TerminalService | None = None
     theme_manager: ThemeManager | None = None
     open_terminal: Callable[[], None] | None = None

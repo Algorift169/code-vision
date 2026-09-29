@@ -15,10 +15,16 @@ from ..menu_context import MenuContext
 def is_enabled(context: MenuContext) -> bool:
     if context.editor_view is not None:
         return context.editor_view.get_editable()
+    if context.terminal_widget is not None:
+        return True
     return context.kind in {"explorer", "window"} and context.directory.is_dir()
 
 
 def run(context: MenuContext) -> None:
+    if context.terminal_widget is not None:
+        context.terminal_widget.paste_clipboard()
+        return
+
     display = Gdk.Display.get_default()
     if display is None:
         return
