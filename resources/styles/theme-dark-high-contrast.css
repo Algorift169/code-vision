@@ -1,0 +1,146 @@
+window#codevision-window {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+.window-border {
+    border-color: #707070;
+}
+
+#project-panel.panel,
+#analysis-panel.panel,
+#editor-panel.panel {
+    background-color: #101010;
+    border-color: #707070;
+}
+
+#editor-tabs,
+#welcome-page {
+    background-color: #050505;
+}
+
+#editor-tabs > header,
+headerbar {
+    background-color: #101010;
+    color: #ffffff;
+    border-color: #707070;
+}
+
+.window-title,
+.section-title {
+    color: #ffffff;
+}
+
+.muted-label,
+.welcome-message,
+.explorer-empty {
+    color: #d0d0d0;
+}
+
+#project-tree {
+    color: #ffffff;
+}
+
+#project-tree row:selected,
+#code-editor selection {
+    background-color: #005fcc;
+    color: #ffffff;
+}
+
+#code-editor,
+#code-editor text,
+#code-editor gutter,
+#code-editor gutter line-numbers,
+textview {
+    background-color: #050505;
+    color: #ffffff;
+}
+
+#code-editor {
+    caret-color: #ffdf00;
+}
+
+.explorer-open-folder,
+.menu-button,
+.explorer-action,
+.editor-tab-close {
+    color: #ffdf00;
+}
+
+.explorer-open-folder:hover,
+.explorer-action:hover,
+.menu-button:hover,
+.editor-tab-close:hover {
+    background-color: #303030;
+}
+
+.search-entry,
+.search-entry text,
+searchentry.search-entry text,
+entry,
+dropdown {
+    background-color: #101010;
+    color: #ffffff;
+    border-color: #a0a0a0;
+}
+
+.search-entry,
+.search-entry text,
+searchentry.search-entry text {
+    caret-color: #ffdf00;
+}
+
+.search-entry placeholder,
+searchentry.search-entry placeholder {
+    color: #d0d0d0;
+}
+
+.search-entry image,
+searchentry.search-entry image {
+    color: #ffdf00;
+}
+
+.search-entry:focus {
+    border-color: #ffdf00;
+}
+
+popover#codevision-context-menu,
+.codevision-context-menu {
+    background-color: #101010;
+    color: #ffffff;
+    border-color: #a0a0a0;
+}
+
+.codevision-context-menu .context-menu-content {
+    background-color: #101010;
+}
+
+.context-menu-item,
+.context-menu-item label,
+.codevision-context-menu .context-menu-item,
+.codevision-context-menu .context-menu-item label {
+    background-color: transparent;
+    color: #ffffff;
+}
+
+.context-menu-item image,
+.codevision-context-menu .context-menu-item image {
+    color: #ffdf00;
+}
+
+.context-menu-item:hover,
+.codevision-context-menu .context-menu-item:hover {
+    background-color: #303030;
+}
+
+.context-menu-item:disabled,
+.context-menu-item:disabled label,
+.codevision-context-menu .context-menu-item:disabled,
+.codevision-context-menu .context-menu-item:disabled label {
+    color: #b0b0b0;
+}
+
+.context-menu-content separator,
+.codevision-context-menu separator {
+    background-color: #707070;
+}

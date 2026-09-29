@@ -9,7 +9,7 @@ STYLES_DIRECTORY = Path(__file__).resolve().parents[1] / "resources" / "styles"
 
 
 def test_all_themes_have_a_stylesheet() -> None:
-    assert len(THEMES) == 10
+    assert len(THEMES) == 11
     assert all((STYLES_DIRECTORY / theme.stylesheet).is_file() for theme in THEMES)
 
 

@@ -23,6 +23,7 @@ THEMES = (
     Theme("cyber-neon", "Cyber Neon", "theme-cyber-neon.css"),
     Theme("midnight-aurora", "Midnight Aurora", "theme-midnight-aurora.css"),
     Theme("monochrome-pro", "Monochrome Pro", "theme-monochrome-pro.css"),
+    Theme("dark-high-contrast", "Dark High Contrast", "theme-dark-high-contrast.css"),
     Theme("paper-ink", "Paper & Ink", "theme-paper-ink.css"),
     Theme("matrix-terminal", "Matrix Terminal", "theme-matrix-terminal.css"),
     Theme("copper-circuit", "Copper Circuit", "theme-copper-circuit.css"),
