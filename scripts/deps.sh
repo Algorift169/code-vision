@@ -58,6 +58,7 @@ sudo apt install -y \
     python3-gi-cairo \
     gir1.2-gtk-4.0 \
     gir1.2-gtksource-5 \
+    gir1.2-vte-3.91 \
     libgtk-4-dev \
     libgtksourceview-5-dev \
     libgirepository1.0-dev \

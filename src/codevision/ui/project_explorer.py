@@ -9,7 +9,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import GLib, Gtk
 
 from ..services.folder_browser import FolderBrowserService
-from ..services.managed_terminal import ManagedTerminalService
+from ..services.terminal import TerminalService
 from .explorer_actions.collapse_all import CollapseAllAction
 from .explorer_actions.new_file import NewFileAction
 from .explorer_actions.new_folder import NewFolderAction
@@ -24,7 +24,7 @@ class ProjectExplorer(Gtk.Box):
     def __init__(
         self,
         on_file_open: Callable[[Path], None],
-        terminal_service: ManagedTerminalService | None = None,
+        terminal_service: TerminalService | None = None,
     ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.set_name("project-tree")
@@ -34,7 +34,7 @@ class ProjectExplorer(Gtk.Box):
         self._root_path: Path | None = None
         self._folder_browser = FolderBrowserService()
         self._folder_picker: FolderPickerWindow | None = None
-        self._terminal_service = terminal_service or ManagedTerminalService()
+        self._terminal_service = terminal_service or TerminalService()
 
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         header.set_margin_top(10)

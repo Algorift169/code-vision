@@ -12,7 +12,7 @@ from gi.repository import Gdk, Gio, Gtk
 from ..editor.editor import EditorPanel
 from ..editor.tab import EditorTabs
 from ..services.save import SaveService
-from ..services.managed_terminal import ManagedTerminalService
+from ..services.terminal import TerminalService
 from ..ui.analysis_panel import AnalysisPanel
 from ..ui.border import WindowBorder
 from ..ui.project_explorer import ProjectExplorer
@@ -46,7 +46,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.set_name("codevision-window")
         self.set_decorated(False)
         self.save_service = SaveService()
-        self.terminal_service = ManagedTerminalService()
+        self.terminal_service = TerminalService()
         self._context_menu_root: Gtk.Widget | None = None
         self._save_dialog: Gtk.FileChooserNative | None = None
 
@@ -143,7 +143,10 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.center_stack.set_size_request(320, -1)
         self.center_stack.add_named(welcome_page, "welcome")
 
-        self.editor_tabs = EditorTabs(self._on_active_editor_changed)
+        self.editor_tabs = EditorTabs(
+            self._on_active_editor_changed,
+            on_terminal_closed=self.terminal_service.close,
+        )
         self.center_stack.add_named(self.editor_tabs, "editor")
         self.center_stack.set_visible_child_name("welcome")
 
@@ -189,6 +192,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         application.set_accels_for_action("win.save", ["<Primary>s"])
         self._context_menu_root = box
         self.context_menu = ContextMenu(box, self._window_menu_context_at)
+        self.connect("close-request", self._on_close_request)
         self._enable_edge_resize()
 
     def _open_file(self, path: Path) -> None:
@@ -216,7 +220,9 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             translated = root.translate_coordinates(tree, x, y)
             if translated is not None:
                 tree_x, tree_y = translated
-                return self.project_explorer.menu_context_at(tree_x, tree_y)
+                return self._attach_terminal_action(
+                    self.project_explorer.menu_context_at(tree_x, tree_y)
+                )
 
         editor = self.editor_tabs.active_editor
         if editor is not None and target is not None and self._is_within(
@@ -225,11 +231,19 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             translated = root.translate_coordinates(editor.source_view, x, y)
             if translated is not None:
                 editor_x, editor_y = translated
-                return self._editor_menu_context_at(editor, editor_x, editor_y)
+                return self._attach_terminal_action(
+                    self._editor_menu_context_at(editor, editor_x, editor_y)
+                )
 
         if target is not None and self._is_within(target, self.project_explorer.content):
-            return self.project_explorer.empty_menu_context()
+            return self._attach_terminal_action(
+                self.project_explorer.empty_menu_context()
+            )
         return self._generic_menu_context(target)
+
+    def _attach_terminal_action(self, context: MenuContext) -> MenuContext:
+        context.open_terminal = lambda: self._open_terminal_tab(context.directory)
+        return context
 
     def _generic_menu_context(
         self, target: Gtk.Widget | None = None
@@ -240,6 +254,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             kind="window",
             project_root=self.project_explorer.root_path,
             terminal_service=self.terminal_service,
+            open_terminal=lambda: self._open_terminal_tab(directory),
             create_file=lambda: self.project_explorer.create_file_in(directory),
             on_files_pasted=self.project_explorer._refresh_pasted_files,
             set_status=self.status_label.set_text,
@@ -267,19 +282,41 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             project_root=self.project_explorer.root_path,
             editor_view=editor.source_view,
             terminal_service=self.terminal_service,
+            open_terminal=lambda: self._open_terminal_tab(directory),
             create_file=lambda: self.project_explorer.create_file_in(directory),
             on_files_pasted=self.project_explorer._refresh_pasted_files,
             set_status=self.status_label.set_text,
         )
 
-    def _on_active_editor_changed(self, editor: EditorPanel | None) -> None:
-        if editor is None:
-            self.center_stack.set_visible_child_name("welcome")
-            self.status_label.set_text("CodeVision")
+    def _on_active_editor_changed(self, page: Gtk.Widget | None) -> None:
+        if isinstance(page, EditorPanel):
+            self.center_stack.set_visible_child_name("editor")
+            self.status_label.set_text(str(page.file_path or page.title.get_text()))
             return
 
+        terminal = self.editor_tabs.active_terminal
+        if terminal is not None:
+            self.center_stack.set_visible_child_name("editor")
+            self.status_label.set_text(f"Terminal: {terminal.directory}")
+            return
+
+        if page is None:
+            self.center_stack.set_visible_child_name("welcome")
+            self.status_label.set_text("CodeVision")
+
+    def _open_terminal_tab(self, directory: Path) -> None:
+        try:
+            session = self.terminal_service.open(directory)
+        except (OSError, RuntimeError, ValueError) as error:
+            self.status_label.set_text(str(error))
+            return
+        self.editor_tabs.open_terminal(session)
         self.center_stack.set_visible_child_name("editor")
-        self.status_label.set_text(str(editor.file_path or editor.title.get_text()))
+
+    def _on_close_request(self, _window: Gtk.Window) -> bool:
+        self.editor_tabs.close_all_terminals()
+        self.terminal_service.close_all()
+        return False
 
     def _on_save_action(
         self, _action: Gio.SimpleAction, _parameter: object | None
