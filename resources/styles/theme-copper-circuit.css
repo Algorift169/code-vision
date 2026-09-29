@@ -1,0 +1,170 @@
+window#codevision-window {
+    background-color: #171311;
+    color: #eee0d5;
+}
+
+.window-border {
+    border-color: #3c2920;
+}
+
+#project-panel.panel,
+#analysis-panel.panel,
+#editor-panel.panel {
+    background-color: #211a16;
+    border-color: #49362a;
+}
+
+#editor-tabs,
+#welcome-page {
+    background-color: #191411;
+}
+
+#editor-tabs > header {
+    background-color: #211a16;
+    border-color: #49362a;
+}
+
+headerbar {
+    background-color: #201812;
+    color: #eee0d5;
+    border-color: #49362a;
+}
+
+.window-title,
+.section-title {
+    color: #f8e9dc;
+}
+
+.muted-label,
+.welcome-message,
+.explorer-empty {
+    color: #b49a88;
+}
+
+#project-tree {
+    color: #e8d8cb;
+}
+
+#project-tree row:selected,
+#code-editor selection {
+    background-color: #54372a;
+    color: #fff2e5;
+}
+
+#code-editor,
+#code-editor text,
+#code-editor gutter,
+#code-editor gutter line-numbers,
+textview {
+    background-color: #191411;
+    color: #e8d8cb;
+}
+
+#code-editor {
+    caret-color: #df9664;
+}
+
+.explorer-open-folder,
+.menu-button,
+.explorer-action,
+.editor-tab-close {
+    color: #dfa77f;
+}
+
+.explorer-action:hover,
+.menu-button:hover,
+.editor-tab-close:hover,
+.context-menu-item:hover {
+    background-color: #39291f;
+}
+
+.search-entry,
+entry,
+dropdown,
+popover,
+dialog {
+    background-color: #2b201a;
+    color: #f8e9dc;
+    border-color: #604633;
+}
+
+popover#codevision-context-menu {
+    background-color: #211a16;
+    color: #f8e9dc;
+    border-color: #604633;
+}
+
+.context-menu-item {
+    color: #eee0d5;
+}
+
+.search-entry,
+.search-entry text,
+searchentry.search-entry text {
+    color: #eee0d5;
+    caret-color: #df9664;
+}
+
+.search-entry placeholder,
+searchentry.search-entry placeholder {
+    color: #b49a88;
+}
+
+.search-entry image,
+searchentry.search-entry image {
+    color: #dfa77f;
+}
+
+.search-entry:focus {
+    border-color: #dfa77f;
+}
+
+popover#codevision-context-menu .context-menu-item label {
+    color: #eee0d5;
+}
+
+popover#codevision-context-menu .context-menu-item image {
+    color: #dfa77f;
+}
+
+popover#codevision-context-menu separator {
+    background-color: #604633;
+}
+
+popover#codevision-context-menu .context-menu-item:disabled,
+popover#codevision-context-menu .context-menu-item:disabled label {
+    color: #b49a88;
+}
+
+.codevision-context-menu {
+    background-color: #211a16;
+    color: #eee0d5;
+    border-color: #604633;
+}
+
+.codevision-context-menu .context-menu-content {
+    background-color: #211a16;
+}
+
+.codevision-context-menu .context-menu-item,
+.codevision-context-menu .context-menu-item label {
+    background-color: transparent;
+    color: #eee0d5;
+}
+
+.codevision-context-menu .context-menu-item image {
+    color: #dfa77f;
+}
+
+.codevision-context-menu .context-menu-item:hover {
+    background-color: #39291f;
+}
+
+.codevision-context-menu .context-menu-item:disabled,
+.codevision-context-menu .context-menu-item:disabled label {
+    color: #b49a88;
+}
+
+.codevision-context-menu separator {
+    background-color: #604633;
+}

@@ -16,6 +16,7 @@ from ..services.terminal import TerminalService
 from ..ui.analysis_panel import AnalysisPanel
 from ..ui.border import WindowBorder
 from ..ui.project_explorer import ProjectExplorer
+from ..ui.theme import ThemeManager
 from ..ui.widgets.menu import ContextMenu
 from ..ui.widgets.menu_context import MenuContext
 
@@ -51,6 +52,8 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._save_dialog: Gtk.FileChooserNative | None = None
 
         self._install_css()
+        self.theme_manager = ThemeManager()
+        self.theme_manager.apply(self.theme_manager.current_theme)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.set_child(WindowBorder(box))
@@ -243,6 +246,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
     def _attach_terminal_action(self, context: MenuContext) -> MenuContext:
         context.open_terminal = lambda: self._open_terminal_tab(context.directory)
+        context.theme_manager = self.theme_manager
         return context
 
     def _generic_menu_context(
@@ -254,6 +258,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             kind="window",
             project_root=self.project_explorer.root_path,
             terminal_service=self.terminal_service,
+            theme_manager=self.theme_manager,
             open_terminal=lambda: self._open_terminal_tab(directory),
             create_file=lambda: self.project_explorer.create_file_in(directory),
             on_files_pasted=self.project_explorer._refresh_pasted_files,

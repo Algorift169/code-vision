@@ -12,6 +12,7 @@ from .menu_actions import (
     copy,
     copy_full_path,
     copy_relative_path,
+    change_theme,
     delete,
     kill_terminal,
     new_file,
@@ -30,6 +31,7 @@ class ContextMenu(Gtk.Popover):
     _ACTIONS = (
         ("new-file", "New File", "document-new-symbolic", new_file),
         ("open-terminal", "Open Terminal", "utilities-terminal-symbolic", open_terminal),
+        ("change-theme", "Change Theme", "preferences-desktop-theme-symbolic", change_theme),
         ("rename", "Rename", "edit-rename-symbolic", rename),
         ("delete", "Delete", "edit-delete-symbolic", delete),
         ("copy", "Copy", "edit-copy-symbolic", copy),

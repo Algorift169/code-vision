@@ -1,0 +1,172 @@
+window#codevision-window {
+    background-color: #0b1020;
+    color: #e0e9f5;
+}
+
+.window-border {
+    border-color: #202b43;
+}
+
+#project-panel.panel,
+#analysis-panel.panel,
+#editor-panel.panel {
+    background-color: #111a2d;
+    border-color: #273750;
+}
+
+#editor-tabs,
+#welcome-page {
+    background-color: #0c1425;
+}
+
+#editor-tabs > header {
+    background-color: #111a2d;
+    border-color: #273750;
+}
+
+headerbar {
+    background-color: #10182a;
+    color: #e0e9f5;
+    border-color: #273750;
+}
+
+.window-title,
+.section-title {
+    color: #edf1ff;
+}
+
+.muted-label,
+.welcome-message,
+.explorer-empty {
+    color: #9baec8;
+}
+
+#project-tree {
+    color: #dbe8f4;
+}
+
+#project-tree row:selected,
+#code-editor selection {
+    background-color: #283b59;
+    color: #f2f7ff;
+}
+
+#code-editor,
+#code-editor text,
+#code-editor gutter,
+#code-editor gutter line-numbers,
+textview {
+    background-color: #0c1425;
+    color: #dbe8f4;
+}
+
+#code-editor {
+    caret-color: #67dbc1;
+}
+
+.explorer-open-folder,
+.menu-button,
+.explorer-action,
+.editor-tab-close {
+    color: #70d8c5;
+}
+
+.explorer-action:hover,
+.menu-button:hover,
+.editor-tab-close:hover,
+.context-menu-item:hover {
+    background-color: #202e47;
+    color: #b6a0ff;
+}
+
+.search-entry,
+entry,
+dropdown,
+popover,
+dialog {
+    background-color: #172238;
+    color: #e7efff;
+    border-color: #354766;
+}
+
+popover#codevision-context-menu {
+    background-color: #111a2d;
+    color: #e7efff;
+    border-color: #354766;
+}
+
+.context-menu-item {
+    color: #e0e9f5;
+}
+
+.search-entry,
+.search-entry text,
+searchentry.search-entry text {
+    color: #e0e9f5;
+    caret-color: #70d8c5;
+}
+
+.search-entry placeholder,
+searchentry.search-entry placeholder {
+    color: #9baec8;
+}
+
+.search-entry image,
+searchentry.search-entry image {
+    color: #70d8c5;
+}
+
+.search-entry:focus {
+    border-color: #70d8c5;
+}
+
+popover#codevision-context-menu .context-menu-item label {
+    color: #e0e9f5;
+}
+
+popover#codevision-context-menu .context-menu-item image {
+    color: #70d8c5;
+}
+
+popover#codevision-context-menu separator {
+    background-color: #354766;
+}
+
+popover#codevision-context-menu .context-menu-item:disabled,
+popover#codevision-context-menu .context-menu-item:disabled label {
+    color: #9baec8;
+}
+
+.codevision-context-menu {
+    background-color: #111a2d;
+    color: #e0e9f5;
+    border-color: #354766;
+}
+
+.codevision-context-menu .context-menu-content {
+    background-color: #111a2d;
+}
+
+.codevision-context-menu .context-menu-item,
+.codevision-context-menu .context-menu-item label {
+    background-color: transparent;
+    color: #e0e9f5;
+}
+
+.codevision-context-menu .context-menu-item image {
+    color: #70d8c5;
+}
+
+.codevision-context-menu .context-menu-item:hover {
+    background-color: #202e47;
+    color: #b6a0ff;
+}
+
+.codevision-context-menu .context-menu-item:disabled,
+.codevision-context-menu .context-menu-item:disabled label {
+    color: #9baec8;
+}
+
+.codevision-context-menu separator {
+    background-color: #354766;
+}

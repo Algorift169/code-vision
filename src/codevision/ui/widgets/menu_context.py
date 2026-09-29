@@ -11,6 +11,7 @@ gi.require_version("GtkSource", "5")
 from gi.repository import Gtk, GtkSource
 
 from ...services.terminal import TerminalService
+from ..theme import ThemeManager
 
 
 @dataclass(slots=True)
@@ -22,6 +23,7 @@ class MenuContext:
     tree: Gtk.TreeView | None = None
     editor_view: GtkSource.View | None = None
     terminal_service: TerminalService | None = None
+    theme_manager: ThemeManager | None = None
     open_terminal: Callable[[], None] | None = None
     create_file: Callable[[], None] | None = None
     on_files_pasted: Callable[[list[Path]], None] | None = None
