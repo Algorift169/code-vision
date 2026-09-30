@@ -1,7 +1,4 @@
-#So before u read this, make sure you have a Debian/Ubuntu/Kali-based system. This script is
-# designed to set up the necessary dependencies for CodeVision, a code visualization tool. 
-# It checks for the required packages, installs them, and sets up a Python virtual environment 
-# with the necessary Python packages. It also verifies the installation of each component.
+# Set up CodeVision's system and Python dependencies on Debian-family systems.
 #_______________________________________________________________________________________________________;
 #           (``~)
 #          ( ~ ~ )
@@ -19,7 +16,12 @@
 #      ||     ||     ||
 #     (__)   (__)   (__)
 
-set -e
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+VENV_DIR="${PROJECT_ROOT}/.venv"
+cd "${PROJECT_ROOT}"
 
 echo "=========================================="
 echo "        CodeVision Dependency Setup"
@@ -30,8 +32,17 @@ echo
 # 1. Check operating system
 # --------------------------------------------------
 
-if ! command -v apt >/dev/null 2>&1; then
+if ! command -v apt-get >/dev/null 2>&1 || [ ! -r /etc/os-release ]; then
     echo "ERROR: This script requires a Debian/Ubuntu/Kali-based system."
+    exit 1
+fi
+
+if [ "${EUID}" -eq 0 ]; then
+    SUDO=()
+elif command -v sudo >/dev/null 2>&1; then
+    SUDO=(sudo)
+else
+    echo "ERROR: Run as root or install sudo to install system dependencies."
     exit 1
 fi
 
@@ -40,7 +51,7 @@ fi
 # --------------------------------------------------
 
 echo "[1/7] Updating package database..."
-sudo apt update
+"${SUDO[@]}" apt-get update
 
 # --------------------------------------------------
 # 3. System dependencies
@@ -49,7 +60,7 @@ sudo apt update
 echo
 echo "[2/7] Installing system dependencies..."
 
-sudo apt install -y \
+"${SUDO[@]}" apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
@@ -79,6 +90,11 @@ echo "[3/7] Checking Python..."
 python3 --version
 python3 -m pip --version
 
+if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 10))'; then
+    echo "ERROR: CodeVision requires Python 3.10 or newer."
+    exit 1
+fi
+
 # --------------------------------------------------
 # 5. Create virtual environment
 # --------------------------------------------------
@@ -86,14 +102,8 @@ python3 -m pip --version
 echo
 echo "[4/7] Creating Python virtual environment..."
 
-if [ ! -d ".venv" ]; then
-    python3 -m venv .venv
-    echo "Virtual environment created: .venv"
-else
-    echo "Virtual environment already exists."
-fi
-
-source .venv/bin/activate
+python3 -m venv --system-site-packages --upgrade "${VENV_DIR}"
+echo "Virtual environment ready: ${VENV_DIR}"
 
 # --------------------------------------------------
 # 6. Upgrade Python build tools
@@ -102,25 +112,16 @@ source .venv/bin/activate
 echo
 echo "[5/7] Updating Python packaging tools..."
 
-python -m pip install --upgrade pip setuptools wheel
+"${VENV_DIR}/bin/python" -m pip install --upgrade pip setuptools wheel
 
 # --------------------------------------------------
 # 7. Install Python dependencies
 # --------------------------------------------------
 
 echo
-echo "[6/7] Installing CodeVision Python dependencies..."
+echo "[6/7] Installing CodeVision and its declared development dependencies..."
 
-python -m pip install \
-    PyGObject \
-    pycairo \
-    tree-sitter \
-    tree-sitter-c \
-    tree-sitter-cpp \
-    networkx \
-    reportlab \
-    pytest \
-    pyinstaller
+"${VENV_DIR}/bin/python" -m pip install --editable '.[dev]'
 
 # --------------------------------------------------
 # 8. Verification
@@ -131,47 +132,69 @@ echo "[7/7] Verifying installation..."
 echo
 
 echo "---- Python ----"
-python --version
+"${VENV_DIR}/bin/python" --version
 
 echo
 echo "---- GTK / PyGObject ----"
-python -c "import gi; gi.require_version('Gtk', '4.0'); from gi.repository import Gtk; print('GTK 4: OK')"
+"${VENV_DIR}/bin/python" -c "import gi; gi.require_version('Gtk', '4.0'); from gi.repository import Gtk; print('GTK 4 / PyGObject: OK')"
 
 echo
 echo "---- GtkSourceView ----"
-python -c "import gi; gi.require_version('GtkSource', '5'); from gi.repository import GtkSource; print('GtkSourceView 5: OK')"
+"${VENV_DIR}/bin/python" -c "import gi; gi.require_version('GtkSource', '5'); from gi.repository import GtkSource; print('GtkSourceView 5: OK')"
+
+echo
+echo "---- VTE terminal ----"
+"${VENV_DIR}/bin/python" -c "import gi; gi.require_version('Vte', '3.91'); from gi.repository import Vte; print('VTE 3.91: OK')"
 
 echo
 echo "---- Cairo ----"
-python -c "import cairo; print('PyCairo: OK')"
+"${VENV_DIR}/bin/python" -c "import cairo; print('PyCairo: OK')"
 
 echo
 echo "---- Tree-sitter ----"
-python -c "import tree_sitter; print('Tree-sitter: OK')"
+"${VENV_DIR}/bin/python" -c "import tree_sitter; print('Tree-sitter: OK')"
 
 echo
 echo "---- Tree-sitter C ----"
-python -c "import tree_sitter_c; print('Tree-sitter C: OK')"
+"${VENV_DIR}/bin/python" -c "import tree_sitter_c; print('Tree-sitter C: OK')"
 
 echo
 echo "---- Tree-sitter C++ ----"
-python -c "import tree_sitter_cpp; print('Tree-sitter C++: OK')"
+"${VENV_DIR}/bin/python" -c "import tree_sitter_cpp; print('Tree-sitter C++: OK')"
 
 echo
 echo "---- NetworkX ----"
-python -c "import networkx; print('NetworkX:', networkx.__version__)"
+"${VENV_DIR}/bin/python" -c "import networkx; print('NetworkX:', networkx.__version__)"
+
+echo
+echo "---- Python Graphviz ----"
+"${VENV_DIR}/bin/python" -c "import graphviz; print('Python Graphviz: OK')"
 
 echo
 echo "---- ReportLab ----"
-python -c "import reportlab; print('ReportLab: OK')"
+"${VENV_DIR}/bin/python" -c "import reportlab; print('ReportLab: OK')"
 
 echo
 echo "---- PyInstaller ----"
-pyinstaller --version
+"${VENV_DIR}/bin/pyinstaller" --version
 
 echo
 echo "---- Graphviz ----"
 dot -V
+
+echo
+echo "---- Test and lint tools ----"
+"${VENV_DIR}/bin/python" -m pytest --version
+"${VENV_DIR}/bin/black" --version
+"${VENV_DIR}/bin/ruff" --version
+
+echo
+echo "---- CodeVision command ----"
+if [ ! -x "${VENV_DIR}/bin/codevision" ]; then
+    echo "ERROR: CodeVision launcher was not installed."
+    exit 1
+fi
+echo "CodeVision entry point: installed"
 
 echo
 echo "=========================================="
@@ -179,7 +202,7 @@ echo "       CodeVision setup complete!"
 echo "=========================================="
 echo
 echo "Virtual environment:"
-echo "    .venv/"
+echo "    ${VENV_DIR}"
 echo
 echo "Activate it with:"
 echo "    source .venv/bin/activate"
