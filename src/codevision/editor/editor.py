@@ -59,6 +59,16 @@ class EditorPanel(Gtk.Box):
         self.language_manager = manager
         self.file_path: Path | None = None
 
+        """The EditorPanel class provides a text editor panel using GtkSourceView, allowing"""
+        """users to edit code with syntax highlighting and other features. It supports setting"""
+        """the programming language for syntax highlighting, opening files, and saving files."""
+        """The panel includes a header with a title and a scrollable text area for editing code."""
+        
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_child(source_view)
+        self.append(scrolled)
+
     def set_language(self, language_id: str | None) -> None:
         language = (
             self.language_manager.get_language(language_id)
@@ -66,11 +76,6 @@ class EditorPanel(Gtk.Box):
             else None
         )
         self.buffer.set_language(language)
-
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scrolled.set_child(source_view)
-        self.append(scrolled)
 
     def open_file(self, path: Path) -> None:
         """Display a selected project file in the editor."""
