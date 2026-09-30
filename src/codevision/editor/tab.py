@@ -20,6 +20,7 @@ class EditorTabs(Gtk.Notebook):
         self,
         on_active_changed: Callable[[Gtk.Widget | None], None] | None = None,
         on_terminal_closed: Callable[[TerminalSession], None] | None = None,
+        on_close_requested: Callable[[EditorPanel], None] | None = None,
     ) -> None:
         super().__init__()
         self.set_name("editor-tabs")
@@ -28,6 +29,7 @@ class EditorTabs(Gtk.Notebook):
         self.set_show_tabs(False)
         self._on_active_changed = on_active_changed
         self._on_terminal_closed = on_terminal_closed
+        self._on_close_requested = on_close_requested
         self._tab_labels: dict[int, Gtk.Label] = {}
         self._terminal_sessions: dict[int, TerminalSession] = {}
         self.connect("switch-page", self._on_switch_page)
@@ -47,6 +49,14 @@ class EditorTabs(Gtk.Notebook):
         page = self.active_page
         return self._terminal_sessions.get(id(page)) if page is not None else None
 
+    @property
+    def editors(self) -> tuple[EditorPanel, ...]:
+        return tuple(
+            page
+            for page_number in range(self.get_n_pages())
+            if isinstance((page := self.get_nth_page(page_number)), EditorPanel)
+        )
+
     def open_file(self, path: Path) -> EditorPanel:
         """Open a file in its own editor tab, selecting it if already open."""
         resolved_path = path.expanduser().resolve()
@@ -59,24 +69,38 @@ class EditorTabs(Gtk.Notebook):
         editor = EditorPanel()
         editor.set_name("editor-panel")
         editor.open_file(resolved_path)
+        return self._add_editor(editor, resolved_path.name)
 
+    def new_document(
+        self, title: str, language_id: str | None = None
+    ) -> EditorPanel:
+        editor = EditorPanel(language_id=language_id)
+        editor.set_name("editor-panel")
+        editor.title.set_text(title)
+        return self._add_editor(editor, title)
+
+    def _add_editor(self, editor: EditorPanel, title: str) -> EditorPanel:
         tab_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        tab_label = Gtk.Label(label=resolved_path.name)
+        tab_label = Gtk.Label(label=title)
         tab_label.add_css_class("editor-tab-label")
         tab_header.append(tab_label)
 
         close_button = Gtk.Button()
         close_button.set_child(Gtk.Image.new_from_icon_name("window-close-symbolic"))
-        close_button.set_tooltip_text(f"Close {resolved_path.name}")
+        close_button.set_tooltip_text(f"Close {title}")
         close_button.add_css_class("editor-tab-close")
-        close_button.connect("clicked", lambda *_args: self.close_editor(editor))
+        close_button.connect("clicked", lambda *_args: self.request_close_editor(editor))
         tab_header.append(close_button)
 
         page_number = self.append_page(editor, tab_header)
         self._tab_labels[id(editor)] = tab_label
+        editor.buffer.connect(
+            "notify::modified", lambda *_args: self._update_tab_label(editor)
+        )
         self.set_tab_reorderable(editor, True)
         self.set_show_tabs(True)
         self.set_current_page(page_number)
+        editor.source_view.grab_focus()
         self._notify_active_changed()
         return editor
 
@@ -116,12 +140,30 @@ class EditorTabs(Gtk.Notebook):
         editor = self.active_editor
         if editor is None:
             raise ValueError("There is no active editor tab")
+        return self.save_editor(editor, save_service, path)
 
+    def save_editor(
+        self,
+        editor: EditorPanel,
+        save_service: SaveService,
+        path: Path | None = None,
+    ) -> Path:
         saved_path = editor.save_file(save_service, path)
-        tab_label = self._tab_labels.get(id(editor))
-        if tab_label is not None:
-            tab_label.set_text(saved_path.name)
+        self._update_tab_label(editor)
         return saved_path
+
+    def request_close_editor(self, editor: EditorPanel) -> None:
+        if self._on_close_requested is None:
+            self.close_editor(editor)
+        else:
+            self._on_close_requested(editor)
+
+    def _update_tab_label(self, editor: EditorPanel) -> None:
+        tab_label = self._tab_labels.get(id(editor))
+        if tab_label is None:
+            return
+        title = editor.file_path.name if editor.file_path is not None else editor.title.get_text()
+        tab_label.set_text(f"{title}{'*' if editor.buffer.get_modified() else ''}")
 
     def close_editor(self, editor: EditorPanel) -> None:
         page_number = self.page_num(editor)

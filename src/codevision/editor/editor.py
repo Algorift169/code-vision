@@ -14,7 +14,7 @@ from ..services.save import SaveService
 class EditorPanel(Gtk.Box):
     """Center editor panel using GtkSourceView."""
 
-    def __init__(self) -> None:
+    def __init__(self, language_id: str | None = "cpp") -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.set_name("editor-panel")
         self.add_css_class("panel")
@@ -50,7 +50,7 @@ class EditorPanel(Gtk.Box):
         self.source_view = source_view
 
         manager = GtkSource.LanguageManager()
-        language = manager.get_language("cpp")
+        language = manager.get_language(language_id) if language_id is not None else None
         buffer = GtkSource.Buffer()
         if language is not None:
             buffer.set_language(language)
@@ -58,6 +58,14 @@ class EditorPanel(Gtk.Box):
         self.buffer = buffer
         self.language_manager = manager
         self.file_path: Path | None = None
+
+    def set_language(self, language_id: str | None) -> None:
+        language = (
+            self.language_manager.get_language(language_id)
+            if language_id is not None
+            else None
+        )
+        self.buffer.set_language(language)
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -85,6 +93,8 @@ class EditorPanel(Gtk.Box):
         content = self.buffer.get_text(start, end, True)
         saved_path = save_service.save_file(target, content).resolve()
         self.file_path = saved_path
+        language = self.language_manager.guess_language(str(saved_path), None)
+        self.buffer.set_language(language)
         self.buffer.set_modified(False)
         self.title.set_text(saved_path.name)
         return saved_path

@@ -1,5 +1,6 @@
 """Application services for filesystem and analysis workflows."""
 
+from .auto_save import AutoSaveSettings
 from .folder_browser import BrowserEntry, FolderBrowserService
 from .file_operations import FileOperationService
 from .new_file import NewFileService
@@ -8,6 +9,7 @@ from .save import SaveService
 from .terminal import TerminalService, TerminalSession
 
 __all__ = [
+	"AutoSaveSettings",
 	"BrowserEntry",
 	"FileOperationService",
 	"FolderBrowserService",
