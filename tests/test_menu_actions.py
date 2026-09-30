@@ -11,6 +11,7 @@ from codevision.ui.widgets.menu_actions.copy_relative_path import relative_path
 from codevision.ui.widgets.menu_actions import copy, paste
 from codevision.ui.widgets.menu_actions.paste import copy_files_to_directory
 from codevision.ui.widgets.menu_actions import select, select_all
+from codevision.ui.widgets.menu_actions import kill_terminal
 from codevision.ui.widgets.menu_context import MenuContext
 
 
@@ -153,6 +154,25 @@ def test_terminal_copy_requires_a_text_selection() -> None:
     assert not copy.is_enabled(context)
     copy.run(context)
     assert terminal.copy_count == 0
+
+
+def test_kill_terminal_closes_the_terminal_tab() -> None:
+    closed: list[bool] = []
+    context = MenuContext(
+        widget=None,
+        kind="terminal",
+        close_terminal_tab=lambda: closed.append(True),
+    )
+
+    assert kill_terminal.is_enabled(context)
+    kill_terminal.run(context)
+    assert closed == [True]
+
+
+def test_kill_terminal_is_disabled_outside_terminal_tabs() -> None:
+    context = MenuContext(widget=None, kind="window")
+
+    assert not kill_terminal.is_enabled(context)
 
 
 def test_editor_copy_and_paste_available_after_select_all() -> None:

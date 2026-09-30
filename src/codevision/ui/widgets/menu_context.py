@@ -24,6 +24,7 @@ class MenuContext:
     tree: Gtk.TreeView | None = None
     editor_view: GtkSource.View | None = None
     terminal_widget: Gtk.Widget | None = None
+    close_terminal_tab: Callable[[], None] | None = None
     terminal_service: TerminalService | None = None
     theme_manager: ThemeManager | None = None
     open_terminal: Callable[[], None] | None = None

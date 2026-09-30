@@ -345,6 +345,9 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             context = self._generic_menu_context(target)
             context.kind = "terminal"
             context.terminal_widget = terminal_session.terminal
+            context.close_terminal_tab = lambda: self.editor_tabs.close_terminal(
+                terminal_session
+            )
             return self._attach_terminal_action(context)
         if target is not None and self._is_within(target, self.project_explorer.content):
             return self._attach_terminal_action(
