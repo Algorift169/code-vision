@@ -1,13 +1,16 @@
 popover#codevision-context-menu {
-    padding: 4px;
-    border: 1px solid #263a54;
+    padding: 0;
+    border: none;
     border-radius: 6px;
-    background: #0d1a2a;
+    background: transparent;
     color: #dfeafc;
 }
 
 .context-menu-content {
     min-width: 210px;
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 6px;
 }
 
 .context-menu-content separator {
