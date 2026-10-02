@@ -8,7 +8,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 gi.require_version("Gio", "2.0")
-from gi.repository import Gdk, Gio, GLib, Gtk
+from gi.repository import Gdk, Gio, GLib, Gtk, Pango
 
 from ..editor.editor import EditorPanel
 from ..editor.tab import EditorTabs
@@ -20,10 +20,13 @@ from ..ui.analysis_panel import AnalysisPanel
 from ..ui.border import WindowBorder
 from ..ui.project_explorer import ProjectExplorer
 from ..ui.theme import ThemeManager
-from ..ui.widgets.menu import ContextMenu
 from ..ui.widgets.edit_menu import EditMenuButton
 from ..ui.widgets.file_menu import FileMenuButton
+from ..ui.widgets.help_menu import HelpMenuButton
+from ..ui.widgets.menu import ContextMenu
 from ..ui.widgets.menu_context import MenuContext
+from ..ui.widgets.terminal_menu import TerminalMenuButton
+from ..ui.widgets.view_menu import ViewMenuButton
 
 
 STYLESHEETS = (
@@ -59,6 +62,12 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._context_menu_root: Gtk.Widget | None = None
         self._open_dialog: Gtk.FileChooserNative | None = None
         self._save_dialog: Gtk.FileChooserNative | None = None
+        self._project_explorer_visible = True
+        self._analysis_panel_visible = True
+        self._editor_visible = True
+        self._focus_mode_active = False
+        self._editor_zoom = 0
+        self._editor_font_providers: dict[int, Gtk.CssProvider] = {}
 
         self._install_css()
         self.theme_manager = ThemeManager()
@@ -76,11 +85,15 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         menu_bar.set_margin_start(0)
         self.edit_menu = EditMenuButton(self)
         menu_bar.append(self.edit_menu)
-        for menu_name in ("View", "Analyze", "Project", "Help"):
+        self.view_menu = ViewMenuButton(self)
+        menu_bar.append(self.view_menu)
+        self.terminal_menu = TerminalMenuButton(self)
+        menu_bar.append(self.terminal_menu)
+        for menu_name in ("Project",):
             menu_button = Gtk.MenuButton(label=menu_name)
             menu_button.add_css_class("menu-button")
             popover = Gtk.Popover()
-            menu_content = Gtk.Label(label="No actions yet")
+            menu_content = Gtk.Label(label="Project menu is not implemented yet")
             menu_content.set_margin_top(10)
             menu_content.set_margin_bottom(10)
             menu_content.set_margin_start(12)
@@ -88,6 +101,8 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             popover.set_child(menu_content)
             menu_button.set_popover(popover)
             menu_bar.append(menu_button)
+        self.help_menu = HelpMenuButton(self)
+        menu_bar.append(self.help_menu)
         header.pack_start(menu_bar)
 
         title_search = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -130,10 +145,21 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         workspace.set_shrink_start_child(False)
         workspace.set_shrink_end_child(False)
 
+        self.workspace = workspace
+        self._project_placeholder = Gtk.Box()
+        self._project_placeholder.set_hexpand(True)
+        self._project_placeholder.set_vexpand(True)
+        self._analysis_placeholder = Gtk.Box()
+        self._analysis_placeholder.set_hexpand(True)
+        self._analysis_placeholder.set_vexpand(True)
+        self._editor_placeholder = Gtk.Box()
+        self._editor_placeholder.set_hexpand(True)
+        self._editor_placeholder.set_vexpand(True)
         right_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
         right_pane.set_wide_handle(True)
         right_pane.set_shrink_start_child(False)
         right_pane.set_shrink_end_child(False)
+        self.right_pane = right_pane
 
         welcome_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         welcome_page.set_name("welcome-page")
@@ -190,6 +216,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
         analysis_panel = AnalysisPanel()
         analysis_panel.set_name("analysis-panel")
+        self.analysis_panel = analysis_panel
 
         workspace.set_start_child(project_panel)
         workspace.set_end_child(right_pane)
@@ -198,6 +225,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         right_pane.set_start_child(self.center_stack)
         right_pane.set_end_child(analysis_panel)
         right_pane.set_position(820)
+        self.project_panel = project_panel
 
         box.append(workspace)
 
@@ -224,8 +252,220 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.context_menu = ContextMenu(box, self._window_menu_context_at)
         self.file_menu.update_state()
         self.edit_menu.update_state()
+        self.view_menu._update_state()
         self.connect("close-request", self._on_close_request)
         self._enable_edge_resize()
+
+    def editor_visible(self) -> bool:
+        return self._editor_visible
+
+    def project_explorer_visible(self) -> bool:
+        return self._project_explorer_visible
+
+    def analysis_panel_visible(self) -> bool:
+        return self._analysis_panel_visible
+
+    def focus_mode_active(self) -> bool:
+        return self._focus_mode_active
+
+    def set_theme(self, theme_id: str) -> None:
+        self.theme_manager.apply(theme_id)
+        if hasattr(self, "view_menu"):
+            self.view_menu._update_state()
+
+    def toggle_editor_visibility(self) -> None:
+        self._editor_visible = not self._editor_visible
+        if self._editor_visible:
+            self.right_pane.set_start_child(self.center_stack)
+        else:
+            self.right_pane.set_start_child(self._editor_placeholder)
+        self.view_menu._update_state()
+
+    def toggle_project_explorer(self) -> None:
+        self._project_explorer_visible = not self._project_explorer_visible
+        if self._project_explorer_visible:
+            self.workspace.set_start_child(self.project_panel)
+        else:
+            self.workspace.set_start_child(self._project_placeholder)
+        self.view_menu._update_state()
+
+    def toggle_analysis_panel(self) -> None:
+        self._analysis_panel_visible = not self._analysis_panel_visible
+        if self._analysis_panel_visible:
+            self.right_pane.set_end_child(self.analysis_panel)
+        else:
+            self.right_pane.set_end_child(self._analysis_placeholder)
+        self.view_menu._update_state()
+
+    def toggle_focus_mode(self) -> None:
+        self._focus_mode_active = not self._focus_mode_active
+        if self._focus_mode_active:
+            self._focus_mode_previous_project = self._project_explorer_visible
+            self._focus_mode_previous_analysis = self._analysis_panel_visible
+            self.toggle_project_explorer()
+            self.toggle_analysis_panel()
+        else:
+            self._project_explorer_visible = getattr(self, "_focus_mode_previous_project", True)
+            self._analysis_panel_visible = getattr(self, "_focus_mode_previous_analysis", True)
+            if self._project_explorer_visible:
+                self.workspace.set_start_child(self.project_panel)
+            else:
+                self.workspace.set_start_child(self._project_placeholder)
+            if self._analysis_panel_visible:
+                self.right_pane.set_end_child(self.analysis_panel)
+            else:
+                self.right_pane.set_end_child(self._analysis_placeholder)
+        self.view_menu._update_state()
+
+    def zoom_in(self) -> None:
+        self._editor_zoom = min(self._editor_zoom + 1, 8)
+        self._apply_editor_zoom()
+
+    def zoom_out(self) -> None:
+        self._editor_zoom = max(self._editor_zoom - 1, -5)
+        self._apply_editor_zoom()
+
+    def reset_zoom(self) -> None:
+        self._editor_zoom = 0
+        self._apply_editor_zoom()
+
+    def _apply_editor_zoom(self) -> None:
+        size = 11 + self._editor_zoom
+        css = f"textview {{ font-family: 'Sans'; font-size: {size}pt; }}"
+        for editor in self.editor_tabs.editors:
+            if not hasattr(editor, "source_view"):
+                continue
+            source_view = editor.source_view
+            provider = self._editor_font_providers.get(id(source_view))
+            if provider is None:
+                provider = Gtk.CssProvider()
+                self._editor_font_providers[id(source_view)] = provider
+            style_context = source_view.get_style_context()
+            style_context.remove_provider(provider)
+            provider.load_from_string(css)
+            style_context.add_provider(provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+            source_view.queue_resize()
+
+    def new_terminal(self, directory: Path | None = None) -> None:
+        target = directory or self.project_explorer.root_path or Path.cwd()
+        self._open_terminal_tab(target)
+
+    def create_terminal(self, directory: Path | None = None) -> None:
+        self.new_terminal(directory)
+
+    def run_active_file(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is None or editor.file_path is None:
+            self.status_label.set_text("Open a file before running it")
+            return
+        cmd = self._build_run_command(editor.file_path)
+        if not cmd:
+            self.status_label.set_text("This file type cannot be run from the terminal")
+            return
+        self.create_terminal(editor.file_path.parent)
+        session = self.editor_tabs.active_terminal
+        if session is not None and hasattr(session.terminal, "feed_child"):
+            session.terminal.feed_child((cmd + "\n").encode("utf-8"))
+        self.status_label.set_text(f"Running: {editor.file_path.name}")
+
+    def run_build(self) -> None:
+        target = self.project_explorer.root_path or Path.cwd()
+        self.create_terminal(target)
+        session = self.editor_tabs.active_terminal
+        if session is not None and hasattr(session.terminal, "feed_child"):
+            session.terminal.feed_child(b"make\n")
+        self.status_label.set_text("Build started")
+
+    def clear_terminal(self) -> None:
+        session = self.editor_tabs.active_terminal
+        if session is None or not hasattr(session.terminal, "reset"):
+            self.status_label.set_text("No active terminal to clear")
+            return
+        session.terminal.reset(True, True)
+
+    def kill_terminal(self) -> None:
+        session = self.editor_tabs.active_terminal
+        if session is None:
+            self.status_label.set_text("No active terminal to kill")
+            return
+        self.editor_tabs.close_terminal(session)
+        self.status_label.set_text("Terminal process terminated")
+
+    def show_terminal_settings(self) -> None:
+        dialog = Gtk.Dialog(title="Terminal Settings", transient_for=self, modal=True)
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+        content = dialog.get_content_area()
+        content.set_margin_top(16)
+        content.set_margin_bottom(16)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        content.append(Gtk.Label(label="Terminal settings are managed by the current session."))
+        dialog.present()
+
+    def open_documentation(self) -> None:
+        Gio.AppInfo.launch_default_for_uri("https://github.com/Algorift169/code-vision")
+
+    def show_shortcuts_dialog(self) -> None:
+        dialog = Gtk.Dialog(title="Keyboard Shortcuts", transient_for=self, modal=True)
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+        content = dialog.get_content_area()
+        content.set_margin_top(16)
+        content.set_margin_bottom(16)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        text = Gtk.Label(
+            label="Save: Ctrl+S\nFind: Ctrl+F\nUndo: Ctrl+Z\nRedo: Ctrl+Y\nFull Screen: F11\nZoom In: Ctrl++\nZoom Out: Ctrl+-\nReset Zoom: Ctrl+0"
+        )
+        text.set_xalign(0)
+        content.append(text)
+        dialog.present()
+
+    def show_guide_dialog(self) -> None:
+        dialog = Gtk.Dialog(title="CodeVision Guide", transient_for=self, modal=True)
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+        content = dialog.get_content_area()
+        content.set_margin_top(16)
+        content.set_margin_bottom(16)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        text = Gtk.Label(
+            label="Getting Started\n\n- Open a folder\n- Edit files\n- Use View toggles for panels\n- Run code via Terminal\n- Use theme switching for visual styling"
+        )
+        text.set_xalign(0)
+        content.append(text)
+        dialog.present()
+
+    def report_issue(self) -> None:
+        Gio.AppInfo.launch_default_for_uri("https://github.com/Algorift169/code-vision/issues")
+
+    def view_source_code(self) -> None:
+        Gio.AppInfo.launch_default_for_uri("https://github.com/Algorift169/code-vision")
+
+    def check_for_updates(self) -> None:
+        self.status_label.set_text("No update service is configured yet")
+
+    def show_about_dialog(self) -> None:
+        dialog = Gtk.AboutDialog()
+        dialog.set_transient_for(self)
+        dialog.set_modal(True)
+        dialog.set_program_name("CodeVision")
+        dialog.set_version("0.1.0")
+        dialog.set_comments("Code analysis and visualization workspace")
+        dialog.set_website("https://github.com/Algorift169/code-vision")
+        icon = Gtk.Image.new_from_file(
+            str(Path(__file__).resolve().parents[3] / "resources" / "icons" / "cv.png")
+        )
+        dialog.set_logo(icon)
+        dialog.present()
+
+    @staticmethod
+    def _build_run_command(file_path: Path) -> str:
+        suffix = file_path.suffix.lower()
+        if suffix == ".c":
+            return f"gcc '{file_path}' -o /tmp/codevision_run && /tmp/codevision_run"
+        if suffix == ".cpp":
+            return f"g++ '{file_path}' -o /tmp/codevision_run && /tmp/codevision_run"
+        return ""
 
     def _open_file(self, path: Path) -> None:
         if not path.is_file():
