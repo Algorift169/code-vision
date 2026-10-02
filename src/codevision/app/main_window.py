@@ -73,7 +73,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
         menu_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         menu_bar.add_css_class("menu-bar")
-        menu_bar.set_margin_start(60)
+        menu_bar.set_margin_start(0)
         self.edit_menu = EditMenuButton(self)
         menu_bar.append(self.edit_menu)
         for menu_name in ("View", "Analyze", "Project", "Help"):
@@ -166,6 +166,19 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.center_stack.set_visible_child_name("welcome")
         self.file_menu = FileMenuButton(self)
         menu_bar.prepend(self.file_menu)
+
+        """ The app icon is loaded from the resources/icons directory relative to the
+        main_window.py file. If the icon file is not found, the app will still function"""
+        app_icon_path = (
+            Path(__file__).resolve().parents[3] / "resources" / "icons" / "cv.png"
+        )
+        if app_icon_path.is_file():
+            app_icon = Gtk.Image.new_from_file(str(app_icon_path))
+            app_icon.set_pixel_size(44)
+            app_icon.set_tooltip_text("CodeVision")
+            app_icon.set_valign(Gtk.Align.CENTER)
+            app_icon.set_margin_end(6)
+            menu_bar.prepend(app_icon)
         self.file_menu.update_recent(self.recent_files.get_recent())
 
         project_panel = ProjectExplorer(
