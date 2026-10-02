@@ -61,15 +61,13 @@ class TerminalMenuButton(Gtk.MenuButton):
 
     def _build_items(self) -> None:
         self._append_action("New Terminal", self._window.new_terminal, shortcut="Ctrl+Shift+`")
-        self._append_action("Split Terminal", self._window.new_terminal, shortcut="")
+        self._append_action("Split Terminal", self._window.split_terminal, shortcut="")
         self._content.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
         self._append_action("Run Active File", self._window.run_active_file, shortcut="")
         self._append_action("Run Build", self._window.run_build, shortcut="")
         self._content.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
         self._append_action("Clear Terminal", self._window.clear_terminal, shortcut="")
         self._append_action("Kill Terminal", self._window.kill_terminal, shortcut="")
-        self._content.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
-        self._append_action("Terminal Settings", self._window.show_terminal_settings, shortcut="")
 
     def update_state(self) -> None:
         has_terminal = self._window.editor_tabs.active_terminal is not None

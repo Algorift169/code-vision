@@ -187,6 +187,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             self._on_active_editor_changed,
             on_terminal_closed=self.terminal_service.close,
             on_close_requested=self._close_editor,
+            split_terminal_factory=self.terminal_service.open,
         )
         self.center_stack.add_named(self.editor_tabs, "editor")
         self.center_stack.set_visible_child_name("welcome")
@@ -349,6 +350,15 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
     def new_terminal(self, directory: Path | None = None) -> None:
         target = directory or self.project_explorer.root_path or Path.cwd()
         self._open_terminal_tab(target)
+
+    def split_terminal(self) -> None:
+        active = self.editor_tabs.active_terminal
+        if active is None:
+            self.status_label.set_text("Open a terminal before splitting it")
+            return
+        self.editor_tabs.split_terminal(active)
+        self.center_stack.set_visible_child_name("editor")
+        self.status_label.set_text("Terminal split vertically")
 
     def create_terminal(self, directory: Path | None = None) -> None:
         self.new_terminal(directory)
