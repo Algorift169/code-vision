@@ -3,19 +3,20 @@ popover#codevision-context-menu {
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: #dfeafc;
+    color: inherit;
 }
 
 .context-menu-content {
     min-width: 210px;
-    background: transparent;
-    border: 1px solid currentColor;
+    background: #0d1a2a;
+    border: 1px solid #263a54;
     border-radius: 6px;
 }
 
 .context-menu-content separator {
     margin: 3px 5px;
-    background: #263a54;
+    background: currentColor;
+    opacity: 0.35;
 }
 
 .context-menu-item {
@@ -24,13 +25,14 @@ popover#codevision-context-menu {
     border: 0;
     border-radius: 3px;
     background: transparent;
-    color: #dfeafc;
+    color: inherit;
 }
 
 .context-menu-item:hover {
-    background: #1a2d46;
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .context-menu-item:disabled {
-    color: #71839a;
+    color: inherit;
+    opacity: 0.55;
 }

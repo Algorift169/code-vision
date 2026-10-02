@@ -106,17 +106,22 @@ searchentry.search-entry image {
 
 popover#codevision-context-menu,
 .codevision-context-menu {
-    background-color: #101010;
+    background-color: #000000;
     color: #000000;
     border: none;
 }
 
 
+
+
+
 .codevision-context-menu .context-menu-content {
-    background-color: #101010;
-    border: 1px solid currentColor;
+    background-color: #000000;
+    border: 1px solid #707070;
     border-radius: 6px;
 }
+
+
 
 .context-menu-item,
 .context-menu-item label,

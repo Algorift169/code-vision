@@ -89,10 +89,11 @@ dialog {
 }
 
 popover#codevision-context-menu {
-    background-color: #1b1c1a;
+    background-color: #121311;
     color: #121311;
     border: none;
 }
+
 
 
 .context-menu-item {
@@ -138,17 +139,20 @@ popover#codevision-context-menu .context-menu-item:disabled label {
 }
 
 .codevision-context-menu {
-    background-color: #1b1c1a;
+    background-color: #121311;
     color: #121311;
     border: none;
 }
 
 
+
 .codevision-context-menu .context-menu-content {
-    background-color: #1b1c1a;
-    border: 1px solid currentColor;
+    background-color: #121311;
+    border: 1px solid #342c25;
     border-radius: 6px;
 }
+
+
 
 .codevision-context-menu .context-menu-item,
 .codevision-context-menu .context-menu-item label {
