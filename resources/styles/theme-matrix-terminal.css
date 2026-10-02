@@ -149,7 +149,7 @@ popover#codevision-context-menu .context-menu-item:disabled label {
 
 .codevision-context-menu .context-menu-content {
     background-color: #030805;
-    border: 1px solid #10351a;
+    border: none;
     border-radius: 6px;
 }
 

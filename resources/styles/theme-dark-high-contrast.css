@@ -117,7 +117,7 @@ popover#codevision-context-menu,
 
 .codevision-context-menu .context-menu-content {
     background-color: #000000;
-    border: 1px solid #707070;
+    border: none;
     border-radius: 6px;
 }
 
