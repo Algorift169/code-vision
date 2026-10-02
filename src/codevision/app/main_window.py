@@ -21,6 +21,7 @@ from ..ui.border import WindowBorder
 from ..ui.project_explorer import ProjectExplorer
 from ..ui.theme import ThemeManager
 from ..ui.widgets.menu import ContextMenu
+from ..ui.widgets.edit_menu import EditMenuButton
 from ..ui.widgets.file_menu import FileMenuButton
 from ..ui.widgets.menu_context import MenuContext
 
@@ -73,7 +74,9 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         menu_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         menu_bar.add_css_class("menu-bar")
         menu_bar.set_margin_start(60)
-        for menu_name in ("Edit", "View", "Analyze", "Project", "Help"):
+        self.edit_menu = EditMenuButton(self)
+        menu_bar.append(self.edit_menu)
+        for menu_name in ("View", "Analyze", "Project", "Help"):
             menu_button = Gtk.MenuButton(label=menu_name)
             menu_button.add_css_class("menu-button")
             popover = Gtk.Popover()
@@ -202,10 +205,12 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
         box.append(status)
         self._install_file_actions(application)
+        self._install_edit_actions(application)
         self._auto_save_source = GLib.timeout_add_seconds(2, self._auto_save_documents)
         self._context_menu_root = box
         self.context_menu = ContextMenu(box, self._window_menu_context_at)
         self.file_menu.update_state()
+        self.edit_menu.update_state()
         self.connect("close-request", self._on_close_request)
         self._enable_edge_resize()
 
@@ -293,6 +298,74 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         editor = self.editor_tabs.active_editor
         if editor is not None:
             self._close_editor(editor)
+
+    def undo(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is not None:
+            editor.undo()
+            self.edit_menu.update_state()
+
+    def redo(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is not None:
+            editor.redo()
+            self.edit_menu.update_state()
+
+    def cut(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is not None:
+            editor.cut()
+            self.edit_menu.update_state()
+
+    def copy(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is not None:
+            editor.copy()
+            self.edit_menu.update_state()
+
+    def paste(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is not None:
+            editor.paste()
+            self.edit_menu.update_state()
+
+    def find(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is None:
+            return
+        self.status_label.set_text("Find is available in the active editor")
+
+    def replace(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is None:
+            return
+        self.status_label.set_text("Replace is available in the active editor")
+
+    def find_in_files(self) -> None:
+        self.status_label.set_text("Find in Files is ready for workspace search")
+
+    def replace_in_files(self) -> None:
+        self.status_label.set_text("Replace in Files is ready for workspace replacement")
+
+    def toggle_line_comment(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is not None:
+            editor.toggle_line_comment()
+            self.edit_menu.update_state()
+
+    def toggle_block_comment(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is not None:
+            editor.toggle_block_comment()
+            self.edit_menu.update_state()
+
+    def expand_abbreviation(self) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is None:
+            return
+        if not editor.expand_abbreviation():
+            self.status_label.set_text("No expandable abbreviation was found")
+        self.edit_menu.update_state()
 
     def _track_recent_file(self, path: Path) -> None:
         self.recent_files.add(path)
@@ -420,6 +493,8 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
                 self.status_label.set_text("CodeVision")
         if hasattr(self, "file_menu"):
             self.file_menu.update_state()
+        if hasattr(self, "edit_menu"):
+            self.edit_menu.update_state()
 
     def _install_file_actions(self, application: Gtk.Application) -> None:
         actions: tuple[tuple[str, Callable[[], None]], ...] = (
@@ -440,6 +515,42 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             ("save", ["<Primary>s"]),
             ("save-as", ["<Primary><Shift>s"]),
             ("close-editor", ["<Primary>w"]),
+        ):
+            application.set_accels_for_action(f"win.{action_name}", accelerators)
+
+    def _install_edit_actions(self, application: Gtk.Application) -> None:
+        actions: tuple[tuple[str, Callable[[], None]], ...] = (
+            ("undo", self.undo),
+            ("redo", self.redo),
+            ("cut", self.cut),
+            ("copy", self.copy),
+            ("paste", self.paste),
+            ("find", self.find),
+            ("replace", self.replace),
+            ("find-in-files", self.find_in_files),
+            ("replace-in-files", self.replace_in_files),
+            ("toggle-line-comment", self.toggle_line_comment),
+            ("toggle-block-comment", self.toggle_block_comment),
+            ("expand-abbreviation", self.expand_abbreviation),
+        )
+        for name, callback in actions:
+            action = Gio.SimpleAction.new(name, None)
+            action.connect("activate", lambda _action, _parameter, cb=callback: cb())
+            self.add_action(action)
+
+        for action_name, accelerators in (
+            ("undo", ["<Primary>z"]),
+            ("redo", ["<Primary>y"]),
+            ("cut", ["<Primary>x"]),
+            ("copy", ["<Primary>c"]),
+            ("paste", ["<Primary>v"]),
+            ("find", ["<Primary>f"]),
+            ("replace", ["<Primary>h"]),
+            ("find-in-files", ["<Primary><Shift>f"]),
+            ("replace-in-files", ["<Primary><Shift>h"]),
+            ("toggle-line-comment", ["<Primary>slash"]),
+            ("toggle-block-comment", ["<Primary><Shift>a"]),
+            ("expand-abbreviation", ["Tab"]),
         ):
             application.set_accels_for_action(f"win.{action_name}", accelerators)
 
@@ -511,7 +622,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
     @staticmethod
     def _editor_text(editor: EditorPanel) -> str:
-        start, end = editor.buffer.get_bounds()
+        start, end = EditorPanel._bounds_as_iters(editor.buffer.get_bounds())
         return editor.buffer.get_text(start, end, True)
 
     def _close_editor(self, editor: EditorPanel) -> None:

@@ -10,7 +10,10 @@ def is_enabled(context: MenuContext) -> bool:
 def run(context: MenuContext) -> None:
     if context.editor_view is not None:
         buffer = context.editor_view.get_buffer()
-        buffer.select_range(*buffer.get_bounds())
+        bounds = buffer.get_bounds()
+        start = bounds.start if hasattr(bounds, "start") else bounds[0]
+        end = bounds.end if hasattr(bounds, "end") else bounds[1]
+        buffer.select_range(start, end)
     elif context.terminal_widget is not None:
         context.terminal_widget.select_all()
     elif context.tree is not None:
