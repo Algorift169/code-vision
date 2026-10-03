@@ -465,7 +465,9 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         icon = Gtk.Image.new_from_file(
             str(Path(__file__).resolve().parents[3] / "resources" / "icons" / "cv.png")
         )
-        dialog.set_logo(icon)
+        """FIXED: the About dialog ow passes the image’s paintable to Gtk.
+        AboutDialog.set_logo() instead of passing the Gtk.Image widget."""
+        dialog.set_logo(icon.get_paintable())
         dialog.present()
 
     @staticmethod
