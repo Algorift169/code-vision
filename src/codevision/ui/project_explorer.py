@@ -461,6 +461,37 @@ class ProjectExplorer(Gtk.Box):
 
         return row_iter
 
+    def reveal_path(self, target: Path) -> None:
+        """Expand and select a workspace path, loading ancestors as needed."""
+        if self._root_path is None or not target.resolve().is_relative_to(self._root_path):
+            return
+        target = target.resolve()
+        current = self._root_path
+        root_iter = self._store.get_iter_first()
+        if root_iter is None:
+            return
+        self.tree.expand_row(self._store.get_path(root_iter), False)
+        for part in target.relative_to(self._root_path).parts:
+            row_iter = self._find_path_iter(current / part)
+            if row_iter is None:
+                parent_iter = self._find_path_iter(current)
+                if parent_iter is None:
+                    return
+                self._load_directory(parent_iter, current)
+                row_iter = self._find_path_iter(current / part)
+            if row_iter is None:
+                return
+            current = current / part
+            row_path = self._store.get_path(row_iter)
+            if current.is_dir():
+                self.tree.expand_row(row_path, False)
+        selected = self._find_path_iter(target)
+        if selected is not None:
+            selected_path = self._store.get_path(selected)
+            self.tree.get_selection().unselect_all()
+            self.tree.get_selection().select_path(selected_path)
+            self.tree.scroll_to_cell(selected_path, None, False, 0.5, 0)
+
     def _collapse_all(self) -> None:
         if self._root_path is not None:
             self.tree.collapse_all()

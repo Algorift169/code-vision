@@ -3,6 +3,7 @@
 from .auto_save import AutoSaveSettings
 from .emmet import EmmetExpansionService
 from .folder_browser import BrowserEntry, FolderBrowserService
+from .file_search import FileSearchConfig, FileSearchService, SearchResult, SearchResults
 from .file_operations import FileOperationService
 from .new_file import NewFileService
 from .new_folder import NewFolderService
@@ -15,6 +16,10 @@ __all__ = [
 	"EmmetExpansionService",
 	"FileOperationService",
 	"FolderBrowserService",
+	"FileSearchConfig",
+	"FileSearchService",
+	"SearchResult",
+	"SearchResults",
 	"NewFileService",
 	"NewFolderService",
 	"SaveService",

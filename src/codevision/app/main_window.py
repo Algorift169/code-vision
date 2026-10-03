@@ -18,6 +18,7 @@ from ..services.terminal import TerminalService
 from ..ui.analysis_panel import AnalysisPanel
 from ..ui.border import WindowBorder
 from ..ui.project_explorer import ProjectExplorer
+from ..ui.search import WorkspaceSearch
 from ..ui.theme import ThemeManager
 from ..ui.widgets.edit_menu import EditMenuButton
 from ..ui.widgets.file_menu import FileMenuButton
@@ -210,6 +211,12 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             terminal_service=self.terminal_service,
         )
         self.project_explorer = project_panel
+        self.workspace_search = WorkspaceSearch(
+            search,
+            lambda: self.project_explorer.root_path,
+            self._open_file,
+            self.project_explorer.reveal_path,
+        )
         project_panel.set_name("project-panel")
 
         analysis_panel = AnalysisPanel()
@@ -225,7 +232,13 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         right_pane.set_position(820)
         self.project_panel = project_panel
 
-        box.append(workspace)
+        workspace_overlay = Gtk.Overlay()
+        workspace_overlay.set_hexpand(True)
+        workspace_overlay.set_vexpand(True)
+        workspace_overlay.set_child(workspace)
+        workspace_overlay.add_overlay(self.workspace_search.results_panel)
+        self.workspace_search.results_panel.set_margin_top(6)
+        box.append(workspace_overlay)
 
         status = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         status.set_margin_start(12)
@@ -913,6 +926,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
     def _on_close_request(self, _window: Gtk.Window) -> bool:
         GLib.source_remove(self._auto_save_source)
+        self.workspace_search.close()
         self.editor_tabs.close_all_terminals()
         self.terminal_service.close_all()
         return False

@@ -39,3 +39,33 @@ headerbar {
     padding: 0 3px;
     font-size: 10px;
 }
+
+.search-popover,
+.search-result-list {
+    background-color: inherit;
+}
+
+.search-popover {
+    border: 1px solid currentColor;
+    border-radius: 4px;
+}
+
+.search-result {
+    color: inherit;
+    border-radius: 4px;
+}
+
+.search-result:hover,
+.search-result-list row:selected {
+    background: inherit;
+}
+
+.search-result-name {
+    font-weight: 600;
+}
+
+.search-result-path,
+.search-result-status {
+    opacity: 0.72;
+    font-size: 9px;
+}
