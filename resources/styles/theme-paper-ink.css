@@ -1,178 +1,31 @@
-window#codevision-window {
-    background-color: #e8e4da;
-    color: #252b32;
-}
-
-.window-border {
-    border-color: #c7c0b2;
-}
-
-#project-panel.panel,
-#analysis-panel.panel,
-#editor-panel.panel {
-    background-color: #f5f1e8;
-    border-color: #cbc4b8;
-}
-
-#editor-tabs,
-#welcome-page {
-    background-color: #eee9df;
-}
-
-#editor-tabs > header {
-    background-color: #f5f1e8;
-    border-color: #cbc4b8;
-}
-
-headerbar {
-    background-color: #e4dfd4;
-    color: #252b32;
-    border-color: #c7c0b2;
-}
-
-.window-title,
-.section-title {
-    color: #202832;
-}
-
-.muted-label,
-.welcome-message,
-.explorer-empty {
-    color: #65717d;
-}
-
-#project-tree {
-    color: #303943;
-}
-
-#project-tree row:selected,
-#code-editor selection {
-    background-color: #cedbea;
-    color: #202832;
-}
-
-#code-editor,
-#code-editor text,
-#code-editor gutter,
-#code-editor gutter line-numbers,
-textview {
-    background-color: #fbf8f0;
-    color: #252b32;
-}
-
-#code-editor {
-    caret-color: #b04f49;
-}
-
-.explorer-open-folder,
-.menu-button,
-.explorer-action,
-.editor-tab-close {
-    color: #425c79;
-}
-
-.explorer-action:hover,
-.menu-button:hover,
-.editor-tab-close:hover,
-.context-menu-item:hover {
-    background-color: #ddd7cb;
-}
-
-.search-entry,
-entry,
-dropdown,
-popover,
-dialog {
-    background-color: #fbf8f0;
-    color: #252b32;
-    border-color: #c7c0b2;
-}
-
-popover#codevision-context-menu {
-    background-color: #e8e4da;
-    color: #e8e4da;
-    border: none;
-}
-
-
-
-.context-menu-item {
-    color: #252b32;
-}
-
-.search-entry,
-.search-entry text,
-searchentry.search-entry text {
-    color: #252b32;
-    caret-color: #b04f49;
-}
-
-.search-entry placeholder,
-searchentry.search-entry placeholder {
-    color: #65717d;
-}
-
-.search-entry image,
-searchentry.search-entry image {
-    color: #425c79;
-}
-
-.search-entry:focus {
-    border-color: #425c79;
-}
-
-popover#codevision-context-menu .context-menu-item label {
-    color: #252b32;
-}
-
-popover#codevision-context-menu .context-menu-item image {
-    color: #425c79;
-}
-
-popover#codevision-context-menu separator {
-    background-color: #c7c0b2;
-}
-
-popover#codevision-context-menu .context-menu-item:disabled,
-popover#codevision-context-menu .context-menu-item:disabled label {
-    color: #65717d;
-}
-
-.codevision-context-menu {
-    background-color: #e8e4da;
-    color: #e8e4da;
-    border: none;
-}
-
-
-
-.codevision-context-menu .context-menu-content {
-    background-color: #e8e4da;
-    border: none;
-    border-radius: 6px;
-}
-
-
-
-.codevision-context-menu .context-menu-item,
-.codevision-context-menu .context-menu-item label {
-    background-color: transparent;
-    color: #252b32;
-}
-
-.codevision-context-menu .context-menu-item image {
-    color: #425c79;
-}
-
-.codevision-context-menu .context-menu-item:hover {
-    background-color: #ddd7cb;
-}
-
-.codevision-context-menu .context-menu-item:disabled,
-.codevision-context-menu .context-menu-item:disabled label {
-    color: #65717d;
-}
-
-.codevision-context-menu separator {
-    background-color: #c7c0b2;
-}
+@define-color bg #14100b;
+@define-color surface #211a12;
+@define-color raised #2b2117;
+@define-color line #685338;
+@define-color text #f4ead8;
+@define-color muted #bba98f;
+@define-color accent #f3c969;
+@define-color accent-2 #d98b5f;
+@define-color select #493b28;
+@define-color hover #382b20;
+window#codevision-window { background-color: @bg; color: @text; }
+.window-border { border-color: @line; }
+#project-panel.panel, #analysis-panel.panel, #editor-panel.panel { background-color: @surface; border-color: @line; }
+#editor-tabs, #welcome-page, #code-editor, #code-editor text, #code-editor gutter, #code-editor gutter line-numbers, textview { background-color: @bg; color: @text; }
+#editor-tabs > header, headerbar { background-color: @surface; color: @text; border-color: @line; }
+.window-title, .section-title { color: @accent-2; }
+.muted-label, .welcome-message, .explorer-empty { color: @muted; }
+#project-tree { color: @text; }
+#project-tree row:selected, #code-editor selection { background-color: @select; color: #ffffff; }
+#code-editor { caret-color: @accent; }
+.explorer-open-folder, .menu-button, .explorer-action, .editor-tab-close { color: @accent; }
+.explorer-action:hover, .menu-button:hover, .editor-tab-close:hover, .context-menu-item:hover, .codevision-context-menu .context-menu-item:hover { background-color: @hover; color: @accent-2; }
+.search-entry, entry, dropdown, popover, dialog { background-color: @raised; color: @text; border-color: @line; }
+popover#codevision-context-menu, .codevision-context-menu, .codevision-context-menu .context-menu-content { background-color: @bg; border: none; }
+.context-menu-item, .context-menu-item label, .codevision-context-menu .context-menu-item, .codevision-context-menu .context-menu-item label { background-color: transparent; color: @text; }
+.search-entry, .search-entry text, searchentry.search-entry text { color: @text; caret-color: @accent; }
+.search-entry placeholder, searchentry.search-entry placeholder { color: @muted; }
+.search-entry image, popover#codevision-context-menu .context-menu-item image, .codevision-context-menu .context-menu-item image { color: @accent; }
+.search-entry:focus { border-color: @accent; }
+popover#codevision-context-menu separator, .codevision-context-menu separator { background-color: @line; }
+.context-menu-item:disabled, .context-menu-item:disabled label, .codevision-context-menu .context-menu-item:disabled, .codevision-context-menu .context-menu-item:disabled label { color: @muted; }
