@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from pathlib import Path
 
 import gi
 
@@ -47,7 +46,6 @@ class FileMenuButton(Gtk.MenuButton):
             "Open File...", self._window.open_file_dialog
         )
 
-        self._recent_button, self._recent_box = self._append_submenu("Open Recent")
         self._content.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
         self._items["save"] = self._append_action("Save", self._window.save_current_file)
         self._items["save-as"] = self._append_action(
@@ -104,35 +102,7 @@ class FileMenuButton(Gtk.MenuButton):
 
     def _on_menu_active_changed(self, *_args: object) -> None:
         if self.get_active():
-            self.update_recent(self._window.recent_files.get_recent())
             self.update_state()
-
-    def update_recent(self, recent_paths: list[Path]) -> None:
-        child = self._recent_box.get_first_child()
-        while child is not None:
-            following = child.get_next_sibling()
-            self._recent_box.remove(child)
-            child = following
-
-        if not recent_paths:
-            self._recent_button.set_sensitive(False)
-            empty = Gtk.Label(label="No recent files")
-            empty.add_css_class("muted-label")
-            empty.set_margin_top(6)
-            empty.set_margin_bottom(6)
-            empty.set_margin_start(8)
-            empty.set_margin_end(8)
-            self._recent_box.append(empty)
-            return
-
-        self._recent_button.set_sensitive(True)
-        for path in recent_paths:
-            button = self._make_button(
-                path.name,
-                lambda recent_path=path: self._window.open_recent_file(recent_path),
-            )
-            button.set_tooltip_text(str(path))
-            self._recent_box.append(button)
 
     def update_state(self) -> None:
         has_editor = self._window.editor_tabs.active_editor is not None

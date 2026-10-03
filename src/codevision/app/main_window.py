@@ -13,7 +13,6 @@ from gi.repository import Gdk, Gio, GLib, Gtk, Pango
 from ..editor.editor import EditorPanel
 from ..editor.tab import EditorTabs
 from ..services.auto_save import AutoSaveSettings
-from ..services.recent_files import RecentFilesService
 from ..services.save import SaveService
 from ..services.terminal import TerminalService
 from ..ui.analysis_panel import AnalysisPanel
@@ -55,7 +54,6 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.set_name("codevision-window")
         self.set_decorated(False)
         self.save_service = SaveService()
-        self.recent_files = RecentFilesService()
         self._auto_save_settings = AutoSaveSettings()
         self._auto_save_enabled = self._auto_save_settings.enabled
         self.terminal_service = TerminalService()
@@ -206,7 +204,6 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             app_icon.set_valign(Gtk.Align.CENTER)
             app_icon.set_margin_end(6)
             menu_bar.prepend(app_icon)
-        self.file_menu.update_recent(self.recent_files.get_recent())
 
         project_panel = ProjectExplorer(
             on_file_open=self._open_file,
@@ -492,7 +489,6 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
         self.center_stack.set_visible_child_name("editor")
         self.status_label.set_text(str(editor.file_path))
-        self._track_recent_file(editor.file_path)
 
     @property
     def auto_save_enabled(self) -> bool:
@@ -522,13 +518,6 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         dialog.connect("response", self._on_open_file_response)
         self._open_dialog = dialog
         dialog.show()
-
-    def open_recent_file(self, path: Path) -> None:
-        if not path.is_file():
-            self._track_recent_file(path)
-            self.status_label.set_text(f"Recent file no longer exists: {path.name}")
-            return
-        self._open_file(path)
 
     def save_current_file(self) -> None:
         editor = self.editor_tabs.active_editor
@@ -631,10 +620,6 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         if not editor.expand_abbreviation():
             self.status_label.set_text("No expandable abbreviation was found")
         self.edit_menu.update_state()
-
-    def _track_recent_file(self, path: Path) -> None:
-        self.recent_files.add(path)
-        self.file_menu.update_recent(self.recent_files.get_recent())
 
     def _on_open_file_response(
         self, dialog: Gtk.FileChooserNative, response: int
@@ -746,8 +731,6 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         if isinstance(page, EditorPanel):
             self.center_stack.set_visible_child_name("editor")
             self.status_label.set_text(str(page.file_path or page.title.get_text()))
-            if page.file_path is not None:
-                self._track_recent_file(page.file_path)
         else:
             terminal = self.editor_tabs.active_terminal
             if terminal is not None:
@@ -882,7 +865,6 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             return False
 
         self.status_label.set_text(f"Saved {saved_path}")
-        self._track_recent_file(saved_path)
         return True
 
     @staticmethod
