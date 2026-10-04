@@ -6,10 +6,11 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from gi.repository import Gdk, Gtk
 
 from ..services.save import SaveService
 from ..services.terminal import TerminalSession
+from ..ui.kong_browser import KongBrowser
 from .editor import EditorPanel
 
 
@@ -23,6 +24,23 @@ class EditorTabs(Gtk.Notebook):
         on_close_requested: Callable[[EditorPanel], None] | None = None,
         split_terminal_factory: Callable[[Path], TerminalSession] | None = None,
     ) -> None:
+        self._headless = Gdk.Display.get_default() is None
+        if self._headless:
+            self._on_active_changed = on_active_changed
+            self._on_terminal_closed = on_terminal_closed
+            self._on_close_requested = on_close_requested
+            self._split_terminal_factory = split_terminal_factory
+            self._tab_labels: dict[int, Gtk.Label] = {}
+            self._terminal_sessions: dict[int, TerminalSession] = {}
+            self._terminal_panes: dict[int, Gtk.Box] = {}
+            self._terminal_page_groups: dict[int, tuple[TerminalSession, ...]] = {}
+            self._terminal_page_widgets: dict[int, Gtk.Widget] = {}
+            self._pages: list[Gtk.Widget] = []
+            self._page_headers: list[Gtk.Widget] = []
+            self._current_page = -1
+            self._show_tabs = False
+            return
+
         super().__init__()
         self.set_name("editor-tabs")
         self.set_scrollable(True)
@@ -38,6 +56,78 @@ class EditorTabs(Gtk.Notebook):
         self._terminal_page_groups: dict[int, tuple[TerminalSession, ...]] = {}
         self._terminal_page_widgets: dict[int, Gtk.Widget] = {}
         self.connect("switch-page", self._on_switch_page)
+
+    def append_page(self, child: Gtk.Widget, tab_label: Gtk.Widget | None = None) -> int:
+        if self._headless:
+            self._pages.append(child)
+            if tab_label is not None:
+                self._page_headers.append(tab_label)
+            self._current_page = len(self._pages) - 1
+            return self._current_page
+        return super().append_page(child, tab_label)
+
+    def remove_page(self, page_number: int) -> None:
+        if self._headless:
+            if 0 <= page_number < len(self._pages):
+                self._pages.pop(page_number)
+                if page_number < len(self._page_headers):
+                    self._page_headers.pop(page_number)
+                self._current_page = min(self._current_page, max(len(self._pages) - 1, -1))
+            return
+        super().remove_page(page_number)
+
+    def get_n_pages(self) -> int:
+        if self._headless:
+            return len(self._pages)
+        return super().get_n_pages()
+
+    def get_nth_page(self, page_number: int) -> Gtk.Widget | None:
+        if self._headless:
+            if 0 <= page_number < len(self._pages):
+                return self._pages[page_number]
+            return None
+        return super().get_nth_page(page_number)
+
+    def get_current_page(self) -> int:
+        if self._headless:
+            return self._current_page
+        return super().get_current_page()
+
+    def set_current_page(self, page_number: int) -> None:
+        if self._headless:
+            if 0 <= page_number < len(self._pages):
+                self._current_page = page_number
+            return
+        super().set_current_page(page_number)
+
+    def set_show_tabs(self, visible: bool) -> None:
+        if self._headless:
+            self._show_tabs = visible
+            return
+        super().set_show_tabs(visible)
+
+    def page_num(self, child: Gtk.Widget) -> int:
+        if self._headless:
+            for index, page in enumerate(self._pages):
+                if page is child:
+                    return index
+            return -1
+        return super().page_num(child)
+
+    def set_tab_reorderable(self, _child: Gtk.Widget, _reorderable: bool) -> None:
+        if self._headless:
+            return
+        super().set_tab_reorderable(_child, _reorderable)
+
+    def set_scrollable(self, _scrollable: bool) -> None:
+        if self._headless:
+            return
+        super().set_scrollable(_scrollable)
+
+    def set_show_border(self, _show_border: bool) -> None:
+        if self._headless:
+            return
+        super().set_show_border(_show_border)
 
     @property
     def active_page(self) -> Gtk.Widget | None:
@@ -91,6 +181,58 @@ class EditorTabs(Gtk.Notebook):
         editor.set_name("editor-panel")
         editor.title.set_text(title)
         return self._add_editor(editor, title)
+
+    def open_kong_browser(
+        self, initial_url: str | None = None, *, force_new: bool = False
+    ) -> KongBrowser:
+        if not force_new:
+            for page_number in range(self.get_n_pages()):
+                page = self.get_nth_page(page_number)
+                if isinstance(page, KongBrowser):
+                    self.set_current_page(page_number)
+                    if initial_url:
+                        page.load_url(initial_url)
+                    return page
+
+        browser = KongBrowser(
+            initial_url=initial_url,
+            on_new_tab=lambda: self.open_kong_browser(force_new=True),
+        )
+        if self._headless:
+            self.append_page(browser, "🌐 Kong Browser")
+            self.set_show_tabs(True)
+            self.set_current_page(len(self._pages) - 1)
+            return browser
+
+        tab_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        tab_label = Gtk.Label(label="🌐 Kong Browser")
+        tab_label.add_css_class("editor-tab-label")
+        tab_header.append(tab_label)
+
+        close_button = Gtk.Button()
+        close_button.set_child(Gtk.Image.new_from_icon_name("window-close-symbolic"))
+        close_button.set_tooltip_text("Close Kong Browser")
+        close_button.add_css_class("editor-tab-close")
+        close_button.connect("clicked", lambda *_args: self.close_kong_browser(browser))
+        tab_header.append(close_button)
+
+        page_number = self.append_page(browser, tab_header)
+        self.set_tab_reorderable(browser, True)
+        self.set_show_tabs(True)
+        self.set_current_page(page_number)
+        self._notify_active_changed()
+        return browser
+
+    def close_kong_browser(self, browser: KongBrowser) -> None:
+        for page_number in range(self.get_n_pages()):
+            page = self.get_nth_page(page_number)
+            if page is browser:
+                self.remove_page(page_number)
+                browser.destroy()
+                if self.get_n_pages() == 0:
+                    self.set_show_tabs(False)
+                self._notify_active_changed()
+                return
 
     def _add_editor(self, editor: EditorPanel, title: str) -> EditorPanel:
         tab_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)

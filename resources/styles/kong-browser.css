@@ -1,0 +1,66 @@
+.kong-browser {
+    background-color: rgba(0, 0, 0, 0.06);
+    color: inherit;
+}
+
+.kong-toolbar {
+    background-color: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid alpha(currentColor, 0.12);
+    padding: 6px 0;
+}
+
+.kong-navigation-button {
+    min-width: 32px;
+    min-height: 30px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    color: inherit;
+}
+
+.kong-navigation-button:hover {
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.kong-navigation-button:disabled {
+    opacity: 0.42;
+}
+
+.kong-url-entry {
+    min-height: 30px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid alpha(currentColor, 0.12);
+    color: inherit;
+}
+
+.kong-url-entry:focus {
+    border-color: alpha(currentColor, 0.35);
+}
+
+.kong-start-page,
+.kong-error-page {
+    background-color: rgba(255, 255, 255, 0.01);
+    padding: 48px;
+    color: inherit;
+}
+
+.kong-title,
+.kong-error-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: inherit;
+}
+
+.kong-subtitle,
+.kong-hint,
+.kong-error-url {
+    color: alpha(currentColor, 0.75);
+}
+
+.kong-error-button {
+    min-width: 120px;
+}
+
+.kong-webview {
+    background-color: white;
+}

@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Set up CodeVision's system and Python dependencies on Debian-family systems.
 #_______________________________________________________________________________________________________;
 #           (``~)
@@ -17,6 +19,12 @@
 #     (__)   (__)   (__)
 
 set -euo pipefail
+
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script must be run with bash, not sh."
+    echo "Use: bash ./scripts/deps.sh"
+    exit 1
+fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
@@ -70,8 +78,11 @@ echo "[2/7] Installing system dependencies..."
     gir1.2-gtk-4.0 \
     gir1.2-gtksource-5 \
     gir1.2-vte-3.91 \
+    gir1.2-webkit-6.0 \
     libgtk-4-dev \
     libgtksourceview-5-dev \
+    libwebkitgtk-6.0-4 \
+    libwebkitgtk-6.0-dev \
     libgirepository1.0-dev \
     gobject-introspection \
     libcairo2-dev \
@@ -145,6 +156,10 @@ echo "---- GtkSourceView ----"
 echo
 echo "---- VTE terminal ----"
 "${VENV_DIR}/bin/python" -c "import gi; gi.require_version('Vte', '3.91'); from gi.repository import Vte; print('VTE 3.91: OK')"
+
+echo
+echo "---- WebKitGTK ----"
+"${VENV_DIR}/bin/python" -c "import gi; gi.require_version('WebKit', '6.0'); from gi.repository import WebKit; print('WebKitGTK 6.0 / GTK4: OK')"
 
 echo
 echo "---- Cairo ----"

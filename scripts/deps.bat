@@ -139,7 +139,7 @@ REM ==================================================
 echo [6/9] Installing CodeVision native dependencies...
 echo.
 
-"%MSYS2_ROOT%\usr\bin\bash.exe" -lc "pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-python-pip mingw-w64-ucrt-x86_64-python-gobject mingw-w64-ucrt-x86_64-python-cairo mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-gtksourceview5 mingw-w64-ucrt-x86_64-gobject-introspection mingw-w64-ucrt-x86_64-cairo mingw-w64-ucrt-x86_64-graphviz mingw-w64-ucrt-x86_64-toolchain"
+"%MSYS2_ROOT%\usr\bin\bash.exe" -lc "pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-python-pip mingw-w64-ucrt-x86_64-python-gobject mingw-w64-ucrt-x86_64-python-cairo mingw-w64-ucrt-x86_64-gtk4 mingw-w64-ucrt-x86_64-gtksourceview5 mingw-w64-ucrt-x86_64-webkit2gtk mingw-w64-ucrt-x86_64-gobject-introspection mingw-w64-ucrt-x86_64-cairo mingw-w64-ucrt-x86_64-graphviz mingw-w64-ucrt-x86_64-toolchain"
 
 if errorlevel 1 (
     echo.

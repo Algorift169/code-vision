@@ -41,6 +41,7 @@ STYLESHEETS = (
     "editor.css",
     "editor-tabs.css",
     "analysis-panel.css",
+    "kong-browser.css",
 )
 
 
@@ -514,6 +515,13 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.editor_tabs.new_document("Untitled Text", language_id=None)
         self.center_stack.set_visible_child_name("editor")
 
+    def open_kong_browser(self, target_url: str | None = None) -> None:
+        browser = self.editor_tabs.open_kong_browser(target_url)
+        if target_url is not None:
+            browser.load_url(target_url)
+        self.center_stack.set_visible_child_name("editor")
+        self.status_label.set_text(f"Kong Browser: {browser.service.current_url or 'new tab'}")
+
     def new_window(self) -> None:
         application = self.get_application()
         if isinstance(application, Gtk.Application):
@@ -693,6 +701,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
 
     def _attach_terminal_action(self, context: MenuContext) -> MenuContext:
         context.open_terminal = lambda: self._open_terminal_tab(context.directory)
+        context.open_kong_browser = lambda target_url=None: self.open_kong_browser(target_url)
         context.theme_manager = self.theme_manager
         return context
 
@@ -707,6 +716,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             terminal_service=self.terminal_service,
             theme_manager=self.theme_manager,
             open_terminal=lambda: self._open_terminal_tab(directory),
+            open_kong_browser=lambda target_url=None: self.open_kong_browser(target_url),
             create_file=lambda: self.project_explorer.create_file_in(directory),
             on_files_pasted=self.project_explorer._refresh_pasted_files,
             set_status=self.status_label.set_text,
@@ -727,14 +737,22 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             if editor.file_path is not None
             else self.project_explorer.root_path or Path.cwd()
         )
+        selected_text = None
+        if editor.source_view is not None:
+            buffer = editor.source_view.get_buffer()
+            bounds = buffer.get_selection_bounds()
+            if bounds:
+                selected_text = buffer.get_text(bounds[0], bounds[1], True)
         return MenuContext(
             widget=editor.source_view,
             kind="editor",
             path=editor.file_path,
+            selected_text=selected_text,
             project_root=self.project_explorer.root_path,
             editor_view=editor.source_view,
             terminal_service=self.terminal_service,
             open_terminal=lambda: self._open_terminal_tab(directory),
+            open_kong_browser=lambda target_url=None: self.open_kong_browser(target_url),
             create_file=lambda: self.project_explorer.create_file_in(directory),
             on_files_pasted=self.project_explorer._refresh_pasted_files,
             set_status=self.status_label.set_text,

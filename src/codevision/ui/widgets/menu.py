@@ -16,6 +16,7 @@ from .menu_actions import (
     delete,
     kill_terminal,
     new_file,
+    open_kong_browser,
     open_terminal,
     paste,
     rename,
@@ -40,6 +41,7 @@ class ContextMenu(Gtk.Popover):
         ("copy-relative-path", "Copy Relative Path", "folder-symbolic", copy_relative_path),
         ("select", "Select", "edit-select-all-symbolic", select),
         ("select-all", "Select All", "edit-select-all-symbolic", select_all),
+        ("kong-browser", "Kong Browser", "network-transmit-symbolic", open_kong_browser),
         ("kill-terminal", "Kill Terminal", "process-stop-symbolic", kill_terminal),
     )
 

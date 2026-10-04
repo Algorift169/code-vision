@@ -4,7 +4,8 @@
 # out of pip avoids the PyGObject source-build failure on Debian/Ubuntu.
 #
 # Install the system packages before creating the project venv:
-#   sudo apt-get install python3-gi python3-gi-cairo libgtk-4-dev libgirepository1.0-dev
+#   sudo apt-get install python3-gi python3-gi-cairo libgtk-4-dev libgirepository1.0-dev \
+#       gir1.2-webkit-6.0 libwebkitgtk-6.0-4 libwebkitgtk-6.0-dev
 
 tree-sitter>=0.21.0
 tree-sitter-c>=0.20.0
