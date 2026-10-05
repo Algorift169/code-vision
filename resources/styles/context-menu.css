@@ -1,4 +1,5 @@
-popover#codevision-context-menu {
+popover#codevision-context-menu
+{
     padding: 0;
     border: none;
     border-radius: 0;
@@ -6,20 +7,23 @@ popover#codevision-context-menu {
     color: inherit;
 }
 
-.context-menu-content {
+.context-menu-content
+{
     min-width: 210px;
     background: transparent;
     border: none;
     border-radius: 6px;
 }
 
-.context-menu-content separator {
+.context-menu-content separator
+{
     margin: 3px 5px;
     background: currentColor;
     opacity: 0.35;
 }
 
-.context-menu-item {
+.context-menu-item
+{
     min-height: 28px;
     padding: 3px 8px;
     border: 0;
@@ -28,11 +32,13 @@ popover#codevision-context-menu {
     color: inherit;
 }
 
-.context-menu-item:hover {
+.context-menu-item:hover
+{
     background: rgba(255, 255, 255, 0.06);
 }
 
-.context-menu-item:disabled {
+.context-menu-item:disabled
+{
     color: inherit;
     opacity: 0.55;
 }

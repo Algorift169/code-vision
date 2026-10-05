@@ -1,29 +1,35 @@
-#editor-panel {
+#editor-panel
+{
     background-color: #0d1a2a;
 }
 
 #code-editor,
-#code-editor text {
+#code-editor text
+{
     background-color: #0b1628;
     color: #dfeafc;
 }
 
-#code-editor {
+#code-editor
+{
     border: 0;
     caret-color: #dfeafc;
 }
 
 #code-editor gutter,
-#code-editor gutter line-numbers {
+#code-editor gutter line-numbers
+{
     background-color: #0b1628;
     color: #7f91a8;
 }
 
-#code-editor selection {
+#code-editor selection
+{
     background-color: #284f7a;
 }
 
-textview {
+textview
+{
     background: #0b1628;
     color: #dfeafc;
 }

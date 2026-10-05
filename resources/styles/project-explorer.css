@@ -1,21 +1,26 @@
-#project-panel {
+#project-panel
+{
     background-color: #0d1a2a;
 }
 
-#project-tree {
+#project-tree
+{
     background: transparent;
     color: #dfeafc;
 }
 
-#project-tree row:selected {
+#project-tree row:selected
+{
     background: #1b3858;
 }
 
-.explorer-actions {
+.explorer-actions
+{
     padding: 0 8px 6px;
 }
 
-.explorer-open-folder {
+.explorer-open-folder
+{
     padding: 3px 8px;
     border: 1px solid #1a2d46;
     border-radius: 4px;
@@ -24,11 +29,13 @@
     font-size: 11px;
 }
 
-.explorer-open-folder:hover {
+.explorer-open-folder:hover
+{
     background: #1a2d46;
 }
 
-.explorer-action {
+.explorer-action
+{
     min-width: 24px;
     min-height: 24px;
     padding: 2px;
@@ -38,16 +45,19 @@
     color: #b6c6db;
 }
 
-.explorer-action:hover {
+.explorer-action:hover
+{
     background: #1a2d46;
 }
 
-.explorer-empty {
+.explorer-empty
+{
     color: #8297b2;
     padding: 12px;
 }
 
-.explorer-error {
+.explorer-error
+{
     color: #f08a8a;
     font-size: 11px;
 }

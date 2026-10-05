@@ -1,22 +1,27 @@
-#editor-tabs {
+#editor-tabs
+{
     background-color: #0b1628;
 }
 
-#editor-tabs > header {
+#editor-tabs > header
+{
     background-color: #0d1a2a;
     border-bottom: 1px solid #1a2d46;
 }
 
-#editor-tabs tab {
+#editor-tabs tab
+{
     padding: 2px 6px;
 }
 
-.editor-tab-label {
+.editor-tab-label
+{
     color: #c8d5e7;
     font-size: 11px;
 }
 
-.editor-tab-close {
+.editor-tab-close
+{
     min-width: 18px;
     min-height: 18px;
     padding: 0;
@@ -26,6 +31,7 @@
     color: #9db5d4;
 }
 
-.editor-tab-close:hover {
+.editor-tab-close:hover
+{
     background: #1a2d46;
 }

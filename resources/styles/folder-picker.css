@@ -1,49 +1,59 @@
-#folder-picker-window {
+#folder-picker-window
+{
     background: #0d1a2a;
     color: #dfeafc;
 }
 
-.folder-picker-toolbar {
+.folder-picker-toolbar
+{
     border-bottom: 1px solid #1a2d46;
 }
 
-.folder-picker-heading {
+.folder-picker-heading
+{
     color: #e8eef9;
     font-weight: 700;
 }
 
 .folder-picker-path,
-.folder-picker-status {
+.folder-picker-status
+{
     color: #9db5d4;
     font-size: 11px;
 }
 
-.folder-picker-hidden-toggle {
+.folder-picker-hidden-toggle
+{
     color: #c8d5e7;
     font-size: 11px;
 }
 
-.folder-picker-icon-button {
+.folder-picker-icon-button
+{
     min-width: 28px;
     min-height: 28px;
     padding: 2px;
 }
 
-.folder-picker-list {
+.folder-picker-list
+{
     background: #0b1628;
 }
 
-.folder-picker-row {
+.folder-picker-row
+{
     color: #dfeafc;
     border-bottom: 1px solid #14243a;
 }
 
 .folder-picker-row:hover,
-.folder-picker-list row:selected {
+.folder-picker-list row:selected
+{
     background: #1b3858;
 }
 
-.folder-picker-empty {
+.folder-picker-empty
+{
     color: #8297b2;
     padding: 20px;
 }

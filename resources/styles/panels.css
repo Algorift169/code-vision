@@ -1,19 +1,23 @@
-.panel {
+.panel
+{
     background-color: #0d1a2a;
     border: 1px solid #1a2d46;
     border-radius: 8px;
 }
 
-.panel-header {
+.panel-header
+{
     background: transparent;
     padding: 0 0 6px;
 }
 
-.section-title {
+.section-title
+{
     color: #e8eef9;
     font-weight: 700;
 }
 
-scrolledwindow {
+scrolledwindow
+{
     background: transparent;
 }

@@ -1,58 +1,75 @@
 @define-color bg #000000;
+
 @define-color surface #101010;
+
 @define-color raised #101010;
+
 @define-color line #707070;
+
 @define-color text #ffffff;
+
 @define-color muted #b0b0b0;
+
 @define-color accent #ffdf00;
+
 @define-color accent-2 #ffdf00;
+
 @define-color hover #303030;
 
-window#codevision-window {
+window#codevision-window
+{
     background-color: #000000;
     color: #ffffff;
 }
 
-.window-border {
+.window-border
+{
     border-color: #707070;
 }
 
 #project-panel.panel,
 #analysis-panel.panel,
-#editor-panel.panel {
+#editor-panel.panel
+{
     background-color: #101010;
     border-color: #707070;
 }
 
 #editor-tabs,
-#welcome-page {
+#welcome-page
+{
     background-color: #050505;
 }
 
 #editor-tabs > header,
-headerbar {
+headerbar
+{
     background-color: #101010;
     color: #ffffff;
     border-color: #707070;
 }
 
 .window-title,
-.section-title {
+.section-title
+{
     color: #ffffff;
 }
 
 .muted-label,
 .welcome-message,
-.explorer-empty {
+.explorer-empty
+{
     color: #d0d0d0;
 }
 
-#project-tree {
+#project-tree
+{
     color: #ffffff;
 }
 
 #project-tree row:selected,
-#code-editor selection {
+#code-editor selection
+{
     background-color: #005fcc;
     color: #ffffff;
 }
@@ -61,26 +78,30 @@ headerbar {
 #code-editor text,
 #code-editor gutter,
 #code-editor gutter line-numbers,
-textview {
+textview
+{
     background-color: #050505;
     color: #ffffff;
 }
 
-#code-editor {
+#code-editor
+{
     caret-color: #ffdf00;
 }
 
 .explorer-open-folder,
 .menu-button,
 .explorer-action,
-.editor-tab-close {
+.editor-tab-close
+{
     color: #ffdf00;
 }
 
 .explorer-open-folder:hover,
 .explorer-action:hover,
 .menu-button:hover,
-.editor-tab-close:hover {
+.editor-tab-close:hover
+{
     background-color: #303030;
 }
 
@@ -88,7 +109,8 @@ textview {
 .search-entry text,
 searchentry.search-entry text,
 entry,
-dropdown {
+dropdown
+{
     background-color: #101010;
     color: #ffffff;
     border-color: #a0a0a0;
@@ -96,88 +118,215 @@ dropdown {
 
 .search-entry,
 .search-entry text,
-searchentry.search-entry text {
+searchentry.search-entry text
+{
     caret-color: #ffdf00;
 }
 
 .search-entry placeholder,
-searchentry.search-entry placeholder {
+searchentry.search-entry placeholder
+{
     color: #d0d0d0;
 }
 
 .search-entry image,
-searchentry.search-entry image {
+searchentry.search-entry image
+{
     color: #ffdf00;
 }
 
-.search-entry:focus {
+.search-entry:focus
+{
     border-color: #ffdf00;
 }
 
 popover#codevision-context-menu,
-.codevision-context-menu {
+.codevision-context-menu
+{
     background-color: #000000;
     color: #000000;
     border: none;
 }
 
-
-
-
-
-.codevision-context-menu .context-menu-content {
+.codevision-context-menu .context-menu-content
+{
     background-color: #000000;
     border: none;
     border-radius: 6px;
 }
 
-
-
 .context-menu-item,
 .context-menu-item label,
 .codevision-context-menu .context-menu-item,
-.codevision-context-menu .context-menu-item label {
+.codevision-context-menu .context-menu-item label
+{
     background-color: transparent;
     color: #ffffff;
 }
 
 .context-menu-item image,
-.codevision-context-menu .context-menu-item image {
+.codevision-context-menu .context-menu-item image
+{
     color: #ffdf00;
 }
 
 .context-menu-item:hover,
-.codevision-context-menu .context-menu-item:hover {
+.codevision-context-menu .context-menu-item:hover
+{
     background-color: #303030;
 }
 
 .context-menu-item:disabled,
 .context-menu-item:disabled label,
 .codevision-context-menu .context-menu-item:disabled,
-.codevision-context-menu .context-menu-item:disabled label {
+.codevision-context-menu .context-menu-item:disabled label
+{
     color: #b0b0b0;
 }
 
 .context-menu-content separator,
-.codevision-context-menu separator {
+.codevision-context-menu separator
+{
     background-color: #707070;
 }
 
-window#codevision-window headerbar { background-color: @surface; color: @text; border-color: @line; }
-window#codevision-window headerbar .window-title { color: @accent-2; }
-window#codevision-window headerbar .menu-button { background-color: transparent; color: @accent; }
-window#codevision-window headerbar .menu-button:hover { background-color: @hover; color: @accent-2; }
-window#codevision-window headerbar .search-entry, window#codevision-window headerbar .search-entry text { background-color: @raised; color: @text; border-color: @line; }
-.kong-browser { background-color: @bg; color: @text; }
-.kong-toolbar { background-color: @surface; border-color: @line; }
-button.kong-navigation-button { background-color: @raised; color: @accent; border: 1px solid @line; }
-button.kong-navigation-button:hover { background-color: @hover; color: @accent-2; }
-button.kong-navigation-button:disabled { color: @muted; }
-entry.kong-url-entry, entry.kong-url-entry text { background-color: @raised; color: @text; border-color: @line; caret-color: @accent; }
-entry.kong-url-entry:focus { border-color: @accent; }
-.kong-start-page, .kong-error-page { background-color: @bg; color: @text; }
-.kong-title, .kong-error-title { color: @accent-2; }
-.kong-subtitle, .kong-hint, .kong-error-url { color: @muted; }
-button.kong-error-button { background-color: @raised; color: @accent; border: 1px solid @line; }
-button.kong-error-button:hover { background-color: @hover; color: @accent-2; }
-.kong-webview { background-color: @bg; }
+window#codevision-window headerbar
+{
+    background-color: @surface;
+    color: @text;
+    border-color: @line;
+}
+
+window#codevision-window headerbar .window-title
+{
+    color: @accent-2;
+}
+
+window#codevision-window headerbar .menu-button
+{
+    background-color: transparent;
+    color: @accent;
+}
+
+window#codevision-window headerbar .menu-button:hover
+{
+    background-color: @hover;
+    color: @accent-2;
+}
+
+window#codevision-window headerbar .search-entry,
+window#codevision-window headerbar .search-entry text
+{
+    background-color: @raised;
+    color: @text;
+    border-color: @line;
+}
+
+.kong-browser
+{
+    background-color: @bg;
+    color: @text;
+}
+
+.kong-toolbar
+{
+    background-color: @surface;
+    border-color: @line;
+}
+
+button.kong-navigation-button
+{
+    background-color: @raised;
+    color: @accent;
+    border: 1px solid @line;
+}
+
+button.kong-navigation-button:hover
+{
+    background-color: @hover;
+    color: @accent-2;
+}
+
+button.kong-navigation-button:disabled
+{
+    color: @muted;
+}
+
+entry.kong-url-entry,
+entry.kong-url-entry text
+{
+    background-color: @raised;
+    color: @text;
+    border-color: @line;
+    caret-color: @accent;
+}
+
+entry.kong-url-entry:focus
+{
+    border-color: @accent;
+}
+
+.kong-start-page,
+.kong-error-page
+{
+    background-color: @bg;
+    color: @text;
+}
+
+.kong-title,
+.kong-error-title
+{
+    color: @accent-2;
+}
+
+.kong-subtitle,
+.kong-hint,
+.kong-error-url
+{
+    color: @muted;
+}
+
+button.kong-error-button
+{
+    background-color: @raised;
+    color: @accent;
+    border: 1px solid @line;
+}
+
+button.kong-error-button:hover
+{
+    background-color: @hover;
+    color: @accent-2;
+}
+
+.kong-webview
+{
+    background-color: @bg;
+}
+
+window#codevision-window headerbar,
+window#codevision-window headerbar.titlebar,
+window#codevision-window .titlebar,
+#editor-tabs > header,
+#editor-tabs > header > tabs,
+#editor-tabs tab
+{
+    background: @surface;
+    background-color: @surface;
+    background-image: none;
+    color: @text;
+    border-color: @line;
+}
+
+#editor-tabs tab:hover
+{
+    background-color: @hover;
+    color: @accent-2;
+}
+
+#editor-tabs tab:checked
+{
+    background-color: @raised;
+    color: @accent;
+    border-color: @accent;
+}

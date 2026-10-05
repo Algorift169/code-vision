@@ -1,8 +1,10 @@
-.window-controls {
+.window-controls
+{
     background: transparent;
 }
 
-.window-control {
+.window-control
+{
     min-width: 16px;
     min-height: 10px;
     padding: 0;
@@ -10,14 +12,17 @@
     border-radius: 3px;
 }
 
-.window-control.close {
+.window-control.close
+{
     background: #f15b5b;
 }
 
-.window-control.fullscreen {
+.window-control.fullscreen
+{
     background: #40c879;
 }
 
-.window-control.minimize {
+.window-control.minimize
+{
     background: #f4c24e;
 }
