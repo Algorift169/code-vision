@@ -9,7 +9,7 @@ STYLES_DIRECTORY = Path(__file__).resolve().parents[1] / "resources" / "styles"
 
 
 def test_all_themes_have_a_stylesheet() -> None:
-    assert len(THEMES) == 11
+    assert len(THEMES) == 12
     assert all((STYLES_DIRECTORY / theme.stylesheet).is_file() for theme in THEMES)
 
 
@@ -17,11 +17,11 @@ def test_theme_choice_is_applied_and_persisted(tmp_path: Path) -> None:
     preferences_file = tmp_path / "config" / "theme"
     manager = ThemeManager(STYLES_DIRECTORY, preferences_file)
 
-    manager.apply("paper-ink")
+    manager.apply("light-sky")
 
-    assert manager.current_theme == "paper-ink"
-    assert preferences_file.read_text(encoding="utf-8") == "paper-ink"
-    assert ThemeManager(STYLES_DIRECTORY, preferences_file).current_theme == "paper-ink"
+    assert manager.current_theme == "light-sky"
+    assert preferences_file.read_text(encoding="utf-8") == "light-sky"
+    assert ThemeManager(STYLES_DIRECTORY, preferences_file).current_theme == "light-sky"
 
 
 def test_unknown_theme_is_rejected(tmp_path: Path) -> None:

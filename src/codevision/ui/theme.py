@@ -25,6 +25,7 @@ THEMES = (
     Theme("monochrome-pro", "Monochrome Pro", "theme-monochrome-pro.css"),
     Theme("dark-high-contrast", "Dark High Contrast", "theme-dark-high-contrast.css"),
     Theme("paper-ink", "Paper & Ink", "theme-paper-ink.css"),
+    Theme("light-sky", "Light Sky", "theme-light-sky.css"),
     Theme("matrix-terminal", "Matrix Terminal", "theme-matrix-terminal.css"),
     Theme("copper-circuit", "Copper Circuit", "theme-copper-circuit.css"),
     Theme("arctic-glass", "Arctic Glass", "theme-arctic-glass.css"),
