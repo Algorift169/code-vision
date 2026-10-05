@@ -29,3 +29,22 @@ popover#codevision-context-menu, .codevision-context-menu, .codevision-context-m
 .search-entry:focus { border-color: @accent; }
 popover#codevision-context-menu separator, .codevision-context-menu separator { background-color: @line; }
 .context-menu-item:disabled, .context-menu-item:disabled label, .codevision-context-menu .context-menu-item:disabled, .codevision-context-menu .context-menu-item:disabled label { color: @muted; }
+
+window#codevision-window headerbar { background-color: @surface; color: @text; border-color: @line; }
+window#codevision-window headerbar .window-title { color: @accent-2; }
+window#codevision-window headerbar .menu-button { background-color: transparent; color: @accent; }
+window#codevision-window headerbar .menu-button:hover { background-color: @hover; color: @accent-2; }
+window#codevision-window headerbar .search-entry, window#codevision-window headerbar .search-entry text { background-color: @raised; color: @text; border-color: @line; }
+.kong-browser { background-color: @bg; color: @text; }
+.kong-toolbar { background-color: @surface; border-color: @line; }
+button.kong-navigation-button { background-color: @raised; color: @accent; border: 1px solid @line; }
+button.kong-navigation-button:hover { background-color: @hover; color: @accent-2; }
+button.kong-navigation-button:disabled { color: @muted; }
+entry.kong-url-entry, entry.kong-url-entry text { background-color: @raised; color: @text; border-color: @line; caret-color: @accent; }
+entry.kong-url-entry:focus { border-color: @accent; }
+.kong-start-page, .kong-error-page { background-color: @bg; color: @text; }
+.kong-title, .kong-error-title { color: @accent-2; }
+.kong-subtitle, .kong-hint, .kong-error-url { color: @muted; }
+button.kong-error-button { background-color: @raised; color: @accent; border: 1px solid @line; }
+button.kong-error-button:hover { background-color: @hover; color: @accent-2; }
+.kong-webview { background-color: @bg; }

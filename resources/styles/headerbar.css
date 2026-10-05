@@ -1,7 +1,7 @@
 headerbar {
-    background-color: #0b1830;
-    color: #e5edf8;
-    border-bottom: 1px solid #1a2c48;
+    background-color: transparent;
+    color: inherit;
+    border-bottom: 1px solid alpha(currentColor, 0.18);
     min-height: 11px;
     padding: 0 3px;
 }
@@ -11,14 +11,14 @@ headerbar {
 }
 
 .window-title {
-    color: #e5edf8;
+    color: inherit;
     font-size: 12px;
     font-weight: 700;
 }
 
 .menu-button {
     background: transparent;
-    color: #c8d5e7;
+    color: inherit;
     border: 0;
     border-radius: 4px;
     min-height: 11px;
@@ -27,13 +27,13 @@ headerbar {
 }
 
 .menu-button:hover {
-    background: #1a2d46;
+    background: alpha(currentColor, 0.12);
 }
 
 .search-entry {
-    background: #12243d;
-    color: #dfeafc;
-    border: 1px solid #1d3556;
+    background: transparent;
+    color: inherit;
+    border: 1px solid alpha(currentColor, 0.18);
     border-radius: 8px;
     min-height: 11px;
     padding: 0 3px;
