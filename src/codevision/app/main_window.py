@@ -201,7 +201,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         )
         if app_icon_path.is_file():
             app_icon = Gtk.Image.new_from_file(str(app_icon_path))
-            app_icon.set_pixel_size(44)
+            app_icon.set_pixel_size(15)
             app_icon.set_tooltip_text("CodeVision")
             app_icon.set_valign(Gtk.Align.CENTER)
             app_icon.set_margin_end(6)
