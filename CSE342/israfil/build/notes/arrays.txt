@@ -1,0 +1,915 @@
+Java Array Notes
+
+An array is used to store multiple values of the same data type in a single variable.
+
+Instead of creating many variables:
+
+int mark1 = 80;
+int mark2 = 75;
+int mark3 = 90;
+int mark4 = 85;
+
+we can use an array:
+
+int marks[] = {80, 75, 90, 85};
+
+
+basic structure:
+
+data_type[] array_name = new data_type[size];
+
+or:
+
+data_type array_name[] = new data_type[size];
+
+
+example:
+
+int[] marks = new int[5];
+
+or:
+
+int marks[] = new int[5];
+
+
+Both are valid in Java.
+
+
+array -> used for storing multiple values of the same data type.
+
+example:
+
+int[] numbers = new int[5];
+
+
+-> int -> data type
+
+-> numbers -> array name
+
+-> new -> creates a new array in memory
+
+-> int[5] -> creates an integer array that can store 5 values.
+
+
+important...!
+
+Java arrays have a fixed size.
+
+If we create:
+
+int[] numbers = new int[5];
+
+then the array can store exactly 5 elements.
+
+We cannot directly increase its size later.
+
+
+array indexing
+
+Array indexing starts from 0.
+
+If we have:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+then:
+
+index:     0    1    2    3    4
+value:    10   20   30   40   50
+
+
+So:
+
+numbers[0]
+
+will give:
+
+10
+
+
+and:
+
+numbers[1]
+
+will give:
+
+20
+
+
+and:
+
+numbers[4]
+
+will give:
+
+50
+
+
+important:
+
+If an array has 5 elements:
+
+int[] numbers = new int[5];
+
+then the indexes are:
+
+0
+1
+2
+3
+4
+
+
+The last index is:
+
+size - 1
+
+
+So:
+
+5 - 1 = 4
+
+
+creating an array
+
+There are different ways to create an array.
+
+
+1. Creating an empty array with a fixed size:
+
+int[] numbers = new int[5];
+
+
+This creates an array with 5 integer elements.
+
+By default, the values will be:
+
+0 0 0 0 0
+
+
+2. Creating an array with values:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+
+Here Java automatically determines the size.
+
+The size is:
+
+5
+
+
+3. Using new with values:
+
+int[] numbers = new int[]{10, 20, 30, 40, 50};
+
+
+This is also valid.
+
+
+accessing array elements
+
+We use the index number to access an array element.
+
+example:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+System.out.println(numbers[0]);
+
+
+Output:
+
+10
+
+
+Another example:
+
+System.out.println(numbers[3]);
+
+
+Output:
+
+40
+
+
+changing array elements
+
+We can change an array element using its index.
+
+example:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+numbers[2] = 100;
+
+
+Now the array becomes:
+
+10 20 100 40 50
+
+
+because:
+
+numbers[2]
+
+was changed from:
+
+30
+
+to:
+
+100
+
+
+array length
+
+We can use:
+
+array_name.length
+
+to find the number of elements in an array.
+
+example:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+System.out.println(numbers.length);
+
+
+Output:
+
+5
+
+
+important...!
+
+length is not a function.
+
+So we do NOT write:
+
+numbers.length();
+
+
+We write:
+
+numbers.length
+
+
+The last index can be found using:
+
+array_name.length - 1
+
+
+example:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+System.out.println(numbers.length - 1);
+
+
+Output:
+
+4
+
+
+taking array input from the user
+
+We can use the Scanner class to take array input.
+
+At the top:
+
+import java.util.Scanner;
+
+
+basic structure:
+
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+
+        Scanner input = new Scanner(System.in);
+
+        int n = input.nextInt();
+
+        int[] numbers = new int[n];
+
+        for(int i = 0; i < n; i++) {
+            numbers[i] = input.nextInt();
+        }
+
+        input.close();
+    }
+}
+
+
+Here:
+
+int n = input.nextInt();
+
+-> takes the size of the array from the user.
+
+
+int[] numbers = new int[n];
+
+-> creates an integer array of size n.
+
+
+for(int i = 0; i < n; i++)
+
+-> repeats the input process n times.
+
+
+numbers[i] = input.nextInt();
+
+-> takes an integer from the user and stores it in the array.
+
+
+example:
+
+if input is:
+
+5
+10 20 30 40 50
+
+
+then:
+
+n = 5
+
+
+and the array becomes:
+
+numbers[0] = 10
+numbers[1] = 20
+numbers[2] = 30
+numbers[3] = 40
+numbers[4] = 50
+
+
+printing array elements
+
+We can use a for loop to print all elements.
+
+example:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+for(int i = 0; i < numbers.length; i++) {
+    System.out.println(numbers[i]);
+}
+
+
+Output:
+
+10
+20
+30
+40
+50
+
+
+important:
+
+The loop starts from:
+
+i = 0
+
+
+because array indexing starts from 0.
+
+
+The loop condition is:
+
+i < numbers.length
+
+
+NOT:
+
+i <= numbers.length
+
+
+because the last valid index is:
+
+numbers.length - 1
+
+
+for loop with array
+
+The most common way to work with arrays is:
+
+for(int i = 0; i < array_name.length; i++) {
+    // code
+}
+
+
+example:
+
+int[] marks = {80, 75, 90, 85, 70};
+
+for(int i = 0; i < marks.length; i++) {
+    System.out.println(marks[i]);
+}
+
+
+Enhanced for loop
+
+Java also has a simpler way to access every element of an array.
+
+Syntax:
+
+for(data_type variable : array_name) {
+    // code
+}
+
+
+example:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+for(int number : numbers) {
+    System.out.println(number);
+}
+
+
+Output:
+
+10
+20
+30
+40
+50
+
+
+Here:
+
+number
+
+takes each value from the array one by one.
+
+
+example:
+
+int[] numbers = {10, 20, 30};
+
+for(int number : numbers) {
+    System.out.println(number);
+}
+
+
+First:
+
+number = 10
+
+
+Then:
+
+number = 20
+
+
+Then:
+
+number = 30
+
+
+This is called the enhanced for loop or for-each loop.
+
+
+important:
+
+Using a normal for loop:
+
+for(int i = 0; i < numbers.length; i++) {
+    System.out.println(numbers[i]);
+}
+
+
+Here we have access to the index.
+
+But using:
+
+for(int number : numbers) {
+    System.out.println(number);
+}
+
+
+we directly get the values.
+
+We do not directly get the index.
+
+
+array of String
+
+We can also create an array of String.
+
+example:
+
+String[] names = {"Rahim", "Karim", "Ahmed"};
+
+
+Then:
+
+names[0]
+
+is:
+
+Rahim
+
+
+names[1]
+
+is:
+
+Karim
+
+
+names[2]
+
+is:
+
+Ahmed
+
+
+example:
+
+String[] names = new String[3];
+
+names[0] = "Rahim";
+names[1] = "Karim";
+names[2] = "Ahmed";
+
+
+Now:
+
+names[0] -> "Rahim"
+names[1] -> "Karim"
+names[2] -> "Ahmed"
+
+
+array of double
+
+example:
+
+double[] prices = {10.5, 20.75, 30.25};
+
+
+array of char
+
+example:
+
+char[] letters = {'A', 'B', 'C', 'D'};
+
+
+Character values are written inside single quotation marks:
+
+'A'
+'B'
+'C'
+
+
+String values are written inside double quotation marks:
+
+"Rahim"
+"Ahmed"
+"Hello"
+
+
+array of boolean
+
+example:
+
+boolean[] check = {true, false, true};
+
+
+boolean values are:
+
+true
+false
+
+
+default values of arrays
+
+When we create an array using new without assigning values, Java automatically gives default values.
+
+For int:
+
+int[] numbers = new int[5];
+
+default:
+
+0 0 0 0 0
+
+
+For double:
+
+double[] numbers = new double[5];
+
+default:
+
+0.0 0.0 0.0 0.0 0.0
+
+
+For boolean:
+
+boolean[] check = new boolean[5];
+
+default:
+
+false false false false false
+
+
+For char:
+
+char[] letters = new char[5];
+
+default:
+
+'\u0000'
+
+
+For String:
+
+String[] names = new String[5];
+
+default:
+
+null null null null null
+
+
+important...!
+
+null means that the String variable does not currently refer to a String object.
+
+
+ArrayIndexOutOfBoundsException
+
+If we try to access an invalid index, Java gives:
+
+ArrayIndexOutOfBoundsException
+
+
+example:
+
+int[] numbers = {10, 20, 30};
+
+System.out.println(numbers[3]);
+
+
+This is wrong because the valid indexes are:
+
+0
+1
+2
+
+
+There is no index 3.
+
+
+Another example:
+
+System.out.println(numbers[-1]);
+
+
+This is also wrong because array indexes cannot be negative.
+
+
+basic array example with input:
+
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+
+        Scanner input = new Scanner(System.in);
+
+        int n = input.nextInt();
+
+        int[] numbers = new int[n];
+
+        for(int i = 0; i < n; i++) {
+            numbers[i] = input.nextInt();
+        }
+
+        for(int i = 0; i < n; i++) {
+            System.out.println(numbers[i]);
+        }
+
+        input.close();
+    }
+}
+
+
+if input is:
+
+5
+10 20 30 40 50
+
+
+Output:
+
+10
+20
+30
+40
+50
+
+
+finding the sum of array elements
+
+example:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+int sum = 0;
+
+for(int i = 0; i < numbers.length; i++) {
+    sum = sum + numbers[i];
+}
+
+System.out.println(sum);
+
+
+Output:
+
+150
+
+
+finding the average
+
+example:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+int sum = 0;
+
+for(int i = 0; i < numbers.length; i++) {
+    sum = sum + numbers[i];
+}
+
+double average = (double) sum / numbers.length;
+
+System.out.println(average);
+
+
+Output:
+
+30.0
+
+
+important...!
+
+If we write:
+
+double average = sum / numbers.length;
+
+
+both sum and numbers.length are int values.
+
+So Java will perform integer division first.
+
+To get the correct decimal result, we can use:
+
+(double) sum / numbers.length
+
+
+finding the maximum value
+
+example:
+
+int[] numbers = {10, 50, 20, 80, 30};
+
+int max = numbers[0];
+
+for(int i = 1; i < numbers.length; i++) {
+
+    if(numbers[i] > max) {
+        max = numbers[i];
+    }
+
+}
+
+System.out.println(max);
+
+
+Output:
+
+80
+
+
+finding the minimum value
+
+example:
+
+int[] numbers = {10, 50, 20, 80, 30};
+
+int min = numbers[0];
+
+for(int i = 1; i < numbers.length; i++) {
+
+    if(numbers[i] < min) {
+        min = numbers[i];
+    }
+
+}
+
+System.out.println(min);
+
+
+Output:
+
+10
+
+
+important points...!
+
+-> Array stores multiple values.
+
+-> All elements of an array must have the same data type.
+
+-> Array indexing starts from 0.
+
+-> The last index is length - 1.
+
+-> array_name.length gives the number of elements.
+
+-> length is not a function, so we do not use ().
+
+-> Java arrays have a fixed size.
+
+-> new is used to create an array dynamically in memory.
+
+-> int[] numbers = new int[5]; creates an integer array of size 5.
+
+-> numbers[0] accesses the first element.
+
+-> numbers[numbers.length - 1] accesses the last element.
+
+-> An invalid index causes ArrayIndexOutOfBoundsException.
+
+-> We can use a normal for loop to access elements using indexes.
+
+-> We can use an enhanced for loop to directly access values.
+
+-> Java is case-sensitive.
+
+Examples:
+
+int[] numbers;
+
+String[] names;
+
+double[] prices;
+
+char[] letters;
+
+boolean[] check;
+
+
+basic array structure:
+
+data_type[] array_name = new data_type[size];
+
+
+example:
+
+int[] numbers = new int[5];
+
+
+array with values:
+
+int[] numbers = {10, 20, 30, 40, 50};
+
+
+accessing:
+
+numbers[0]
+
+
+changing:
+
+numbers[0] = 100;
+
+
+length:
+
+numbers.length
+
+
+last element:
+
+numbers[numbers.length - 1]
+
+
+for loop:
+
+for(int i = 0; i < numbers.length; i++) {
+    System.out.println(numbers[i]);
+}
+
+
+for-each loop:
+
+for(int number : numbers) {
+    System.out.println(number);
+}

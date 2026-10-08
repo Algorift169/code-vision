@@ -1,0 +1,25 @@
+
+3. A university offers different types of courses. Create a
+superclass Course containing:
+
+● courseCode
+● courseTitle
+● credit
+● displayCourseInfo()
+● calculateCourseFee() — calculates the course fee based on
+the number of credits.
+Create two subclasses:
+TheoryCourse
+● numberOfLectures
+● displayTheoryDetails() — displays the number of lectures.
+● calculateCourseFee() — override the method to calculate
+the fee for a theory course.
+LabCourse
+● numberOfLabHours
+● displayLabDetails() — displays the number of lab hours.
+● calculateCourseFee() — override the method to calculate
+the fee for a lab course.
+
+
+
+

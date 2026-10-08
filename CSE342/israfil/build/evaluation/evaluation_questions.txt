@@ -1,0 +1,26 @@
+A university wants to develop an Employee Management
+System to manage different types of employees. Create a
+superclass Employee containing the following attributes and
+methods:
+Superclass: Employee
+● name
+● id
+● basicSalary
+● displayInfo() — displays the employee’s basic information.
+● calculateSalary() — returns the employee’s basic salary.
+Create one subclass:
+1. AdministrativeStaff
+● department
+● workingHours
+● calculateSalary() — calculate the staff’s salary by adding an
+overtime payment if the working hours exceed the regular
+working hours. Suppose: regular_hour is 40 and
+overtime_rate_perHour is 500.
+● displayInfo() — display all administrative staff information.
+● assignDepartment() — display a message showing the
+department assigned to the staff member.
+Task: Create at least two AdministrativeStaff objects. Initialize
+their attributes, invoke all appropriate methods, and display their
+complete information and calculated salaries.
+
+EmployeeManagementSystem
