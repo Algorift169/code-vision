@@ -22,7 +22,7 @@ install:
 	PIP_CACHE_DIR="$(PIP_CACHE_DIR)" PYTHONPYCACHEPREFIX="$(PYCACHE_DIR)" $(PIP) install --upgrade pip
 	PIP_CACHE_DIR="$(PIP_CACHE_DIR)" PYTHONPYCACHEPREFIX="$(PYCACHE_DIR)" $(PIP) install -r requirements.txt
 	rm -rf $(SITE_PACKAGES)
-	# Install the package into the dedicated build area instead of leaving metadata in src/.
+	# Setuptools writes egg-info to build/ (see setup.cfg); install the package under build/ too.
 	PIP_CACHE_DIR="$(PIP_CACHE_DIR)" PYTHONPYCACHEPREFIX="$(PYCACHE_DIR)" $(PIP) install --no-deps --target $(SITE_PACKAGES) .
 
 run:

@@ -4,6 +4,12 @@ window
     color: #e5edf8;
 }
 
+window#codevision-window
+{
+    border-radius: 12px;
+    overflow: hidden;
+}
+
 .muted-label
 {
     color: #9db5d4;
