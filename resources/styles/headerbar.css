@@ -22,6 +22,8 @@ headerbar
 .menu-button
 {
     background: transparent;
+    background-image: none;
+    box-shadow: none;
     color: inherit;
     border: 0;
     border-radius: 4px;
@@ -30,9 +32,26 @@ headerbar
     font-size: 10px;
 }
 
+.menu-button button,
+.menu-button button label,
+.menu-button label
+{
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
+    color: inherit;
+}
+
 .menu-button:hover
 {
     background: alpha(currentColor, 0.12);
+}
+
+.menu-button:hover button,
+.menu-button button:hover
+{
+    background-color: transparent;
+    color: inherit;
 }
 
 .search-entry

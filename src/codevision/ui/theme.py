@@ -79,7 +79,15 @@ class ThemeManager:
 
         provider = Gtk.CssProvider()
         stylesheet = self._styles_directory / theme.stylesheet
-        provider.load_from_path(str(stylesheet))
+        css_data = stylesheet.read_bytes()
+        folder_picker_stylesheet = self._styles_directory / "folder-picker-theme.css"
+        if folder_picker_stylesheet.is_file():
+            css_data += b"\n" + folder_picker_stylesheet.read_bytes()
+        load_from_string = getattr(provider, "load_from_string", None)
+        if load_from_string is None:
+            provider.load_from_data(css_data)
+        else:
+            load_from_string(css_data.decode("utf-8"))
         if self._display is not None:
             if self._provider is not None:
                 Gtk.StyleContext.remove_provider_for_display(

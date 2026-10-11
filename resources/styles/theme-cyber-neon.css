@@ -363,3 +363,11 @@ window#codevision-window .titlebar,
     color: @accent;
     border-color: @accent;
 }
+
+window#folder-picker-window .folder-picker-list row:selected image
+{
+    color: @accent-2;
+}
+
+
+

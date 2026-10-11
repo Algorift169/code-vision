@@ -1,0 +1,116 @@
+window#folder-picker-window
+{
+    background-color: @bg;
+    color: @text;
+}
+
+window#folder-picker-window .folder-picker-toolbar
+{
+    background-color: @surface;
+    border-color: @line;
+}
+
+window#folder-picker-window .folder-picker-heading
+{
+    color: @accent-2;
+}
+
+window#folder-picker-window .folder-picker-path,
+window#folder-picker-window .folder-picker-status,
+window#folder-picker-window .folder-picker-empty
+{
+    color: @muted;
+}
+
+window#folder-picker-window .folder-picker-hidden-toggle,
+window#folder-picker-window .folder-picker-hidden-toggle label
+{
+    color: @text;
+}
+
+window#folder-picker-window checkbutton check
+{
+    background-color: @raised;
+    border-color: @line;
+    color: @accent;
+}
+
+window#folder-picker-window checkbutton:checked check
+{
+    background-color: @accent;
+    border-color: @accent;
+    color: @bg;
+}
+
+window#folder-picker-window .folder-picker-icon-button
+{
+    background-color: @raised;
+    color: @accent;
+    border: 1px solid @line;
+}
+
+window#folder-picker-window button:not(.suggested-action):not(.folder-picker-icon-button)
+{
+    background-color: @raised;
+    background-image: none;
+    color: @text;
+    border: 1px solid @line;
+}
+
+window#folder-picker-window button:not(.suggested-action):not(.folder-picker-icon-button) label
+{
+    color: @text;
+}
+
+window#folder-picker-window button:not(.suggested-action):not(.folder-picker-icon-button):hover
+{
+    background-color: @hover;
+    color: @accent-2;
+}
+
+window#folder-picker-window button.suggested-action
+{
+    background-color: @accent;
+    color: @bg;
+    border-color: @accent;
+}
+
+window#folder-picker-window button.suggested-action label
+{
+    color: @bg;
+}
+
+window#folder-picker-window .folder-picker-list
+{
+    background-color: @bg;
+    color: @text;
+}
+
+window#folder-picker-window .folder-picker-row
+{
+    background-color: transparent;
+    color: @text;
+    border-color: @line;
+}
+
+window#folder-picker-window .folder-picker-row image
+{
+    color: @accent;
+}
+
+window#folder-picker-window .folder-picker-row:hover
+{
+    background-color: @hover;
+    color: @text;
+}
+
+window#folder-picker-window .folder-picker-list row:selected
+{
+    background-color: @select;
+    color: @text;
+}
+
+window#folder-picker-window .folder-picker-row label
+{
+    color: @text;
+}

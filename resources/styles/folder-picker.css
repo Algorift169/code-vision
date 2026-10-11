@@ -1,30 +1,31 @@
 #folder-picker-window
 {
-    background: #0d1a2a;
-    color: #dfeafc;
+    background: transparent;
+    color: inherit;
 }
 
 .folder-picker-toolbar
 {
-    border-bottom: 1px solid #1a2d46;
+    background: transparent;
+    border-bottom: 1px solid alpha(currentColor, 0.18);
 }
 
 .folder-picker-heading
 {
-    color: #e8eef9;
+    color: inherit;
     font-weight: 700;
 }
 
 .folder-picker-path,
 .folder-picker-status
 {
-    color: #9db5d4;
+    color: inherit;
     font-size: 11px;
 }
 
 .folder-picker-hidden-toggle
 {
-    color: #c8d5e7;
+    color: inherit;
     font-size: 11px;
 }
 
@@ -37,23 +38,24 @@
 
 .folder-picker-list
 {
-    background: #0b1628;
+    background: transparent;
 }
 
 .folder-picker-row
 {
-    color: #dfeafc;
-    border-bottom: 1px solid #14243a;
+    color: inherit;
+    border-bottom: 1px solid alpha(currentColor, 0.12);
 }
 
 .folder-picker-row:hover,
 .folder-picker-list row:selected
 {
-    background: #1b3858;
+    background: alpha(currentColor, 0.12);
+    color: inherit;
 }
 
 .folder-picker-empty
 {
-    color: #8297b2;
+    color: inherit;
     padding: 20px;
 }
