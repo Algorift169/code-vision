@@ -4,6 +4,37 @@ window#folder-picker-window
     color: @text;
 }
 
+window#folder-picker-window headerbar.folder-picker-headerbar
+{
+    background-color: @surface;
+    background-image: none;
+    color: @text;
+    border: none;
+    border-bottom: 1px solid @line;
+    box-shadow: none;
+}
+
+window#folder-picker-window headerbar.folder-picker-headerbar .folder-picker-title
+{
+    color: @accent-2;
+}
+
+window#folder-picker-window headerbar.folder-picker-headerbar button,
+window#folder-picker-window headerbar.folder-picker-headerbar button label
+{
+    background-color: transparent;
+    background-image: none;
+    color: @text;
+    border: none;
+    box-shadow: none;
+}
+
+window#folder-picker-window headerbar.folder-picker-headerbar button:hover
+{
+    background-color: @hover;
+    color: @accent-2;
+}
+
 window#folder-picker-window .folder-picker-toolbar
 {
     background-color: @surface;

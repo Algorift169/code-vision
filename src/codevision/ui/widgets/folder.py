@@ -40,6 +40,14 @@ class FolderPickerWindow(Gtk.Window):
         self._entries_by_row: dict[Gtk.ListBoxRow, BrowserEntry] = {}
         self._hovered_row: Gtk.ListBoxRow | None = None
 
+        headerbar = Gtk.HeaderBar()
+        headerbar.set_show_title_buttons(True)
+        headerbar.add_css_class("folder-picker-headerbar")
+        title = Gtk.Label(label="Open Folder")
+        title.add_css_class("folder-picker-title")
+        headerbar.set_title_widget(title)
+        self.set_titlebar(headerbar)
+
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.set_child(root)
 
