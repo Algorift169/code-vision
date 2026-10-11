@@ -55,7 +55,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
     def __init__(self, application: Gtk.Application) -> None:
         super().__init__(application=application)
         self.set_title("CodeVision")
-        self.set_default_size(1400, 900)
+        self.set_default_size(700, 400)
         self.set_size_request(1100, 700)
         self.set_name("codevision-window")
         self.set_decorated(False)
