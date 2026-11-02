@@ -5,32 +5,17 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
+from .overlay_menu import OverlayMenuButton
 
-class ViewMenuButton(Gtk.MenuButton):
-    """View menu for toggling panes, fullscreen, focus mode, zoom, and theme."""
 
-    def __init__(self, window: object) -> None:
-        super().__init__()
-        self._window = window
-        self.set_label("View")
-        self.add_css_class("menu-button")
+class ViewMenuButton(OverlayMenuButton):
+    """View menu for toggling panes, fullscreen, focus mode, zoom, and theme without Gtk.Popover."""
 
-        self._popover = self._create_popover()
-        self._content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
-        self._content.add_css_class("context-menu-content")
-        self._popover.set_child(self._content)
-        self.set_popover(self._popover)
+    def __init__(self, window: object, overlay: Gtk.Overlay | None = None) -> None:
+        super().__init__(window, label="View", overlay=overlay)
         self._items: dict[str, Gtk.Button] = {}
         self._build_items()
         self._update_state()
-
-    def _create_popover(self) -> Gtk.Popover:
-        popover = Gtk.Popover()
-        popover.set_name("codevision-context-menu")
-        popover.set_has_arrow(False)
-        popover.set_autohide(True)
-        popover.add_css_class("codevision-context-menu")
-        return popover
 
     def _make_row(
         self,
@@ -39,6 +24,7 @@ class ViewMenuButton(Gtk.MenuButton):
         *,
         checked: bool = False,
         enabled: bool = True,
+        shortcut: str = "",
     ) -> Gtk.Button:
         button = Gtk.Button()
         button.set_has_frame(False)
@@ -60,6 +46,12 @@ class ViewMenuButton(Gtk.MenuButton):
         title.set_xalign(0)
         row.append(title)
 
+        if shortcut:
+            shortcut_label = Gtk.Label(label=shortcut)
+            shortcut_label.set_halign(Gtk.Align.END)
+            shortcut_label.add_css_class("muted-label")
+            row.append(shortcut_label)
+
         button.set_child(row)
         button.connect("clicked", lambda _button: (self.popdown(), callback()))
         return button
@@ -71,12 +63,14 @@ class ViewMenuButton(Gtk.MenuButton):
         *,
         checked: bool = False,
         enabled: bool = True,
+        shortcut: str = "",
     ) -> Gtk.Button:
         button = self._make_row(
             label,
             callback,
             checked=checked,
             enabled=enabled,
+            shortcut=shortcut,
         )
         self._content.append(button)
         return button
@@ -101,6 +95,7 @@ class ViewMenuButton(Gtk.MenuButton):
         self._items["fullscreen"] = self._append_action(
             "Toggle Full Screen",
             self._window._toggle_fullscreen,
+            shortcut="F11",
         )
         self._items["focus-mode"] = self._append_action(
             "Focus Mode",
@@ -111,28 +106,38 @@ class ViewMenuButton(Gtk.MenuButton):
         self._items["zoom-in"] = self._append_action(
             "Zoom In",
             self._window.zoom_in,
+            shortcut="Ctrl++",
         )
         self._items["zoom-out"] = self._append_action(
             "Zoom Out",
             self._window.zoom_out,
+            shortcut="Ctrl+-",
         )
         self._items["reset-zoom"] = self._append_action(
             "Reset Zoom",
             self._window.reset_zoom,
+            shortcut="Ctrl+0",
         )
         self._content.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+
+    def update_state(self) -> None:
+        self._update_state()
 
     def _update_state(self) -> None:
         if not hasattr(self._window, "editor_visible"):
             return
-        self._items["editor"].set_sensitive(True)
-        self._items["project-explorer"].set_sensitive(True)
-        self._items["analysis-panel"].set_sensitive(True)
-        self._items["fullscreen"].set_sensitive(True)
-        self._items["focus-mode"].set_sensitive(True)
-        self._items["zoom-in"].set_sensitive(True)
-        self._items["zoom-out"].set_sensitive(True)
-        self._items["reset-zoom"].set_sensitive(True)
+        for item_name in (
+            "editor",
+            "project-explorer",
+            "analysis-panel",
+            "fullscreen",
+            "focus-mode",
+            "zoom-in",
+            "zoom-out",
+            "reset-zoom",
+        ):
+            if item_name in self._items:
+                self._items[item_name].set_sensitive(True)
 
         for item_name, item_widget in self._items.items():
             if item_name == "editor":

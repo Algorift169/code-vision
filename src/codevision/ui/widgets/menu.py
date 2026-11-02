@@ -26,8 +26,8 @@ from .menu_actions import (
 from .menu_context import MenuContext
 
 
-class ContextMenu(Gtk.Popover):
-    """Reusable context popover that delegates work to focused action modules."""
+class ContextMenu(Gtk.Box):
+    """Reusable overlay context menu that delegates to focused action modules."""
 
     _ACTIONS = (
         ("new-file", "New File", "document-new-symbolic", new_file),
@@ -47,24 +47,28 @@ class ContextMenu(Gtk.Popover):
 
     def __init__(
         self,
-        parent: Gtk.Widget,
+        overlay: Gtk.Overlay,
+        event_parent: Gtk.Widget,
         context_at: Callable[[float, float], MenuContext],
     ) -> None:
-        super().__init__()
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=1)
         self.set_name("codevision-context-menu")
-        self.set_has_arrow(False)
-        self.set_autohide(True)
+        self.add_css_class("context-menu-popup")
+        self.add_css_class("context-menu-content")
+        self.set_halign(Gtk.Align.START)
+        self.set_valign(Gtk.Align.START)
+        self.set_visible(False)
         self.add_css_class("codevision-context-menu")
+        self._overlay = overlay
+        self._event_parent = event_parent
         self._context_at = context_at
         self._context: MenuContext | None = None
         self._enabled = True
         self._items: dict[str, tuple[Gtk.Button, object]] = {}
 
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
-        content.add_css_class("context-menu-content")
         for action_id, label, icon_name, action in self._ACTIONS:
             if action_id in {"copy", "select"}:
-                content.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+                self.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
             button = Gtk.Button()
             button.set_has_frame(False)
             button.set_halign(Gtk.Align.FILL)
@@ -77,39 +81,99 @@ class ContextMenu(Gtk.Popover):
             row.append(title)
             button.set_child(row)
             button.connect("clicked", self._on_action_clicked, action_id)
-            content.append(button)
+            self.append(button)
             self._items[action_id] = (button, action)
-        self.set_child(content)
-        self.set_parent(parent)
+        overlay.add_overlay(self)
+        overlay.set_measure_overlay(self, False)
 
         gesture = Gtk.GestureClick.new()
         gesture.set_button(Gdk.BUTTON_SECONDARY)
         gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         gesture.connect("pressed", self._on_pressed)
-        parent.add_controller(gesture)
+        event_parent.add_controller(gesture)
         self._gesture = gesture
+
+        dismiss_gesture = Gtk.GestureClick.new()
+        dismiss_gesture.set_button(Gdk.BUTTON_PRIMARY)
+        dismiss_gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        dismiss_gesture.connect("pressed", self._on_dismiss_pressed)
+        event_parent.add_controller(dismiss_gesture)
+        self._dismiss_gesture = dismiss_gesture
+
+        keys = Gtk.EventControllerKey.new()
+        keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        keys.connect("key-pressed", self._on_key_pressed)
+        event_parent.add_controller(keys)
+        self._key_controller = keys
 
     def set_enabled(self, enabled: bool) -> None:
         self._enabled = enabled
 
+    def get_active(self) -> bool:
+        return self.get_visible()
+
+    def popdown(self) -> None:
+        if self.get_visible():
+            self.set_visible(False)
+
     def _on_pressed(
         self,
-        _gesture: Gtk.GestureClick,
+        gesture: Gtk.GestureClick,
         _press_count: int,
         x: float,
         y: float,
     ) -> None:
         if not self._enabled:
+            if gesture is not None:
+                gesture.set_state(Gtk.EventSequenceState.DENIED)
             return
+        root = self._event_parent.get_root() if hasattr(self, "_event_parent") else None
+        if root is not None and hasattr(root, "close_all_menus"):
+            root.close_all_menus(except_menu=self)
         self._context = self._context_at(x, y)
         self._update_state()
-        pointing = Gdk.Rectangle()
-        pointing.x = int(x)
-        pointing.y = int(y)
-        pointing.width = 1
-        pointing.height = 1
-        self.set_pointing_to(pointing)
-        self.popup()
+        self.set_margin_start(int(x))
+        self.set_margin_top(int(y))
+        self.set_visible(True)
+        if gesture is not None:
+            gesture.set_state(Gtk.EventSequenceState.CLAIMED)
+
+    def _on_dismiss_pressed(
+        self,
+        gesture: Gtk.GestureClick,
+        _press_count: int,
+        _x: float,
+        _y: float,
+    ) -> None:
+        if self.get_visible():
+            self.set_visible(False)
+        root = self._event_parent.get_root() if hasattr(self, "_event_parent") else None
+        if root is not None and hasattr(root, "is_click_on_active_menu_button") and root.is_click_on_active_menu_button(self._event_parent, _x, _y):
+            pass
+        elif root is not None and hasattr(root, "close_all_menus"):
+            root.close_all_menus(except_menu=self)
+        if gesture is not None:
+            gesture.set_state(Gtk.EventSequenceState.DENIED)
+
+    def _on_key_pressed(
+        self,
+        _controller: Gtk.EventControllerKey,
+        keyval: int,
+        _keycode: int,
+        _state: Gdk.ModifierType,
+    ) -> bool:
+        """Dismiss the context menu when the Escape key is pressed."""
+        if keyval == Gdk.KEY_Escape:
+            handled = False
+            if self.get_visible():
+                self.set_visible(False)
+                handled = True
+            root = self._event_parent.get_root() if hasattr(self, "_event_parent") else None
+            if root is not None and hasattr(root, "close_all_menus"):
+                if root.close_all_menus():
+                    handled = True
+            return handled
+        return False
 
     def _update_state(self) -> None:
         if self._context is None:
@@ -122,7 +186,7 @@ class ContextMenu(Gtk.Popover):
         if context is None:
             return
         action = self._items[action_id][1]
-        self.popdown()
+        self.set_visible(False)
         try:
             action.run(context)
         except (OSError, RuntimeError, ValueError) as error:

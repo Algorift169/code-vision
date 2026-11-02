@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import signal
 import sys
 
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from gi.repository import GLib, Gtk
 
 from .main_window import CodeVisionWindow
 
@@ -30,7 +31,16 @@ def main() -> int:
     """Initialize GTK and run the desktop application."""
     try:
         application = CodeVisionApplication()
-        result = application.run()
+        signal_source = GLib.unix_signal_add(
+            GLib.PRIORITY_DEFAULT,
+            signal.SIGINT,
+            _quit_on_sigint,
+            application,
+        )
+        try:
+            result = application.run()
+        finally:
+            GLib.source_remove(signal_source)
     except (ImportError, ValueError, RuntimeError) as error:
         print(f"Failed to initialize CodeVision GTK UI: {error}", file=sys.stderr)
         return 1
@@ -42,3 +52,8 @@ def main() -> int:
         )
         return 1
     return result
+
+
+def _quit_on_sigint(application: CodeVisionApplication) -> bool:
+    application.quit()
+    return GLib.SOURCE_CONTINUE

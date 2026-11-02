@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import logging
+import os
 from collections.abc import Callable
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, Gtk
+gi.require_version("GLib", "2.0")
+from gi.repository import Gdk, GLib, Gtk
 
 # WebKitGTK 4.1 is the GTK3 binding and cannot be loaded in this GTK4
 # process. WebKitGTK 6.0 (or 5.0 on older distributions) is the GTK4 API.
@@ -22,6 +25,8 @@ for _webkit_namespace, _webkit_version in (("WebKit", "6.0"), ("WebKit", "5.0"))
         continue
 
 from ..services.kong_browser import KongBrowserService
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class KongBrowser(Gtk.Box):
@@ -164,14 +169,63 @@ class KongBrowser(Gtk.Box):
             self._stack.set_visible_child_name("start")
             return
 
+        gtk_settings = Gtk.Settings.get_default()
+        if (
+            gtk_settings is not None
+            and gtk_settings.get_property("gtk-xft-dpi") <= 0
+        ):
+            gtk_settings.set_property("gtk-xft-dpi", 96 * 1024)
+
         self._browser = WebKit.WebView()
         self._browser.set_hexpand(True)
         self._browser.set_vexpand(True)
         self._browser.add_css_class("kong-webview")
+
+        settings = self._browser.get_settings()
+        if settings is not None:
+            settings.set_enable_javascript(True)
+            settings.set_auto_load_images(True)
+            settings.set_enable_page_cache(True)
+            settings.set_enable_html5_local_storage(True)
+            settings.set_enable_site_specific_quirks(True)
+
         self._browser.connect("load-changed", self._on_load_changed)
         self._browser.connect("notify::title", self._on_title_changed)
+        self._browser.connect("load-failed", self._on_load_failed)
+        self._browser.connect("resource-load-started", self._on_resource_load_started)
         self._stack.add_named(self._browser, "browser")
         self._stack.set_visible_child_name("start")
+
+    def _on_resource_load_started(
+        self,
+        _webview: WebKit.WebView,
+        resource: WebKit.WebResource,
+        _request: WebKit.URIRequest,
+    ) -> None:
+        uri = resource.get_uri()
+        if uri.split("?", 1)[0].lower().endswith(".css"):
+            resource.connect("failed", self._on_stylesheet_load_failed)
+            resource.connect("finished", self._on_stylesheet_load_finished)
+
+    @staticmethod
+    def _on_stylesheet_load_finished(resource: WebKit.WebResource) -> None:
+        response = resource.get_response()
+        if response is not None and response.get_status_code() >= 400:
+            _LOGGER.warning(
+                "Kong Browser stylesheet returned HTTP %s: %s",
+                response.get_status_code(),
+                resource.get_uri(),
+            )
+
+    @staticmethod
+    def _on_stylesheet_load_failed(
+        resource: WebKit.WebResource, error: Exception
+    ) -> None:
+        _LOGGER.warning(
+            "Kong Browser failed to load stylesheet %s: %s",
+            resource.get_uri(),
+            error,
+        )
 
     def _on_url_activated(self, _entry: Gtk.Entry) -> None:
         self.load_url(self.url_entry.get_text())
@@ -179,17 +233,70 @@ class KongBrowser(Gtk.Box):
     def _on_load_changed(self, _webview: WebKit.WebView, event: object) -> None:
         if event == WebKit.LoadEvent.STARTED:
             self.service.loading = True
-        elif event in (WebKit.LoadEvent.FINISHED, WebKit.LoadEvent.FAILED):
+        elif event == WebKit.LoadEvent.FINISHED:
             self.service.set_loaded()
-            if event == WebKit.LoadEvent.FAILED:
-                self._show_error(self.service.current_url)
+            GLib.timeout_add(250, self._log_page_styles)
         self._apply_state()
+
+    def _log_page_styles(self) -> bool:
+        gtk_settings = Gtk.Settings.get_default()
+        _LOGGER.warning(
+            "Kong Browser runtime: WebKit=%s.%s.%s GTK allocation=%sx%s "
+            "scale=%s mapped=%s zoom=%s xft-dpi=%s GDK_SCALE=%s GDK_DPI_SCALE=%s",
+            WebKit.get_major_version(),
+            WebKit.get_minor_version(),
+            WebKit.get_micro_version(),
+            self._browser.get_width(),
+            self._browser.get_height(),
+            self._browser.get_scale_factor(),
+            self._browser.get_mapped(),
+            self._browser.get_zoom_level(),
+            gtk_settings.get_property("gtk-xft-dpi") if gtk_settings else None,
+            os.environ.get("GDK_SCALE"),
+            os.environ.get("GDK_DPI_SCALE"),
+        )
+        self._browser.evaluate_javascript(
+            """JSON.stringify({
+                viewport: `${window.innerWidth}x${window.innerHeight}`,
+                devicePixelRatio: window.devicePixelRatio,
+                stylesheets: Array.from(
+                    document.styleSheets,
+                    sheet => sheet.href || "inline"
+                ),
+                bodyFont: getComputedStyle(document.body).font,
+                bodyFontSize: getComputedStyle(document.body).fontSize,
+                bodyBackground: getComputedStyle(document.body).backgroundColor
+            })""",
+            -1,
+            None,
+            None,
+            None,
+            self._on_page_styles_evaluated,
+        )
+        return GLib.SOURCE_REMOVE
+
+    @staticmethod
+    def _on_page_styles_evaluated(
+        webview: WebKit.WebView, result: object
+    ) -> None:
+        try:
+            diagnostics = webview.evaluate_javascript_finish(result).to_string()
+        except GLib.Error as error:
+            _LOGGER.warning("Kong Browser could not inspect page styles: %s", error)
+            return
+        _LOGGER.warning("Kong Browser page style diagnostics: %s", diagnostics)
 
     def _on_title_changed(self, _webview: WebKit.WebView, _param) -> None:
         title = self._browser.get_title()
         if title:
             self.service.set_title(title)
         self._apply_state()
+
+    def _on_load_failed(self, _webview, _load_event, failing_uri, error) -> bool:
+        """Handle page load failures by showing the error page."""
+        self.service.set_loaded()
+        self._show_error(failing_uri)
+        return True
 
     def _select_url(self) -> None:
         if self.url_entry.get_text():

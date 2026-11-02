@@ -119,16 +119,17 @@ class TerminalService:
 
         try:
             terminal.spawn_async(
-                pty_flags=Vte.PtyFlags.DEFAULT if Vte is not None else 0,
-                working_directory=str(directory),
-                argv=[shell],
-                envv=None,
-                spawn_flags=GLib.SpawnFlags.DEFAULT,
-                child_setup=None,
-                timeout=-1,
-                cancellable=Gio.Cancellable(),
-                callback=self._on_spawned,
-                user_data=session,
+                Vte.PtyFlags.DEFAULT if Vte is not None else 0,
+                str(directory),
+                [shell],
+                None,
+                GLib.SpawnFlags.DEFAULT,
+                None,
+                None,
+                -1,
+                Gio.Cancellable(),
+                self._on_spawned,
+                session,
             )
         except (GLib.Error, OSError) as error:
             session.error = str(error)

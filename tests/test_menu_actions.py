@@ -3,8 +3,9 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gdk", "4.0")
+gi.require_version("Gtk", "4.0")
 gi.require_version("GtkSource", "5")
-from gi.repository import Gdk, GtkSource
+from gi.repository import Gdk, Gtk, GtkSource
 
 from codevision.ui.widgets.menu_actions.copy_full_path import full_path
 from codevision.ui.widgets.menu_actions.copy_relative_path import relative_path
@@ -13,6 +14,13 @@ from codevision.ui.widgets.menu_actions.paste import copy_files_to_directory
 from codevision.ui.widgets.menu_actions import select, select_all
 from codevision.ui.widgets.menu_actions import kill_terminal
 from codevision.ui.widgets.menu_context import MenuContext
+from codevision.ui.widgets.menu import ContextMenu
+from codevision.ui.widgets.file_menu import FileMenuButton
+from codevision.ui.widgets.edit_menu import EditMenuButton
+from codevision.ui.widgets.view_menu import ViewMenuButton
+from codevision.ui.widgets.terminal_menu import TerminalMenuButton
+from codevision.ui.widgets.help_menu import HelpMenuButton
+from codevision.ui.widgets.project_menu import ProjectMenuButton
 
 
 class SelectionWidget:
@@ -48,6 +56,89 @@ class EditorBufferView:
 
     def get_editable(self) -> bool:
         return True
+
+
+def test_context_menu_is_an_overlay_widget_without_a_popover_grab() -> None:
+    overlay = Gtk.Overlay()
+    content = Gtk.Box()
+    overlay.set_child(content)
+    context_menu = ContextMenu(
+        overlay,
+        content,
+        lambda _x, _y: MenuContext(widget=content, kind="window"),
+    )
+
+    assert context_menu.get_parent() is overlay
+    assert isinstance(context_menu, Gtk.Box)
+    assert not isinstance(context_menu, Gtk.Popover)
+    assert not context_menu.get_visible()
+
+
+def test_context_menu_dismissal_hides_overlay_without_popup_state() -> None:
+    overlay = Gtk.Overlay()
+    content = Gtk.Box()
+    overlay.set_child(content)
+    context_menu = ContextMenu(
+        overlay,
+        content,
+        lambda _x, _y: MenuContext(widget=content, kind="window"),
+    )
+
+    context_menu._on_pressed(None, 1, 20, 30)
+    assert context_menu.get_visible()
+
+    context_menu._on_dismiss_pressed(None, 1, 40, 50)
+
+    assert not context_menu.get_visible()
+
+
+def test_dismiss_is_noop_when_menu_already_hidden() -> None:
+    overlay = Gtk.Overlay()
+    content = Gtk.Box()
+    overlay.set_child(content)
+    context_menu = ContextMenu(
+        overlay,
+        content,
+        lambda _x, _y: MenuContext(widget=content, kind="window"),
+    )
+
+    assert not context_menu.get_visible()
+    # Dismissing while already hidden must not raise or change state.
+    context_menu._on_dismiss_pressed(None, 1, 40, 50)
+    assert not context_menu.get_visible()
+
+
+def test_escape_key_dismisses_visible_context_menu() -> None:
+    overlay = Gtk.Overlay()
+    content = Gtk.Box()
+    overlay.set_child(content)
+    context_menu = ContextMenu(
+        overlay,
+        content,
+        lambda _x, _y: MenuContext(widget=content, kind="window"),
+    )
+
+    context_menu._on_pressed(None, 1, 20, 30)
+    assert context_menu.get_visible()
+
+    handled = context_menu._on_key_pressed(None, Gdk.KEY_Escape, 0, Gdk.ModifierType(0))
+    assert handled is True
+    assert not context_menu.get_visible()
+
+
+def test_escape_key_ignored_when_menu_hidden() -> None:
+    overlay = Gtk.Overlay()
+    content = Gtk.Box()
+    overlay.set_child(content)
+    context_menu = ContextMenu(
+        overlay,
+        content,
+        lambda _x, _y: MenuContext(widget=content, kind="window"),
+    )
+
+    handled = context_menu._on_key_pressed(None, Gdk.KEY_Escape, 0, Gdk.ModifierType(0))
+    assert handled is False
+    assert not context_menu.get_visible()
 
 
 def test_path_copy_actions_resolve_paths_with_spaces(tmp_path: Path) -> None:
@@ -203,3 +294,116 @@ def test_explorer_copy_enabled_for_multiple_selected_paths(tmp_path: Path) -> No
     assert copy.is_enabled(context)
     provider = copy.file_list_provider(paths)
     assert provider.ref_formats().contain_gtype(Gdk.FileList.__gtype__)
+
+
+def test_close_all_menus_does_not_hide_menu_buttons() -> None:
+    class DummyWindow:
+        def __init__(self) -> None:
+            self.content_overlay = Gtk.Overlay()
+            box = Gtk.Box()
+            self.content_overlay.set_child(box)
+            self.context_menu = ContextMenu(
+                self.content_overlay, box, lambda _x, _y: MenuContext(widget=box, kind="window")
+            )
+            self.editor_tabs = None
+            self.file_menu = FileMenuButton(self, self.content_overlay)
+            self.edit_menu = EditMenuButton(self, self.content_overlay)
+            self.view_menu = ViewMenuButton(self, self.content_overlay)
+            self.project_menu = ProjectMenuButton(self, self.content_overlay)
+            self.terminal_menu = TerminalMenuButton(self, self.content_overlay)
+            self.help_menu = HelpMenuButton(self, self.content_overlay)
+
+        def __getattr__(self, name: str):
+            return lambda *args, **kwargs: None
+
+        def close_all_menus(self, except_menu: object | None = None) -> bool:
+            from codevision.app.main_window import CodeVisionWindow
+            return CodeVisionWindow.close_all_menus(self, except_menu=except_menu)
+
+    win = DummyWindow()
+
+    # All buttons should start visible
+    buttons = [win.file_menu, win.edit_menu, win.view_menu, win.project_menu, win.terminal_menu, win.help_menu]
+    for btn in buttons:
+        assert btn.get_visible()
+
+    # Opening file menu should popup file menu dropdown
+    win.file_menu.popup()
+    assert win.file_menu.get_active()
+    assert win.file_menu.popup_widget.get_visible()
+
+    # Closing all menus must pop down the dropdown popup but MUST NOT hide the button
+    win.close_all_menus()
+    assert not win.file_menu.get_active()
+    assert not win.file_menu.popup_widget.get_visible()
+
+    for btn in buttons:
+        assert btn.get_visible(), f"Button {btn.get_label()} was hidden by close_all_menus!"
+
+    # Every overlay menu button must popup and popdown without calling Gtk.Accessible.update_state
+    for btn in buttons:
+        btn.popup()
+        assert btn.get_active()
+        btn.popdown()
+        assert not btn.get_active()
+
+
+def test_zoom_actions_adjust_editor_zoom_level() -> None:
+    from codevision.app.main_window import CodeVisionWindow
+
+    class MinimalWindow:
+        def __init__(self) -> None:
+            self._editor_zoom = 0
+            self._editor_font_providers = {}
+            self.view_menu = MinimalViewMenu()
+            self.editor_tabs = MinimalEditorTabs()
+
+        def zoom_in(self) -> None:
+            CodeVisionWindow.zoom_in(self)
+
+        def zoom_out(self) -> None:
+            CodeVisionWindow.zoom_out(self)
+
+        def reset_zoom(self) -> None:
+            CodeVisionWindow.reset_zoom(self)
+
+        def _apply_editor_zoom(self) -> None:
+            CodeVisionWindow._apply_editor_zoom(self)
+
+    class MinimalViewMenu:
+        def _update_state(self) -> None:
+            pass
+
+    class MinimalEditorTabs:
+        editors = ()
+        pages = ()
+
+        def get_n_pages(self) -> int:
+            return len(self.pages)
+
+        def get_nth_page(self, page_num: int):
+            return self.pages[page_num]
+
+    class MinimalBrowser:
+        def __init__(self) -> None:
+            self.zoom_levels = []
+
+        def set_zoom_level(self, zoom: float) -> None:
+            self.zoom_levels.append(zoom)
+
+    class MinimalPage:
+        def __init__(self) -> None:
+            self._browser = MinimalBrowser()
+
+    win = MinimalWindow()
+    page = MinimalPage()
+    win.editor_tabs.pages = (page,)
+    win.zoom_in()
+    assert win._editor_zoom == 1
+    assert page._browser.zoom_levels == []
+    win.zoom_out()
+    assert win._editor_zoom == 0
+    win.zoom_out()
+    assert win._editor_zoom == -1
+    win.reset_zoom()
+    assert win._editor_zoom == 0

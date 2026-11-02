@@ -27,7 +27,7 @@ install:
 
 run:
 	# Run from the source tree while also resolving the build-local package copy.
-	PYTHONPYCACHEPREFIX="$(PYCACHE_DIR)" PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m codevision
+	exec env PYTHONPYCACHEPREFIX="$(PYCACHE_DIR)" PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m codevision
 
 test:
 	# Keep test runs aligned with the same source import path.

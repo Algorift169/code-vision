@@ -28,8 +28,8 @@ class FakeTerminal:
         self.spawn_args = args
         self.spawn_kwargs = kwargs
         if self.complete_spawn:
-            callback = kwargs["callback"]
-            callback(self, 2468, None, kwargs["user_data"])
+            callback = args[9]
+            callback(self, 2468, None, args[10])
 
     def watch_child(self, process_id: int) -> None:
         self.watched_pid = process_id
@@ -55,9 +55,9 @@ def test_terminal_service_creates_embedded_session_in_project_directory(
 
     assert session.terminal is terminal
     assert session.directory == directory.resolve()
-    assert terminal.spawn_kwargs["working_directory"] == str(directory.resolve())
-    assert terminal.spawn_kwargs["timeout"] == -1
-    assert terminal.spawn_kwargs["cancellable"] is not None
+    assert terminal.spawn_args[1] == str(directory.resolve())
+    assert terminal.spawn_args[7] == -1
+    assert terminal.spawn_args[8] is not None
     assert terminal.watched_pid == 2468
     assert service.has_running_terminal
     assert service.kill_latest()
@@ -77,8 +77,8 @@ def test_closed_session_terminates_shell_after_async_spawn(tmp_path: Path) -> No
 
     session = service.open(directory)
     assert service.close(session)
-    callback = terminal.spawn_kwargs["callback"]
-    callback(terminal, 1357, None, terminal.spawn_kwargs["user_data"])
+    callback = terminal.spawn_args[9]
+    callback(terminal, 1357, None, terminal.spawn_args[10])
 
     assert killed == [(1357, SIGTERM)]
     assert not service.has_running_terminal

@@ -11,6 +11,9 @@ def test_kong_browser_service_normalizes_and_splits_url_targets() -> None:
 
     assert service.normalize_url("https://example.com") == "https://example.com"
     assert service.normalize_url("example.com") == "https://example.com"
+    assert service.normalize_url("example.com/path?foo=bar") == "https://example.com/path?foo=bar"
+    assert service.normalize_url("localhost:3000") == "http://localhost:3000"
+    assert service.normalize_url("127.0.0.1:8080") == "http://127.0.0.1:8080"
     assert service.normalize_url("github.com") == "https://github.com"
     assert service.normalize_url("hello world") == "https://duckduckgo.com/?q=hello+world"
     assert service.is_valid_url("https://example.com")
