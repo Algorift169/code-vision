@@ -784,13 +784,13 @@ layout after exiting focus mode. The view menu is updated after
             return
 
         try:
-            editor = self.editor_tabs.open_file(path)
-        except OSError as error:
+            self.editor_tabs.open_file(path)
+        except (OSError, GLib.Error, ValueError) as error:
             self.status_label.set_text(f"Could not open {path.name}: {error}")
             return
 
         self.center_stack.set_visible_child_name("editor")
-        self.status_label.set_text(str(editor.file_path))
+        self.status_label.set_text(str(path.expanduser().resolve()))
 
     """Provides read-only access to this window's auto-save setting.
     The property returns the stored flag without changing the setting or
@@ -905,6 +905,10 @@ layout after exiting focus mode. The view menu is updated after
         editor = self.editor_tabs.active_editor
         if editor is not None:
             self._close_editor(editor)
+            return
+        preview = self.editor_tabs.active_preview
+        if preview is not None:
+            self.editor_tabs.close_preview(preview)
 
     """Reverses the latest edit in the active editor when one exists.
     After delegating undo to the editor, it refreshes the edit menu's enabled
@@ -1171,6 +1175,9 @@ layout after exiting focus mode. The view menu is updated after
         if isinstance(page, EditorPanel):
             self.center_stack.set_visible_child_name("editor")
             self.status_label.set_text(str(page.file_path or page.title.get_text()))
+        elif self.editor_tabs.active_preview is not None:
+            self.center_stack.set_visible_child_name("editor")
+            self.status_label.set_text(str(self.editor_tabs.active_preview.file_path))
         else:
             terminal = self.editor_tabs.active_terminal
             if terminal is not None:
