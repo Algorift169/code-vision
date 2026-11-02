@@ -1,33 +1,18 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gio, Gtk
+from gi.repository import Gtk
+
+from .overlay_menu import OverlayMenuButton
 
 
-class TerminalMenuButton(Gtk.MenuButton):
-    """Terminal menu for launching and controlling integrated sessions."""
+class TerminalMenuButton(OverlayMenuButton):
+    """Terminal menu for launching and controlling integrated sessions without Gtk.Popover."""
 
-    def __init__(self, window: object) -> None:
-        super().__init__()
-        self._window = window
-        self.set_label("Terminal")
-        self.add_css_class("menu-button")
-
-        self._popover = Gtk.Popover()
-        self._popover.set_name("codevision-context-menu")
-        self._popover.set_has_arrow(False)
-        self._popover.set_autohide(True)
-        self._popover.add_css_class("codevision-context-menu")
-
-        self._content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
-        self._content.add_css_class("context-menu-content")
-        self._popover.set_child(self._content)
-        self.set_popover(self._popover)
-
+    def __init__(self, window: object, overlay: Gtk.Overlay | None = None) -> None:
+        super().__init__(window, label="Terminal", overlay=overlay)
         self._build_items()
 
     def _make_row(self, label: str, callback: callable, *, shortcut: str = "") -> Gtk.Button:
@@ -70,7 +55,8 @@ class TerminalMenuButton(Gtk.MenuButton):
         self._append_action("Kill Terminal", self._window.kill_terminal, shortcut="")
 
     def update_state(self) -> None:
-        has_terminal = self._window.editor_tabs.active_terminal is not None
+        editor_tabs = getattr(self._window, "editor_tabs", None)
+        has_terminal = editor_tabs is not None and getattr(editor_tabs, "active_terminal", None) is not None
         for child in self._content:
             if isinstance(child, Gtk.Button):
                 child.set_sensitive(True)

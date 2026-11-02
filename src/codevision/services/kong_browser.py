@@ -59,6 +59,8 @@ class KongBrowserService:
             return False
         if KongBrowserService._is_scheme_url(candidate):
             return True
+        if candidate.startswith("localhost") or candidate.startswith("127.0.0.1") or candidate.startswith("file://"):
+            return True
         return bool(
             re.match(
                 r"^(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:[/:?#].*)?$",
@@ -96,7 +98,11 @@ class KongBrowserService:
         if self.is_selected_url(candidate) and not any(ch.isspace() for ch in candidate):
             if candidate.startswith("www."):
                 return "https://" + candidate
-            if re.match(r"^(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$", candidate, flags=re.IGNORECASE):
+            if re.match(
+                r"^(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:[/:?#].*)?$",
+                candidate,
+                flags=re.IGNORECASE,
+            ):
                 return "https://" + candidate
             if candidate.startswith("localhost"):
                 return "http://" + candidate

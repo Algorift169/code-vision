@@ -7,7 +7,6 @@ window
 window#codevision-window
 {
     border-radius: 12px;
-    overflow: hidden;
 }
 
 .muted-label

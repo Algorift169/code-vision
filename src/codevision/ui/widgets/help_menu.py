@@ -1,33 +1,18 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gio, Gtk
+from gi.repository import Gtk
+
+from .overlay_menu import OverlayMenuButton
 
 
-class HelpMenuButton(Gtk.MenuButton):
-    """Help menu with documentation, shortcuts, and about info."""
+class HelpMenuButton(OverlayMenuButton):
+    """Help menu with documentation, shortcuts, and about info without Gtk.Popover."""
 
-    def __init__(self, window: object) -> None:
-        super().__init__()
-        self._window = window
-        self.set_label("Help")
-        self.add_css_class("menu-button")
-
-        self._popover = Gtk.Popover()
-        self._popover.set_name("codevision-context-menu")
-        self._popover.set_has_arrow(False)
-        self._popover.set_autohide(True)
-        self._popover.add_css_class("codevision-context-menu")
-
-        self._content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
-        self._content.add_css_class("context-menu-content")
-        self._popover.set_child(self._content)
-        self.set_popover(self._popover)
-
+    def __init__(self, window: object, overlay: Gtk.Overlay | None = None) -> None:
+        super().__init__(window, label="Help", overlay=overlay)
         self._build_items()
 
     def _make_row(self, label: str, callback: callable) -> Gtk.Button:

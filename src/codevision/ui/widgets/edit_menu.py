@@ -7,32 +7,16 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
+from .overlay_menu import OverlayMenuButton
 
-class EditMenuButton(Gtk.MenuButton):
-    """GTK 4 Edit menu that delegates to the active editor and window actions."""
 
-    def __init__(self, window: object) -> None:
-        super().__init__()
-        self._window = window
-        self.set_label("Edit")
-        self.add_css_class("menu-button")
+class EditMenuButton(OverlayMenuButton):
+    """GTK 4 Edit menu that delegates to the active editor and window actions without Gtk.Popover."""
 
-        self._popover = self._create_popover()
-        self._content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
-        self._content.add_css_class("context-menu-content")
-        self._popover.set_child(self._content)
-        self.set_popover(self._popover)
-        self.connect("notify::active", self._on_menu_active_changed)
+    def __init__(self, window: object, overlay: Gtk.Overlay | None = None) -> None:
+        super().__init__(window, label="Edit", overlay=overlay)
         self._items: dict[str, Gtk.Button] = {}
         self._build_items()
-
-    def _create_popover(self) -> Gtk.Popover:
-        popover = Gtk.Popover()
-        popover.set_name("codevision-context-menu")
-        popover.set_has_arrow(False)
-        popover.set_autohide(True)
-        popover.add_css_class("codevision-context-menu")
-        return popover
 
     def _build_items(self) -> None:
         self._items["undo"] = self._append_action("Undo", "Ctrl+Z", self._window.undo)
@@ -93,10 +77,6 @@ class EditMenuButton(Gtk.MenuButton):
         button.connect("clicked", lambda _button: (self.popdown(), callback()))
         return button
 
-    def _on_menu_active_changed(self, *_args: object) -> None:
-        if self.get_active():
-            self.update_state()
-
     def update_state(self) -> None:
         editor = getattr(self._window, "editor_tabs", None)
         active = editor.active_editor if editor is not None else None
@@ -117,7 +97,8 @@ class EditMenuButton(Gtk.MenuButton):
             "expand-abbreviation",
         ]
         for item_name in items:
-            self._items[item_name].set_sensitive(has_editor)
+            if item_name in self._items:
+                self._items[item_name].set_sensitive(has_editor)
 
         if not has_editor:
             return
@@ -130,15 +111,27 @@ class EditMenuButton(Gtk.MenuButton):
         view = getattr(active, "source_view", None)
         editable = bool(view.get_editable()) if view is not None else True
 
-        self._items["undo"].set_sensitive(can_undo)
-        self._items["redo"].set_sensitive(can_redo)
-        self._items["cut"].set_sensitive(has_selection and editable)
-        self._items["copy"].set_sensitive(has_selection)
-        self._items["paste"].set_sensitive(editable)
-        self._items["find"].set_sensitive(True)
-        self._items["replace"].set_sensitive(True)
-        self._items["find-in-files"].set_sensitive(True)
-        self._items["replace-in-files"].set_sensitive(True)
-        self._items["toggle-line-comment"].set_sensitive(editable)
-        self._items["toggle-block-comment"].set_sensitive(editable)
-        self._items["expand-abbreviation"].set_sensitive(editable)
+        if "undo" in self._items:
+            self._items["undo"].set_sensitive(can_undo)
+        if "redo" in self._items:
+            self._items["redo"].set_sensitive(can_redo)
+        if "cut" in self._items:
+            self._items["cut"].set_sensitive(has_selection and editable)
+        if "copy" in self._items:
+            self._items["copy"].set_sensitive(has_selection)
+        if "paste" in self._items:
+            self._items["paste"].set_sensitive(editable)
+        if "find" in self._items:
+            self._items["find"].set_sensitive(True)
+        if "replace" in self._items:
+            self._items["replace"].set_sensitive(True)
+        if "find-in-files" in self._items:
+            self._items["find-in-files"].set_sensitive(True)
+        if "replace-in-files" in self._items:
+            self._items["replace-in-files"].set_sensitive(True)
+        if "toggle-line-comment" in self._items:
+            self._items["toggle-line-comment"].set_sensitive(editable)
+        if "toggle-block-comment" in self._items:
+            self._items["toggle-block-comment"].set_sensitive(editable)
+        if "expand-abbreviation" in self._items:
+            self._items["expand-abbreviation"].set_sensitive(editable)

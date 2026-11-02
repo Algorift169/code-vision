@@ -25,6 +25,7 @@ from ..ui.widgets.file_menu import FileMenuButton
 from ..ui.widgets.help_menu import HelpMenuButton
 from ..ui.widgets.menu import ContextMenu
 from ..ui.widgets.menu_context import MenuContext
+from ..ui.widgets.project_menu import ProjectMenuButton
 from ..ui.widgets.terminal_menu import TerminalMenuButton
 from ..ui.widgets.view_menu import ViewMenuButton
 
@@ -78,7 +79,10 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.theme_manager.apply(self.theme_manager.current_theme)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.set_child(WindowBorder(box))
+        content_overlay = Gtk.Overlay()
+        content_overlay.set_child(box)
+        self.set_child(WindowBorder(content_overlay))
+        self.content_overlay = content_overlay
 
         header = Gtk.HeaderBar()
         header.set_show_title_buttons(False)
@@ -87,32 +91,15 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         menu_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         menu_bar.add_css_class("menu-bar")
         menu_bar.set_margin_start(0)
-        self.edit_menu = EditMenuButton(self)
+        self.edit_menu = EditMenuButton(self, content_overlay)
         menu_bar.append(self.edit_menu)
-        self.view_menu = ViewMenuButton(self)
+        self.view_menu = ViewMenuButton(self, content_overlay)
         menu_bar.append(self.view_menu)
-        self.terminal_menu = TerminalMenuButton(self)
+        self.terminal_menu = TerminalMenuButton(self, content_overlay)
         menu_bar.append(self.terminal_menu)
-        for menu_name in ("Project",):
-            menu_button = Gtk.MenuButton(label=menu_name)
-            menu_button.add_css_class("menu-button")
-            popover = Gtk.Popover()
-            popover.set_name("codevision-context-menu")
-            popover.set_has_arrow(False)
-            popover.set_autohide(True)
-            popover.add_css_class("codevision-context-menu")
-            menu_content = Gtk.Label(label="Project menu is not implemented yet")
-            menu_content.set_margin_top(10)
-            menu_content.set_margin_bottom(10)
-            menu_content.set_margin_start(12)
-            menu_content.set_margin_end(12)
-            content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-            content.add_css_class("context-menu-content")
-            content.append(menu_content)
-            popover.set_child(content)
-            menu_button.set_popover(popover)
-            menu_bar.append(menu_button)
-        self.help_menu = HelpMenuButton(self)
+        self.project_menu = ProjectMenuButton(self, content_overlay)
+        menu_bar.append(self.project_menu)
+        self.help_menu = HelpMenuButton(self, content_overlay)
         menu_bar.append(self.help_menu)
         header.pack_start(menu_bar)
 
@@ -202,7 +189,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         )
         self.center_stack.add_named(self.editor_tabs, "editor")
         self.center_stack.set_visible_child_name("welcome")
-        self.file_menu = FileMenuButton(self)
+        self.file_menu = FileMenuButton(self, content_overlay)
         menu_bar.prepend(self.file_menu)
 
         """ The app icon is loaded from the resources/icons directory relative to the
@@ -270,14 +257,62 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         box.append(status)
         self._install_file_actions(application)
         self._install_edit_actions(application)
+        self._install_view_actions(application)
         self._auto_save_source = GLib.timeout_add_seconds(2, self._auto_save_documents)
         self._context_menu_root = box
-        self.context_menu = ContextMenu(box, self._window_menu_context_at)
+        self.context_menu = ContextMenu(
+            content_overlay, box, self._window_menu_context_at
+        )
         self.file_menu.update_state()
         self.edit_menu.update_state()
         self.view_menu._update_state()
         self.connect("close-request", self._on_close_request)
         self._enable_edge_resize()
+
+    def close_all_menus(self, except_menu: object | None = None) -> bool:
+        closed = False
+        all_menus = [
+            getattr(self, "context_menu", None),
+            getattr(self, "file_menu", None),
+            getattr(self, "edit_menu", None),
+            getattr(self, "view_menu", None),
+            getattr(self, "project_menu", None),
+            getattr(self, "terminal_menu", None),
+            getattr(self, "help_menu", None),
+        ]
+        for menu in all_menus:
+            if menu is not None and menu is not except_menu:
+                if hasattr(menu, "get_active") and menu.get_active():
+                    menu.popdown()
+                    closed = True
+                elif hasattr(menu, "popdown"):
+                    menu.popdown()
+                    closed = True
+                elif hasattr(menu, "get_visible") and menu.get_visible():
+                    menu.set_visible(False)
+                    closed = True
+        return closed
+
+    def is_click_on_active_menu_button(self, box: Gtk.Widget, x: float, y: float) -> bool:
+        all_menus = [
+            getattr(self, "file_menu", None),
+            getattr(self, "edit_menu", None),
+            getattr(self, "view_menu", None),
+            getattr(self, "project_menu", None),
+            getattr(self, "terminal_menu", None),
+            getattr(self, "help_menu", None),
+        ]
+        for menu in all_menus:
+            if menu is not None and hasattr(menu, "get_active") and menu.get_active():
+                ok, rect = menu.compute_bounds(box)
+                if ok:
+                    rx = rect.get_x()
+                    ry = rect.get_y()
+                    rw = rect.get_width()
+                    rh = rect.get_height()
+                    if rx <= x <= rx + rw and ry <= y <= ry + rh:
+                        return True
+        return False
 
     """ These little functions expose the window's internal state to 
     the application for menu state updates and other logic. They are 
@@ -419,9 +454,26 @@ layout after exiting focus mode. The view menu is updated after
     creates a CSS provider for each view, then requests a layout resize.
     """
     def _apply_editor_zoom(self) -> None:
-        size = 11 + self._editor_zoom
-        css = f"textview {{ font-family: 'Sans'; font-size: {size}pt; }}"
-        for editor in self.editor_tabs.editors:
+        size = max(6, 11 + self._editor_zoom)
+        scale = max(0.5, 1.0 + self._editor_zoom * 0.1)
+
+        display = Gdk.Display.get_default()
+        if display is not None:
+            if not hasattr(self, "_global_zoom_provider"):
+                self._global_zoom_provider = Gtk.CssProvider()
+                Gtk.StyleContext.add_provider_for_display(
+                    display,
+                    self._global_zoom_provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_USER,
+                )
+            css = (
+                f"#code-editor, #code-editor text, textview, textview text, "
+                f"#code-editor gutter, #code-editor gutter line-numbers "
+                f"{{ font-size: {size}pt; }}"
+            )
+            self._global_zoom_provider.load_from_string(css)
+
+        for editor in getattr(self.editor_tabs, "editors", ()):
             if not hasattr(editor, "source_view"):
                 continue
             source_view = editor.source_view
@@ -429,11 +481,24 @@ layout after exiting focus mode. The view menu is updated after
             if provider is None:
                 provider = Gtk.CssProvider()
                 self._editor_font_providers[id(source_view)] = provider
-            style_context = source_view.get_style_context()
-            style_context.remove_provider(provider)
-            provider.load_from_string(css)
-            style_context.add_provider(provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+            try:
+                style_context = source_view.get_style_context()
+                style_context.remove_provider(provider)
+                provider.load_from_string(f"textview {{ font-family: 'Sans'; font-size: {size}pt; }}")
+                style_context.add_provider(provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+            except Exception:
+                pass
             source_view.queue_resize()
+
+        if hasattr(self, "editor_tabs") and hasattr(self.editor_tabs, "get_n_pages"):
+            for page_num in range(self.editor_tabs.get_n_pages()):
+                page = self.editor_tabs.get_nth_page(page_num)
+                if hasattr(self.editor_tabs, "terminal_session"):
+                    terminal_session = self.editor_tabs.terminal_session(page)
+                    if terminal_session is not None and hasattr(terminal_session, "terminal"):
+                        term = terminal_session.terminal
+                        if hasattr(term, "set_font_scale"):
+                            term.set_font_scale(scale)
 
     """Chooses where a new terminal session should start.
     It prefers the supplied directory, falls back to the project root, and
@@ -1095,6 +1160,26 @@ layout after exiting focus mode. The view menu is updated after
             ("toggle-line-comment", ["<Primary>slash"]),
             ("toggle-block-comment", ["<Primary><Shift>a"]),
             ("expand-abbreviation", ["Tab"]),
+        ):
+            application.set_accels_for_action(f"win.{action_name}", accelerators)
+
+    def _install_view_actions(self, application: Gtk.Application) -> None:
+        actions: tuple[tuple[str, Callable[[], None]], ...] = (
+            ("zoom-in", self.zoom_in),
+            ("zoom-out", self.zoom_out),
+            ("reset-zoom", self.reset_zoom),
+            ("toggle-fullscreen", self._toggle_fullscreen),
+        )
+        for name, callback in actions:
+            action = Gio.SimpleAction.new(name, None)
+            action.connect("activate", lambda _action, _param, cb=callback: cb())
+            self.add_action(action)
+
+        for action_name, accelerators in (
+            ("zoom-in", ["<Primary>plus", "<Primary>equal", "<Primary>KP_Add"]),
+            ("zoom-out", ["<Primary>minus", "<Primary>KP_Subtract"]),
+            ("reset-zoom", ["<Primary>0", "<Primary>KP_0"]),
+            ("toggle-fullscreen", ["F11"]),
         ):
             application.set_accels_for_action(f"win.{action_name}", accelerators)
 

@@ -75,6 +75,8 @@ echo "[2/7] Installing system dependencies..."
     python3-dev \
     python3-gi \
     python3-gi-cairo \
+    dbus-user-session \
+    at-spi2-core \
     gir1.2-gtk-4.0 \
     gir1.2-gtksource-5 \
     gir1.2-vte-3.91 \
