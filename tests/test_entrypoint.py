@@ -7,6 +7,12 @@ is still in its early GTK bootstrap phase.
 import os
 import runpy
 
+import gi
+
+gi.require_version("GLib", "2.0")
+from gi.repository import GLib
+
+from codevision.app.main_window import _launch_external_uri
 from codevision.main import _configure_session_bus
 
 
@@ -35,3 +41,40 @@ def test_codevision_module_entrypoint_exits_with_main_result(monkeypatch):
         raise AssertionError("Expected the module entrypoint to raise SystemExit")
 
     assert calls == [True]
+
+
+def test_external_uri_uses_in_app_browser_when_system_launch_fails():
+    uri = "https://github.com/Algorift169/code-vision"
+    opened = []
+    statuses = []
+
+    def launch_default(_uri):
+        raise GLib.Error.new_literal(
+            GLib.quark_from_string("g-io-error-quark"),
+            "Operation not supported",
+            15,
+        )
+
+    _launch_external_uri(uri, opened.append, statuses.append, launch_default)
+
+    assert opened == [uri]
+    assert statuses == []
+
+
+def test_external_uri_reports_in_app_browser_failure():
+    statuses = []
+
+    def launch_default(_uri):
+        return False
+
+    def open_in_app(_uri):
+        raise RuntimeError("Browser unavailable")
+
+    _launch_external_uri(
+        "https://github.com/Algorift169/code-vision",
+        open_in_app,
+        statuses.append,
+        launch_default,
+    )
+
+    assert statuses == ["Could not open link: Browser unavailable"]
