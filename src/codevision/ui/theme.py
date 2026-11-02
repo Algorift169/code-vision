@@ -106,6 +106,16 @@ class ThemeManager:
         folder_picker_stylesheet = self._styles_directory / "folder-picker-theme.css"
         if folder_picker_stylesheet.is_file():
             css_data += b"\n" + folder_picker_stylesheet.read_bytes()
+        css_data += b"""
+
+.window#codevision-window .codevision-context-menu
+button.context-menu-item image.context-menu-icon {
+    color: @accent;
+    opacity: 1;
+    min-width: 18px;
+    min-height: 18px;
+}
+"""
         load_from_string = getattr(provider, "load_from_string", None)
         if load_from_string is None:
             provider.load_from_data(css_data)

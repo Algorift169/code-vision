@@ -29,9 +29,13 @@ class MenuContext:
     terminal_service: TerminalService | None = None
     theme_manager: ThemeManager | None = None
     open_theme_menu: Callable[[Gtk.Widget], None] | None = None
+    open_action_menu: (
+        Callable[[str, MenuContext, Gtk.Widget], None] | None
+    ) = None
+    action_anchor: Gtk.Widget | None = None
     open_terminal: Callable[[], None] | None = None
     open_kong_browser: Callable[[str | None], None] | None = None
-    create_file: Callable[[], None] | None = None
+    on_path_created: Callable[[Path], None] | None = None
     on_files_pasted: Callable[[list[Path]], None] | None = None
     on_path_deleted: Callable[[Path], None] | None = None
     on_path_renamed: Callable[[Path, Path], None] | None = None

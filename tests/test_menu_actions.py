@@ -74,6 +74,31 @@ def test_context_menu_is_an_overlay_widget_without_a_popover_grab() -> None:
     assert not context_menu.get_visible()
 
 
+def test_context_menu_action_icons_use_theme_accent_class() -> None:
+    overlay = Gtk.Overlay()
+    content = Gtk.Box()
+    overlay.set_child(content)
+    context_menu = ContextMenu(
+        overlay,
+        content,
+        lambda _x, _y: MenuContext(widget=content, kind="window"),
+    )
+
+    for action_id in (
+        "new-file",
+        "open-terminal",
+        "change-theme",
+        "kong-browser",
+    ):
+        button = context_menu._items[action_id][0]
+        row = button.get_child()
+        icon = row.get_first_child()
+        assert isinstance(icon, Gtk.Image)
+        assert icon.has_css_class("context-menu-icon")
+        assert icon.get_pixel_size() == 18
+        assert icon.get_size_request() == (18, 18)
+
+
 def test_context_menu_dismissal_hides_overlay_without_popup_state() -> None:
     overlay = Gtk.Overlay()
     content = Gtk.Box()
