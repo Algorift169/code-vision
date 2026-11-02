@@ -1,5 +1,6 @@
 REM ==========================================
 REM 1.This file is for those SUCKERS who use Windows and want to run/work on CodeVision.
+REM BTW u cant run codevision on ur sucking windows so ignore it...!
 REM ==========================================
 
 python --version
