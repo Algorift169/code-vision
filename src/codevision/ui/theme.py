@@ -11,6 +11,9 @@ gi.require_version("GLib", "2.0")
 from gi.repository import Gdk, GLib, Gtk
 
 
+TRANSPARENT_THEME_ID = "trasp"
+
+
 @dataclass(frozen=True, slots=True)
 class Theme:
     theme_id: str
@@ -31,6 +34,7 @@ THEMES = (
     Theme("arctic-glass", "Arctic Glass", "theme-arctic-glass.css"),
     Theme("crimson-core", "Crimson Core", "theme-crimson-core.css"),
     Theme("blueprint", "Blueprint", "theme-blueprint.css"),
+    Theme(TRANSPARENT_THEME_ID, "Trasp", "theme-trasp.css"),
 )
 
 
@@ -41,14 +45,19 @@ class ThemeManager:
         self,
         styles_directory: Path | None = None,
         preferences_file: Path | None = None,
+        transparency_preferences_file: Path | None = None,
     ) -> None:
         self._styles_directory = styles_directory or self._default_styles_directory()
         self._preferences_file = preferences_file or (
             Path(GLib.get_user_config_dir()) / "codevision" / "theme"
         )
+        self._transparency_preferences_file = transparency_preferences_file or (
+            Path(GLib.get_user_config_dir()) / "codevision" / "theme-transparency"
+        )
         self._display = Gdk.Display.get_default()
         self._provider: Gtk.CssProvider | None = None
         self.current_theme = self._load_preference()
+        self.transparency_percent = self._load_transparency_preference()
 
     @staticmethod
     def _default_styles_directory() -> Path:
@@ -68,6 +77,15 @@ class ThemeManager:
             return THEMES[0].theme_id
         return theme_id if self._theme_for_id(theme_id) is not None else THEMES[0].theme_id
 
+    def _load_transparency_preference(self) -> int:
+        try:
+            percentage = int(
+                self._transparency_preferences_file.read_text(encoding="utf-8").strip()
+            )
+        except (OSError, ValueError):
+            return 30
+        return min(max(percentage, 0), 90)
+
     @staticmethod
     def _theme_for_id(theme_id: str) -> Theme | None:
         return next((theme for theme in THEMES if theme.theme_id == theme_id), None)
@@ -78,8 +96,13 @@ class ThemeManager:
             raise ValueError(f"Unknown theme: {theme_id}")
 
         provider = Gtk.CssProvider()
-        stylesheet = self._styles_directory / theme.stylesheet
-        css_data = stylesheet.read_bytes()
+        stylesheets: list[Path] = []
+        if theme_id == TRANSPARENT_THEME_ID:
+            stylesheets.append(
+                self._styles_directory / "theme-obsidian-forge.css"
+            )
+        stylesheets.append(self._styles_directory / theme.stylesheet)
+        css_data = b"\n".join(stylesheet.read_bytes() for stylesheet in stylesheets)
         folder_picker_stylesheet = self._styles_directory / "folder-picker-theme.css"
         if folder_picker_stylesheet.is_file():
             css_data += b"\n" + folder_picker_stylesheet.read_bytes()
@@ -108,6 +131,17 @@ class ThemeManager:
             self._preferences_file.write_text(theme_id, encoding="utf-8")
         except OSError:
             pass
+
+    def set_transparency_percent(self, percentage: int) -> None:
+        if not 0 <= percentage <= 90:
+            raise ValueError("Transparency must be between 0 and 90 percent")
+        self._transparency_preferences_file.parent.mkdir(
+            parents=True, exist_ok=True
+        )
+        self._transparency_preferences_file.write_text(
+            str(percentage), encoding="utf-8"
+        )
+        self.transparency_percent = percentage
 
     def show_dialog(self, parent: Gtk.Window | None = None) -> None:
         dialog = Gtk.Dialog(title="Change Theme", transient_for=parent, modal=True)

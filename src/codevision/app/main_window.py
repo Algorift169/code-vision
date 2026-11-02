@@ -19,7 +19,7 @@ from ..ui.analysis_panel import AnalysisPanel
 from ..ui.border import WindowBorder
 from ..ui.project_explorer import ProjectExplorer
 from ..ui.search import WorkspaceSearch
-from ..ui.theme import ThemeManager
+from ..ui.theme import TRANSPARENT_THEME_ID, ThemeManager
 from ..ui.widgets.edit_menu import EditMenuButton
 from ..ui.widgets.file_menu import FileMenuButton
 from ..ui.widgets.help_menu import HelpMenuButton
@@ -27,6 +27,7 @@ from ..ui.widgets.menu import ContextMenu
 from ..ui.widgets.menu_context import MenuContext
 from ..ui.widgets.project_menu import ProjectMenuButton
 from ..ui.widgets.terminal_menu import TerminalMenuButton
+from ..ui.widgets.theme_menu import ThemeMenu
 from ..ui.widgets.view_menu import ViewMenuButton
 
 
@@ -77,6 +78,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._install_css()
         self.theme_manager = ThemeManager()
         self.theme_manager.apply(self.theme_manager.current_theme)
+        self.set_opacity(self._theme_window_opacity())
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         content_overlay = Gtk.Overlay()
@@ -263,6 +265,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.context_menu = ContextMenu(
             content_overlay, box, self._window_menu_context_at
         )
+        self.theme_menu = ThemeMenu(self, content_overlay)
         self.file_menu.update_state()
         self.edit_menu.update_state()
         self.view_menu._update_state()
@@ -279,6 +282,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             getattr(self, "project_menu", None),
             getattr(self, "terminal_menu", None),
             getattr(self, "help_menu", None),
+            getattr(self, "theme_menu", None),
         ]
         for menu in all_menus:
             if menu is not None and menu is not except_menu:
@@ -292,6 +296,34 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
                     menu.set_visible(False)
                     closed = True
         return closed
+
+    def is_click_inside_open_menu(
+        self, box: Gtk.Widget, x: float, y: float
+    ) -> bool:
+        all_menus = [
+            getattr(self, "context_menu", None),
+            getattr(self, "file_menu", None),
+            getattr(self, "edit_menu", None),
+            getattr(self, "view_menu", None),
+            getattr(self, "project_menu", None),
+            getattr(self, "terminal_menu", None),
+            getattr(self, "help_menu", None),
+            getattr(self, "theme_menu", None),
+        ]
+        for menu in all_menus:
+            if menu is None or not hasattr(menu, "get_active") or not menu.get_active():
+                continue
+            popup = getattr(menu, "popup_widget", menu)
+            ok, rect = popup.compute_bounds(box)
+            if ok:
+                left = rect.get_x()
+                top = rect.get_y()
+                if (
+                    left <= x <= left + rect.get_width()
+                    and top <= y <= top + rect.get_height()
+                ):
+                    return True
+        return False
 
     def is_click_on_active_menu_button(self, box: Gtk.Widget, x: float, y: float) -> bool:
         all_menus = [
@@ -349,8 +381,19 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
     """
     def set_theme(self, theme_id: str) -> None:
         self.theme_manager.apply(theme_id)
+        self.set_opacity(self._theme_window_opacity())
         if hasattr(self, "view_menu"):
             self.view_menu._update_state()
+
+    def set_transparency_percent(self, percentage: int) -> None:
+        self.theme_manager.set_transparency_percent(percentage)
+        if self.theme_manager.current_theme == TRANSPARENT_THEME_ID:
+            self.set_opacity(self._theme_window_opacity())
+
+    def _theme_window_opacity(self) -> float:
+        if self.theme_manager.current_theme != TRANSPARENT_THEME_ID:
+            return 1.0
+        return 1.0 - self.theme_manager.transparency_percent / 100
     """All the functions with 'toggle :
     Switches the editor between visible and hidden states, 
     toggles the project explorer and analysis panel visibility, 
@@ -1009,6 +1052,7 @@ layout after exiting focus mode. The view menu is updated after
         context.open_terminal = lambda: self._open_terminal_tab(context.directory)
         context.open_kong_browser = lambda target_url=None: self.open_kong_browser(target_url)
         context.theme_manager = self.theme_manager
+        context.open_theme_menu = self.theme_menu.popup_at
         return context
 
     """Creates a fallback menu context for the window or a selected widget.
@@ -1025,6 +1069,7 @@ layout after exiting focus mode. The view menu is updated after
             project_root=self.project_explorer.root_path,
             terminal_service=self.terminal_service,
             theme_manager=self.theme_manager,
+            open_theme_menu=self.theme_menu.popup_at,
             open_terminal=lambda: self._open_terminal_tab(directory),
             open_kong_browser=lambda target_url=None: self.open_kong_browser(target_url),
             create_file=lambda: self.project_explorer.create_file_in(directory),
