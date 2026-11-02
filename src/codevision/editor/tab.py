@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+from typing import TypeVar
 
 import gi
 
@@ -19,6 +20,53 @@ from ..services.save import SaveService
 from ..services.terminal import TerminalSession
 from ..ui.kong_browser import KongBrowser
 from .editor import EditorPanel
+from .image_preview import ImagePreview
+from .video_preview import VideoPreview
+
+IMAGE_SUFFIXES = frozenset(
+    {
+        ".avif",
+        ".apng",
+        ".bmp",
+        ".gif",
+        ".heic",
+        ".heif",
+        ".ico",
+        ".jfif",
+        ".jpe",
+        ".jpeg",
+        ".jpg",
+        ".png",
+        ".svg",
+        ".tif",
+        ".tiff",
+        ".webp",
+    }
+)
+VIDEO_SUFFIXES = frozenset(
+    {
+        ".3gp",
+        ".3g2",
+        ".avi",
+        ".flv",
+        ".m4v",
+        ".mkv",
+        ".m2ts",
+        ".mov",
+        ".mpe",
+        ".mp4",
+        ".mpeg",
+        ".mpg",
+        ".mts",
+        ".ogv",
+        ".ogm",
+        ".ts",
+        ".vob",
+        ".webm",
+        ".wmv",
+    }
+)
+PreviewPage = TypeVar("PreviewPage", ImagePreview, VideoPreview)
 
 
 class EditorTabs(Gtk.Notebook):
@@ -235,6 +283,11 @@ class EditorTabs(Gtk.Notebook):
         return page if isinstance(page, EditorPanel) else None
 
     @property
+    def active_preview(self) -> ImagePreview | VideoPreview | None:
+        page = self.active_page
+        return page if isinstance(page, (ImagePreview, VideoPreview)) else None
+
+    @property
     def active_terminal(self) -> TerminalSession | None:
         """Return the terminal session associated with the selected page.
 
@@ -267,7 +320,7 @@ class EditorTabs(Gtk.Notebook):
             if isinstance((page := self.get_nth_page(page_number)), EditorPanel)
         )
 
-    def open_file(self, path: Path) -> EditorPanel:
+    def open_file(self, path: Path) -> Gtk.Widget:
         """Open a file in its own tab, selecting its tab if already open.
 
         The path is expanded and resolved before comparison. If an editor
@@ -278,9 +331,15 @@ class EditorTabs(Gtk.Notebook):
             path: File path to resolve and display in an editor.
 
         Returns:
-            The existing or newly created editor panel for the file.
+            The existing or newly created editor or media preview page.
         """
         resolved_path = path.expanduser().resolve()
+        suffix = resolved_path.suffix.lower()
+        if suffix in IMAGE_SUFFIXES:
+            return self.open_image(resolved_path)
+        if suffix in VIDEO_SUFFIXES:
+            return self.open_video(resolved_path)
+
         for page_number in range(self.get_n_pages()):
             page = self.get_nth_page(page_number)
             if isinstance(page, EditorPanel) and page.file_path == resolved_path:
@@ -291,6 +350,24 @@ class EditorTabs(Gtk.Notebook):
         editor.set_name("editor-panel")
         editor.open_file(resolved_path)
         return self._add_editor(editor, resolved_path.name)
+
+    def open_image(self, path: Path) -> ImagePreview:
+        resolved_path = path.expanduser().resolve()
+        for page_number in range(self.get_n_pages()):
+            page = self.get_nth_page(page_number)
+            if isinstance(page, ImagePreview) and page.file_path == resolved_path:
+                self.set_current_page(page_number)
+                return page
+        return self._add_preview(ImagePreview(resolved_path), resolved_path.name)
+
+    def open_video(self, path: Path) -> VideoPreview:
+        resolved_path = path.expanduser().resolve()
+        for page_number in range(self.get_n_pages()):
+            page = self.get_nth_page(page_number)
+            if isinstance(page, VideoPreview) and page.file_path == resolved_path:
+                self.set_current_page(page_number)
+                return page
+        return self._add_preview(VideoPreview(resolved_path), resolved_path.name)
 
     def new_document(
         self, title: str, language_id: str | None = None
@@ -407,6 +484,43 @@ class EditorTabs(Gtk.Notebook):
         editor.source_view.grab_focus()
         self._notify_active_changed()
         return editor
+
+    def _add_preview(
+        self, preview: PreviewPage, title: str
+    ) -> PreviewPage:
+        tab_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        tab_label = Gtk.Label(label=title)
+        tab_label.add_css_class("editor-tab-label")
+        tab_header.append(tab_label)
+
+        close_button = Gtk.Button()
+        close_button.set_child(Gtk.Image.new_from_icon_name("window-close-symbolic"))
+        close_button.set_tooltip_text(f"Close {title}")
+        close_button.add_css_class("editor-tab-close")
+        close_button.connect("clicked", lambda *_args: self.close_preview(preview))
+        tab_header.append(close_button)
+
+        page_number = self.append_page(preview, tab_header)
+        self._tab_labels[id(preview)] = tab_label
+        self.set_tab_reorderable(preview, True)
+        self.set_show_tabs(True)
+        self.set_current_page(page_number)
+        self._notify_active_changed()
+        return preview
+
+    def close_preview(self, preview: ImagePreview | VideoPreview) -> None:
+        page_number = self.page_num(preview)
+        if page_number < 0:
+            return
+        if isinstance(preview, VideoPreview):
+            stream = preview.video.get_media_stream()
+            if stream is not None:
+                stream.pause()
+        self.remove_page(page_number)
+        self._tab_labels.pop(id(preview), None)
+        if self.get_n_pages() == 0:
+            self.set_show_tabs(False)
+        self._notify_active_changed()
 
     def open_terminal(self, session: TerminalSession) -> Gtk.Widget:
         """Show a terminal session in its own notebook tab and focus it.

@@ -134,6 +134,10 @@ class FileMenuButton(OverlayMenuButton):
     def update_state(self) -> None:
         editor_tabs = getattr(self._window, "editor_tabs", None)
         has_editor = editor_tabs is not None and getattr(editor_tabs, "active_editor", None) is not None
+        has_closable_page = has_editor or (
+            editor_tabs is not None
+            and getattr(editor_tabs, "active_preview", None) is not None
+        )
         if "save" in self._items:
             self._items["save"].set_sensitive(has_editor)
         if "save-as" in self._items:
@@ -141,7 +145,7 @@ class FileMenuButton(OverlayMenuButton):
         if "share" in self._items:
             self._items["share"].set_sensitive(has_editor)
         if "close-editor" in self._items:
-            self._items["close-editor"].set_sensitive(has_editor)
+            self._items["close-editor"].set_sensitive(has_closable_page)
         if hasattr(self, "_auto_save_on") and hasattr(self, "_auto_save_off"):
             on_label = self._auto_save_on.get_child()
             off_label = self._auto_save_off.get_child()
