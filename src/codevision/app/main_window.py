@@ -48,6 +48,24 @@ STYLESHEETS = (
 )
 
 
+def _launch_external_uri(
+    uri: str,
+    open_in_app: Callable[[str], None],
+    set_status: Callable[[str], None],
+    launch_default: Callable[[str], bool],
+) -> None:
+    try:
+        if launch_default(uri):
+            return
+    except GLib.Error:
+        pass
+
+    try:
+        open_in_app(uri)
+    except (GLib.Error, OSError, RuntimeError, ValueError) as error:
+        set_status(f"Could not open link: {error}")
+
+
 class CodeVisionWindow(Gtk.ApplicationWindow):
     """Main IDE-style workspace with left, center, and right panels."""
 
@@ -650,7 +668,12 @@ layout after exiting focus mode. The view menu is updated after
     GTK delegates the URL to whichever browser is configured as the default.
     """
     def open_documentation(self) -> None:
-        Gio.AppInfo.launch_default_for_uri("https://github.com/Algorift169/code-vision")
+        _launch_external_uri(
+            "https://github.com/Algorift169/code-vision",
+            self.open_kong_browser,
+            self.status_label.set_text,
+            Gio.AppInfo.launch_default_for_uri,
+        )
 
     """Creates and presents a modal dialog containing keyboard shortcuts.
     It adds a Close button, formats the shortcut list in a left-aligned label,
@@ -694,13 +717,23 @@ layout after exiting focus mode. The view menu is updated after
     This delegates browser selection and URL handling to GTK's AppInfo API.
     """
     def report_issue(self) -> None:
-        Gio.AppInfo.launch_default_for_uri("https://github.com/Algorift169/code-vision/issues")
+        _launch_external_uri(
+            "https://github.com/Algorift169/code-vision/issues",
+            self.open_kong_browser,
+            self.status_label.set_text,
+            Gio.AppInfo.launch_default_for_uri,
+        )
 
     """Opens the source repository URL through the system browser.
     GTK forwards the request to the user's configured default browser.
     """
     def view_source_code(self) -> None:
-        Gio.AppInfo.launch_default_for_uri("https://github.com/Algorift169/code-vision")
+        _launch_external_uri(
+            "https://github.com/Algorift169/code-vision",
+            self.open_kong_browser,
+            self.status_label.set_text,
+            Gio.AppInfo.launch_default_for_uri,
+        )
 
     """Informs the user that update checking is not implemented yet.
     It currently changes only the status message and performs no network check.
