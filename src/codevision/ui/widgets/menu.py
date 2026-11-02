@@ -148,9 +148,22 @@ class ContextMenu(Gtk.Box):
         if self.get_visible():
             self.set_visible(False)
         root = self._event_parent.get_root() if hasattr(self, "_event_parent") else None
-        if root is not None and hasattr(root, "is_click_on_active_menu_button") and root.is_click_on_active_menu_button(self._event_parent, _x, _y):
-            pass
-        elif root is not None and hasattr(root, "close_all_menus"):
+        click_inside_menu = (
+            root is not None
+            and hasattr(root, "is_click_inside_open_menu")
+            and root.is_click_inside_open_menu(self._event_parent, _x, _y)
+        )
+        click_on_menu_button = (
+            root is not None
+            and hasattr(root, "is_click_on_active_menu_button")
+            and root.is_click_on_active_menu_button(self._event_parent, _x, _y)
+        )
+        if (
+            root is not None
+            and hasattr(root, "close_all_menus")
+            and not click_inside_menu
+            and not click_on_menu_button
+        ):
             root.close_all_menus(except_menu=self)
         if gesture is not None:
             gesture.set_state(Gtk.EventSequenceState.DENIED)
@@ -186,7 +199,15 @@ class ContextMenu(Gtk.Box):
         if context is None:
             return
         action = self._items[action_id][1]
+        if action_id == "change-theme" and context.open_theme_menu is not None:
+            try:
+                context.open_theme_menu(_button)
+            except (OSError, RuntimeError, ValueError) as error:
+                if context.set_status is not None:
+                    context.set_status(str(error))
         self.set_visible(False)
+        if action_id == "change-theme":
+            return
         try:
             action.run(context)
         except (OSError, RuntimeError, ValueError) as error:

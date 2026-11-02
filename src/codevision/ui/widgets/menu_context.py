@@ -28,6 +28,7 @@ class MenuContext:
     close_terminal_tab: Callable[[], None] | None = None
     terminal_service: TerminalService | None = None
     theme_manager: ThemeManager | None = None
+    open_theme_menu: Callable[[Gtk.Widget], None] | None = None
     open_terminal: Callable[[], None] | None = None
     open_kong_browser: Callable[[str | None], None] | None = None
     create_file: Callable[[], None] | None = None
