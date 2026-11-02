@@ -20,6 +20,7 @@ from ..ui.border import WindowBorder
 from ..ui.project_explorer import ProjectExplorer
 from ..ui.search import WorkspaceSearch
 from ..ui.theme import TRANSPARENT_THEME_ID, ThemeManager
+from ..ui.widgets.context_action_menu import ContextActionMenu
 from ..ui.widgets.edit_menu import EditMenuButton
 from ..ui.widgets.file_menu import FileMenuButton
 from ..ui.widgets.help_menu import HelpMenuButton
@@ -266,6 +267,10 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             content_overlay, box, self._window_menu_context_at
         )
         self.theme_menu = ThemeMenu(self, content_overlay)
+        self.context_action_menu = ContextActionMenu(self, content_overlay)
+        self.project_explorer.new_file_action.set_action_menu(
+            self.context_action_menu.popup_for
+        )
         self.file_menu.update_state()
         self.edit_menu.update_state()
         self.view_menu._update_state()
@@ -283,6 +288,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             getattr(self, "terminal_menu", None),
             getattr(self, "help_menu", None),
             getattr(self, "theme_menu", None),
+            getattr(self, "context_action_menu", None),
         ]
         for menu in all_menus:
             if menu is not None and menu is not except_menu:
@@ -309,6 +315,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             getattr(self, "terminal_menu", None),
             getattr(self, "help_menu", None),
             getattr(self, "theme_menu", None),
+            getattr(self, "context_action_menu", None),
         ]
         for menu in all_menus:
             if menu is None or not hasattr(menu, "get_active") or not menu.get_active():
@@ -1053,6 +1060,8 @@ layout after exiting focus mode. The view menu is updated after
         context.open_kong_browser = lambda target_url=None: self.open_kong_browser(target_url)
         context.theme_manager = self.theme_manager
         context.open_theme_menu = self.theme_menu.popup_at
+        context.open_action_menu = self.context_action_menu.popup_for
+        context.on_path_created = self.project_explorer._on_file_created
         return context
 
     """Creates a fallback menu context for the window or a selected widget.
@@ -1070,9 +1079,10 @@ layout after exiting focus mode. The view menu is updated after
             terminal_service=self.terminal_service,
             theme_manager=self.theme_manager,
             open_theme_menu=self.theme_menu.popup_at,
+            open_action_menu=self.context_action_menu.popup_for,
             open_terminal=lambda: self._open_terminal_tab(directory),
             open_kong_browser=lambda target_url=None: self.open_kong_browser(target_url),
-            create_file=lambda: self.project_explorer.create_file_in(directory),
+            on_path_created=self.project_explorer._on_file_created,
             on_files_pasted=self.project_explorer._refresh_pasted_files,
             set_status=self.status_label.set_text,
         )
@@ -1116,7 +1126,6 @@ layout after exiting focus mode. The view menu is updated after
             terminal_service=self.terminal_service,
             open_terminal=lambda: self._open_terminal_tab(directory),
             open_kong_browser=lambda target_url=None: self.open_kong_browser(target_url),
-            create_file=lambda: self.project_explorer.create_file_in(directory),
             on_files_pasted=self.project_explorer._refresh_pasted_files,
             set_status=self.status_label.set_text,
         )

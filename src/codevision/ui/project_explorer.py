@@ -76,7 +76,6 @@ class ProjectExplorer(Gtk.Box):
             self._collapse_all
         )
         self.new_file_action = NewFileAction(
-            self,
             self._get_target_directory,
             self._on_file_created,
         )
@@ -137,9 +136,6 @@ class ProjectExplorer(Gtk.Box):
     def root_path(self) -> Path | None:
         return self._root_path
 
-    def create_file_in(self, directory: Path) -> None:
-        self.new_file_action.activate_in(directory)
-
     def menu_context_at(self, x: float, y: float) -> MenuContext:
         hit = self.tree.get_path_at_pos(int(x), int(y))
         tree_path = hit[0].copy() if hit is not None else None
@@ -174,7 +170,6 @@ class ProjectExplorer(Gtk.Box):
             project_root=self._root_path,
             tree=self.tree,
             terminal_service=self._terminal_service,
-            create_file=self.new_file_action.activate,
             on_files_pasted=self._refresh_pasted_files,
             on_path_deleted=self._on_path_deleted,
             on_path_renamed=self._on_path_renamed,
@@ -191,7 +186,6 @@ class ProjectExplorer(Gtk.Box):
             kind="explorer",
             project_root=self._root_path,
             terminal_service=self._terminal_service,
-            create_file=self.new_file_action.activate,
             on_files_pasted=self._refresh_pasted_files,
             on_path_deleted=self._on_path_deleted,
             on_path_renamed=self._on_path_renamed,

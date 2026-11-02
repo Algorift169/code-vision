@@ -74,7 +74,12 @@ class ContextMenu(Gtk.Box):
             button.set_halign(Gtk.Align.FILL)
             button.add_css_class("context-menu-item")
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-            row.append(Gtk.Image.new_from_icon_name(icon_name))
+            icon = Gtk.Image.new_from_icon_name(icon_name)
+            icon.add_css_class("context-menu-icon")
+            icon.set_pixel_size(18)
+            icon.set_size_request(18, 18)
+            icon.set_valign(Gtk.Align.CENTER)
+            row.append(icon)
             title = Gtk.Label(label=label)
             title.set_halign(Gtk.Align.START)
             title.set_hexpand(True)
@@ -199,6 +204,7 @@ class ContextMenu(Gtk.Box):
         if context is None:
             return
         action = self._items[action_id][1]
+        context.action_anchor = _button
         if action_id == "change-theme" and context.open_theme_menu is not None:
             try:
                 context.open_theme_menu(_button)
