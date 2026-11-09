@@ -1,4 +1,58 @@
 #analysis-panel
 {
-    background-color: #0d1a2a;
+    background-color: transparent;
+}
+
+.analysis-navigation-scroller
+{
+    border: none;
+    background: transparent;
+}
+
+.analysis-navigation
+{
+    padding: 4px 6px;
+}
+
+.analysis-nav-button
+{
+    min-height: 28px;
+    padding: 3px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    background-image: none;
+    box-shadow: none;
+    font-size: 11px;
+}
+
+.analysis-nav-button:hover
+{
+    background: alpha(currentColor, 0.1);
+}
+
+.analysis-nav-button:focus
+{
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+}
+
+.analysis-nav-button:checked
+{
+    font-weight: 700;
+}
+
+.analysis-section-views
+{
+    background: transparent;
+}
+
+.analysis-placeholder
+{
+    padding: 12px;
+}
+
+.analysis-placeholder-title
+{
+    font-size: 12px;
 }
