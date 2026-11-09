@@ -8,7 +8,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 gi.require_version("Gio", "2.0")
-from gi.repository import Gdk, Gio, GLib, Gtk, Pango
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 from ..editor.editor import EditorPanel
 from ..editor.tab import EditorTabs
@@ -23,6 +23,7 @@ from ..ui.theme import TRANSPARENT_THEME_ID, ThemeManager
 from ..ui.widgets.context_action_menu import ContextActionMenu
 from ..ui.widgets.edit_menu import EditMenuButton
 from ..ui.widgets.file_menu import FileMenuButton
+from ..ui.widgets.folder import FolderPickerOverlay
 from ..ui.widgets.help_menu import HelpMenuButton
 from ..ui.widgets.menu import ContextMenu
 from ..ui.widgets.menu_context import MenuContext
@@ -286,6 +287,13 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         )
         self.theme_menu = ThemeMenu(self, content_overlay)
         self.context_action_menu = ContextActionMenu(self, content_overlay)
+        self.file_picker = FolderPickerOverlay(
+            parent=self,
+            overlay=content_overlay,
+            on_folder_opened=self.project_explorer._set_project_folder,
+            on_file_opened=self._open_file,
+            service=self.project_explorer._folder_browser,
+        )
         self.project_explorer.new_file_action.set_action_menu(
             self.context_action_menu.popup_for
         )
@@ -307,6 +315,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             getattr(self, "help_menu", None),
             getattr(self, "theme_menu", None),
             getattr(self, "context_action_menu", None),
+            getattr(self, "file_picker", None),
         ]
         for menu in all_menus:
             if menu is not None and menu is not except_menu:
@@ -334,11 +343,12 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             getattr(self, "help_menu", None),
             getattr(self, "theme_menu", None),
             getattr(self, "context_action_menu", None),
+            getattr(self, "file_picker", None),
         ]
         for menu in all_menus:
             if menu is None or not hasattr(menu, "get_active") or not menu.get_active():
                 continue
-            popup = getattr(menu, "popup_widget", menu)
+            popup = getattr(menu, "dialog_card", getattr(menu, "popup_widget", menu))
             ok, rect = popup.compute_bounds(box)
             if ok:
                 left = rect.get_x()
@@ -836,21 +846,28 @@ layout after exiting focus mode. The view menu is updated after
             window = CodeVisionWindow(application)
             window.present()
 
-    """Shows the native file chooser used to select a file to open.
-    If a chooser is already active it re-shows that dialog; otherwise it creates
-    one, connects its response handler, stores it, and presents it.
-    """
+    """Shows the in-window file chooser used to select a file to open."""
     def open_file_dialog(self) -> None:
-        if self._open_dialog is not None:
-            self._open_dialog.show()
-            return
-
-        dialog = Gtk.FileChooserNative.new(
-            "Open File", self, Gtk.FileChooserAction.OPEN, "_Open", "_Cancel"
+        initial = (
+            self.editor_tabs.active_editor.file_path.parent
+            if (self.editor_tabs.active_editor and self.editor_tabs.active_editor.file_path)
+            else (self.project_explorer.root_path or Path.home())
         )
-        dialog.connect("response", self._on_open_file_response)
-        self._open_dialog = dialog
-        dialog.show()
+        self.close_all_menus()
+        self.file_picker.show_open_file(
+            initial_directory=initial,
+            on_file_opened=self._open_file,
+        )
+
+    """Shows the in-window folder browser used to select a project directory."""
+    def open_folder_dialog(self) -> None:
+        initial = self.project_explorer.root_path or Path.home()
+        self.close_all_menus()
+        self.file_picker.show_open_folder(
+            initial_directory=initial,
+            on_folder_opened=self.project_explorer._set_project_folder,
+            on_file_opened=self._open_file,
+        )
 
     """Saves the active document using its current path when possible.
     It does nothing without an active editor, opens Save As for an untitled
@@ -1199,6 +1216,7 @@ layout after exiting focus mode. The view menu is updated after
         actions: tuple[tuple[str, Callable[[], None]], ...] = (
             ("new-file", self.new_file),
             ("open-file", self.open_file_dialog),
+            ("open-folder", self.open_folder_dialog),
             ("save", self.save_current_file),
             ("save-as", self.save_file_as),
             ("close-editor", self.close_active_editor),
@@ -1211,6 +1229,7 @@ layout after exiting focus mode. The view menu is updated after
         for action_name, accelerators in (
             ("new-file", ["<Primary>n"]),
             ("open-file", ["<Primary>o"]),
+            ("open-folder", ["<Primary><Shift>o"]),
             ("save", ["<Primary>s"]),
             ("save-as", ["<Primary><Shift>s"]),
             ("close-editor", ["<Primary>w"]),
@@ -1277,10 +1296,7 @@ layout after exiting focus mode. The view menu is updated after
         ):
             application.set_accels_for_action(f"win.{action_name}", accelerators)
 
-    """Creates a native Save dialog for a document that needs a destination.
-    It reuses an existing dialog if one is open; otherwise it sets the title and
-    suggested filename, connects the response callback, stores, and displays it.
-    """
+    """Creates an in-window Save dialog for a document that needs a destination."""
     def _show_save_dialog(
         self,
         editor: EditorPanel,
@@ -1288,25 +1304,36 @@ layout after exiting focus mode. The view menu is updated after
         *,
         share_copy: bool = False,
     ) -> None:
-        if self._save_dialog is not None:
-            self._save_dialog.show()
-            return
-
         title = "Share a Copy" if share_copy else "Save File As"
-        dialog = Gtk.FileChooserNative.new(
-            title, self, Gtk.FileChooserAction.SAVE, "_Save", "_Cancel"
-        )
-        dialog.set_do_overwrite_confirmation(True)
-        dialog.set_current_name(
+        initial_name = (
             editor.file_path.name
             if editor.file_path is not None
             else editor.title.get_text()
         )
-        dialog.connect(
-            "response", self._on_save_dialog_response, editor, on_saved, share_copy
+        initial_dir = (
+            editor.file_path.parent
+            if editor.file_path is not None
+            else (self.project_explorer.root_path or Path.home())
         )
-        self._save_dialog = dialog
-        dialog.show()
+
+        def _on_save(destination: Path) -> None:
+            if share_copy:
+                try:
+                    self.save_service.save_file(destination, self._editor_text(editor))
+                    self.status_label.set_text("A local copy was saved")
+                except OSError as error:
+                    self.status_label.set_text(f"Could not create a copy: {error}")
+            else:
+                if self._save_editor(editor, destination) and on_saved is not None:
+                    on_saved()
+
+        self.close_all_menus()
+        self.file_picker.show_save_file(
+            title=title,
+            initial_directory=initial_dir,
+            initial_filename=initial_name,
+            on_file_saved=_on_save,
+        )
 
     """Handles an accepted Save dialog and releases the dialog afterward.
     It extracts the selected local path, saves either a copy or the editor, and

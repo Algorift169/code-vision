@@ -37,6 +37,9 @@ class FileMenuButton(OverlayMenuButton):
         self._items["open-file"] = self._append_action(
             "Open File...", self._window.open_file_dialog
         )
+        self._items["open-folder"] = self._append_action(
+            "Open Folder...", self._window.open_folder_dialog
+        )
 
         self._content.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
         self._items["save"] = self._append_action("Save", self._window.save_current_file)

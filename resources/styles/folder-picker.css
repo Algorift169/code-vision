@@ -1,7 +1,28 @@
-#folder-picker-window
+.folder-picker-backdrop
+{
+    background-color: rgba(0, 0, 0, 0.55);
+}
+
+#folder-picker-window,
+.folder-picker-dialog
+{
+    background-color: #0d1117;
+    color: #e5edf8;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
+}
+
+.folder-picker-headerbar
 {
     background: transparent;
-    color: inherit;
+    border-bottom: 1px solid alpha(currentColor, 0.18);
+}
+
+.folder-picker-title
+{
+    font-weight: 700;
+    font-size: 14px;
 }
 
 .folder-picker-toolbar

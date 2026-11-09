@@ -215,13 +215,16 @@ class ProjectExplorer(Gtk.Box):
 
     def open_folder(self) -> None:
         parent = self.get_root()
-        parent_window = parent if isinstance(parent, Gtk.Window) else None
+        if hasattr(parent, "open_folder_dialog"):
+            parent.open_folder_dialog()
+            return
+
         if self._folder_picker is not None and self._folder_picker.get_visible():
             self._folder_picker.present()
             return
 
         self._folder_picker = FolderPickerWindow(
-            parent=parent_window,
+            parent=parent,
             initial_directory=self._root_path or Path.home(),
             on_folder_opened=self._set_project_folder,
             on_file_opened=self._open_file_from_picker,
@@ -230,7 +233,7 @@ class ProjectExplorer(Gtk.Box):
         self._folder_picker.connect("close-request", self._on_folder_picker_closed)
         self._folder_picker.present()
 
-    def _on_folder_picker_closed(self, window: Gtk.Window) -> bool:
+    def _on_folder_picker_closed(self, window: object) -> bool:
         if self._folder_picker is window:
             self._folder_picker = None
         return False
