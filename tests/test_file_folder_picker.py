@@ -8,6 +8,7 @@ from gi.repository import Gdk, Gtk
 
 from codevision.app.main_window import CodeVisionWindow
 from codevision.services.folder_browser import FolderBrowserService
+from codevision.ui.project_explorer import ProjectExplorer
 from codevision.ui.widgets.file_menu import FileMenuButton
 from codevision.ui.widgets.folder import FolderPickerOverlay, FolderPickerWindow
 
@@ -102,6 +103,59 @@ def test_folder_picker_file_mode_opens_file(tmp_path: Path) -> None:
 
     assert opened_files == [test_file.resolve()]
     assert not picker.get_visible()
+
+
+def test_folder_picker_file_and_folder_icons_have_visible_styling(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "folder").mkdir()
+    (tmp_path / "file.txt").touch()
+    picker = FolderPickerOverlay(
+        overlay=Gtk.Overlay(),
+        initial_directory=tmp_path,
+        service=FolderBrowserService(),
+        mode="file",
+    )
+
+    icons = {}
+    for row in picker._entries_by_row:
+        content = row.get_child()
+        icon = content.get_first_child()
+        icons[picker._entries_by_row[row].name] = icon
+
+    assert icons["folder"].has_css_class("folder-picker-item-icon")
+    assert icons["file.txt"].has_css_class("folder-picker-item-icon")
+    assert all(
+        icon.get_content_width() == 18
+        and icon.get_content_height() == 18
+        for icon in icons.values()
+    )
+    assert picker.up_button.get_child().has_css_class("folder-picker-control-icon")
+    assert picker.up_button.get_child().get_content_width() == 18
+
+
+def test_project_tree_uses_bundled_visible_file_and_folder_icons(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    folder = project / "folder"
+    folder.mkdir(parents=True)
+    file_path = project / "file.py"
+    file_path.touch()
+
+    explorer = ProjectExplorer(on_file_open=lambda _path: None)
+    explorer._set_project_folder(project)
+    root = explorer._store.get_iter_first()
+    assert root is not None
+    folder_iter = explorer._store.iter_nth_child(root, 0)
+    file_iter = explorer._store.iter_nth_child(root, 1)
+
+    folder_icon = explorer._store.get_value(folder_iter, 4)
+    file_icon = explorer._store.get_value(file_iter, 4)
+    assert folder_icon.get_width() == 18
+    assert file_icon.get_width() == 18
+    assert folder_icon is explorer._tree_icons["folder"]
+    assert file_icon is explorer._tree_icons["file"]
 
 
 def test_folder_picker_save_mode_saves_destination(tmp_path: Path) -> None:

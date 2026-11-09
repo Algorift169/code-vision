@@ -9,10 +9,10 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk
 
 from .menu_actions import (
+    change_theme,
     copy,
     copy_full_path,
     copy_relative_path,
-    change_theme,
     delete,
     kill_terminal,
     new_file,
@@ -24,6 +24,7 @@ from .menu_actions import (
     select_all,
 )
 from .menu_context import MenuContext
+from .symbolic_icon import create_symbolic_icon
 
 
 class ContextMenu(Gtk.Box):
@@ -74,11 +75,7 @@ class ContextMenu(Gtk.Box):
             button.set_halign(Gtk.Align.FILL)
             button.add_css_class("context-menu-item")
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-            icon = Gtk.Image.new_from_icon_name(icon_name)
-            icon.add_css_class("context-menu-icon")
-            icon.set_pixel_size(18)
-            icon.set_size_request(18, 18)
-            icon.set_valign(Gtk.Align.CENTER)
+            icon = create_symbolic_icon(icon_name, "context-menu-icon")
             row.append(icon)
             title = Gtk.Label(label=label)
             title.set_halign(Gtk.Align.START)
@@ -187,9 +184,12 @@ class ContextMenu(Gtk.Box):
                 self.set_visible(False)
                 handled = True
             root = self._event_parent.get_root() if hasattr(self, "_event_parent") else None
-            if root is not None and hasattr(root, "close_all_menus"):
-                if root.close_all_menus():
-                    handled = True
+            if (
+                root is not None
+                and hasattr(root, "close_all_menus")
+                and root.close_all_menus()
+            ):
+                handled = True
             return handled
         return False
 

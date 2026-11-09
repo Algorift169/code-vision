@@ -6,7 +6,8 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import GLib, Gtk
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import GdkPixbuf, GLib, Gtk
 
 from ..services.folder_browser import FolderBrowserService
 from ..services.terminal import TerminalService
@@ -16,6 +17,7 @@ from .explorer_actions.new_folder import NewFolderAction
 from .explorer_actions.refresh import RefreshAction
 from .widgets.folder import FolderPickerWindow
 from .widgets.menu_context import MenuContext
+from .widgets.symbolic_icon import create_symbolic_pixbuf
 
 
 class ProjectExplorer(Gtk.Box):
@@ -85,7 +87,13 @@ class ProjectExplorer(Gtk.Box):
         actions.append(self.collapse_all_action)
         self.append(actions)
 
-        self._store = Gtk.TreeStore(str, str, bool, bool, str, bool)
+        self._tree_icons = {
+            "folder": create_symbolic_pixbuf("folder-symbolic"),
+            "file": create_symbolic_pixbuf("text-x-generic-symbolic"),
+        }
+        self._store = Gtk.TreeStore(
+            str, str, bool, bool, GdkPixbuf.Pixbuf, bool
+        )
         self.tree = Gtk.TreeView(model=self._store)
         self.tree.set_name("project-tree")
         self.tree.set_headers_visible(False)
@@ -104,7 +112,9 @@ class ProjectExplorer(Gtk.Box):
         icon = Gtk.CellRendererPixbuf()
         icon.set_property("xpad", 4)
         column.pack_start(icon, False)
-        column.add_attribute(icon, "icon-name", 4)
+        icon.set_property("width", 18)
+        icon.set_property("height", 18)
+        column.add_attribute(icon, "pixbuf", 4)
         column.add_attribute(icon, "visible", 5)
 
         text = Gtk.CellRendererText()
@@ -317,19 +327,26 @@ class ProjectExplorer(Gtk.Box):
                 str(path),
                 is_directory,
                 False,
-                "folder-symbolic" if is_directory else "text-x-generic-symbolic",
+                self._tree_icons["folder" if is_directory else "file"],
                 True,
             ],
         )
         if is_directory:
-            self._store.append(row_iter, ["", "", False, True, "", False])
+            self._store.append(row_iter, ["", "", False, True, None, False])
 
     def _set_project_folder(self, path: Path) -> None:
         self._root_path = path.resolve()
         self._store.clear()
         root_iter = self._store.append(
             None,
-            [self._root_path.name, str(self._root_path), True, False, "folder-symbolic", True],
+            [
+                self._root_path.name,
+                str(self._root_path),
+                True,
+                False,
+                self._tree_icons["folder"],
+                True,
+            ],
         )
         self._load_directory(root_iter, self._root_path)
         self.tree.expand_row(self._store.get_path(root_iter), False)
@@ -349,11 +366,6 @@ class ProjectExplorer(Gtk.Box):
             return
 
         for entry in entries:
-            icon_name = (
-                "folder-symbolic"
-                if entry.is_directory
-                else "text-x-generic-symbolic"
-            )
             child_iter = self._store.append(
                 parent_iter,
                 [
@@ -361,12 +373,12 @@ class ProjectExplorer(Gtk.Box):
                     str(entry.path),
                     entry.is_directory,
                     False,
-                    icon_name,
+                    self._tree_icons["folder" if entry.is_directory else "file"],
                     True,
                 ],
             )
             if entry.is_directory:
-                self._store.append(child_iter, ["", "", False, True, "", False])
+                self._store.append(child_iter, ["", "", False, True, None, False])
 
         self._store.set_value(parent_iter, 3, True)
 

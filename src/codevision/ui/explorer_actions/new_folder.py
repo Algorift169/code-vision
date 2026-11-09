@@ -9,6 +9,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from ...services.new_folder import NewFolderService
+from ..widgets.symbolic_icon import create_symbolic_icon
 
 
 class NewFolderAction(Gtk.Button):
@@ -26,7 +27,8 @@ class NewFolderAction(Gtk.Button):
         self._on_created = on_created
         self._service = NewFolderService()
 
-        self.set_child(Gtk.Image.new_from_icon_name("folder-new-symbolic"))
+        icon = create_symbolic_icon("folder-new-symbolic", "explorer-action-icon")
+        self.set_child(icon)
         self.set_tooltip_text("New Folder")
         self.add_css_class("explorer-action")
         self.connect("clicked", lambda *_args: self.activate())

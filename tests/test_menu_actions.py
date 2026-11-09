@@ -7,20 +7,24 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("GtkSource", "5")
 from gi.repository import Gdk, Gtk, GtkSource
 
+from codevision.ui.widgets.edit_menu import EditMenuButton
+from codevision.ui.widgets.file_menu import FileMenuButton
+from codevision.ui.widgets.help_menu import HelpMenuButton
+from codevision.ui.widgets.menu import ContextMenu
+from codevision.ui.widgets.menu_actions import (
+    copy,
+    kill_terminal,
+    paste,
+    select,
+    select_all,
+)
 from codevision.ui.widgets.menu_actions.copy_full_path import full_path
 from codevision.ui.widgets.menu_actions.copy_relative_path import relative_path
-from codevision.ui.widgets.menu_actions import copy, paste
 from codevision.ui.widgets.menu_actions.paste import copy_files_to_directory
-from codevision.ui.widgets.menu_actions import select, select_all
-from codevision.ui.widgets.menu_actions import kill_terminal
 from codevision.ui.widgets.menu_context import MenuContext
-from codevision.ui.widgets.menu import ContextMenu
-from codevision.ui.widgets.file_menu import FileMenuButton
-from codevision.ui.widgets.edit_menu import EditMenuButton
-from codevision.ui.widgets.view_menu import ViewMenuButton
-from codevision.ui.widgets.terminal_menu import TerminalMenuButton
-from codevision.ui.widgets.help_menu import HelpMenuButton
 from codevision.ui.widgets.project_menu import ProjectMenuButton
+from codevision.ui.widgets.terminal_menu import TerminalMenuButton
+from codevision.ui.widgets.view_menu import ViewMenuButton
 
 
 class SelectionWidget:
@@ -93,9 +97,35 @@ def test_context_menu_action_icons_use_theme_accent_class() -> None:
         button = context_menu._items[action_id][0]
         row = button.get_child()
         icon = row.get_first_child()
-        assert isinstance(icon, Gtk.Image)
+        assert isinstance(icon, Gtk.DrawingArea)
         assert icon.has_css_class("context-menu-icon")
-        assert icon.get_pixel_size() == 18
+        assert icon.get_content_width() == 18
+        assert icon.get_content_height() == 18
+        assert icon.get_size_request() == (18, 18)
+
+
+def test_terminal_menu_actions_have_visible_icon_widgets() -> None:
+    class DummyWindow:
+        content_overlay = Gtk.Overlay()
+
+        def __getattr__(self, _name):
+            return lambda *args, **kwargs: None
+
+    menu = TerminalMenuButton(DummyWindow(), DummyWindow.content_overlay)
+    buttons = [
+        child
+        for child in menu._content
+        if isinstance(child, Gtk.Button)
+    ]
+
+    assert buttons
+    for button in buttons:
+        row = button.get_child()
+        icon = row.get_first_child()
+        assert isinstance(icon, Gtk.DrawingArea)
+        assert icon.has_css_class("terminal-menu-icon")
+        assert icon.get_content_width() == 18
+        assert icon.get_content_height() == 18
         assert icon.get_size_request() == (18, 18)
 
 

@@ -7,6 +7,8 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
+from ..widgets.symbolic_icon import create_symbolic_icon
+
 
 class CollapseAllAction(Gtk.Button):
     """Project Explorer button that collapses every expanded directory."""
@@ -17,7 +19,8 @@ class CollapseAllAction(Gtk.Button):
     ) -> None:
         super().__init__()
         self._collapse_all = collapse_all
-        self.set_child(Gtk.Image.new_from_icon_name("view-list-symbolic"))
+        icon = create_symbolic_icon("view-list-symbolic", "explorer-action-icon")
+        self.set_child(icon)
         self.set_tooltip_text("Collapse All")
         self.add_css_class("explorer-action")
         self.connect("clicked", lambda *_args: self.activate())

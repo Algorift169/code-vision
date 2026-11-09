@@ -11,6 +11,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, GLib, Gtk
 
 from ...services.folder_browser import BrowserEntry, FolderBrowserService
+from .symbolic_icon import create_symbolic_icon
 
 
 class FolderPickerOverlay(Gtk.Box):
@@ -88,7 +89,9 @@ class FolderPickerOverlay(Gtk.Box):
         header.append(self.title_label)
 
         close_button = Gtk.Button()
-        close_button.set_child(Gtk.Image.new_from_icon_name("window-close-symbolic"))
+        close_button.set_child(
+            create_symbolic_icon("action", "folder-picker-control-icon")
+        )
         close_button.add_css_class("folder-picker-icon-button")
         close_button.set_tooltip_text("Close")
         close_button.connect("clicked", lambda *_args: self.close())
@@ -121,7 +124,9 @@ class FolderPickerOverlay(Gtk.Box):
         toolbar.append(self.show_hidden_toggle)
 
         self.up_button = Gtk.Button()
-        self.up_button.set_child(Gtk.Image.new_from_icon_name("go-up-symbolic"))
+        self.up_button.set_child(
+            create_symbolic_icon("action", "folder-picker-control-icon")
+        )
         self.up_button.set_tooltip_text("Go to parent folder")
         self.up_button.add_css_class("folder-picker-icon-button")
         self.up_button.connect("clicked", lambda *_args: self._navigate_up())
@@ -467,7 +472,7 @@ class FolderPickerOverlay(Gtk.Box):
         icon_name = (
             "folder-symbolic" if entry.is_directory else "text-x-generic-symbolic"
         )
-        icon = Gtk.Image.new_from_icon_name(icon_name)
+        icon = create_symbolic_icon(icon_name, "folder-picker-item-icon")
         content.append(icon)
 
         label = Gtk.Label(label=entry.name)

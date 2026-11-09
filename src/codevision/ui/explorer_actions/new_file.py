@@ -9,6 +9,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from ..widgets.menu_context import MenuContext
+from ..widgets.symbolic_icon import create_symbolic_icon
 
 
 class NewFileAction(Gtk.Button):
@@ -26,7 +27,8 @@ class NewFileAction(Gtk.Button):
             Callable[[str, MenuContext, Gtk.Widget], None] | None
         ) = None
 
-        self.set_child(Gtk.Image.new_from_icon_name("document-new-symbolic"))
+        icon = create_symbolic_icon("document-new-symbolic", "explorer-action-icon")
+        self.set_child(icon)
         self.set_tooltip_text("New File")
         self.add_css_class("explorer-action")
         self.set_sensitive(False)

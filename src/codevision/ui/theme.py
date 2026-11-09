@@ -10,7 +10,6 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("GLib", "2.0")
 from gi.repository import Gdk, GLib, Gtk
 
-
 TRANSPARENT_THEME_ID = "trasp"
 
 
@@ -108,8 +107,7 @@ class ThemeManager:
             css_data += b"\n" + folder_picker_stylesheet.read_bytes()
         css_data += b"""
 
-.window#codevision-window .codevision-context-menu
-button.context-menu-item image.context-menu-icon {
+.window#codevision-window .codevision-symbolic-icon {
     color: @accent;
     opacity: 1;
     min-width: 18px;
