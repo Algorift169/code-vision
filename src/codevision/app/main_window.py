@@ -200,7 +200,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.center_stack.set_name("editor-stack")
         self.center_stack.set_hexpand(True)
         self.center_stack.set_vexpand(True)
-        self.center_stack.set_size_request(0, -1)
+        self.center_stack.set_size_request(180, -1)
         self.center_stack.add_named(welcome_page, "welcome")
 
         self.editor_tabs = EditorTabs(
@@ -484,10 +484,7 @@ layout after exiting focus mode. The view menu is updated after
         if self._focus_mode_active:
             self._focus_mode_previous_analysis = True
         self.right_pane.set_end_child(self.analysis_panel)
-
-        pane_width = self.right_pane.get_width()
-        if pane_width and self.right_pane.get_position() >= pane_width - 8:
-            self.right_pane.set_position(max(0, pane_width - 260))
+        self.right_pane.set_position(180)
 
         if hasattr(self, "view_menu"):
             self.view_menu._update_state()
