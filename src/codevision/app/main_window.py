@@ -12,6 +12,7 @@ from gi.repository import Gdk, Gio, GLib, Gtk
 
 from ..editor.editor import EditorPanel
 from ..editor.tab import EditorTabs
+from ..model import ASTNode
 from ..services.auto_save import AutoSaveSettings
 from ..services.save import SaveService
 from ..services.terminal import TerminalService
@@ -45,6 +46,7 @@ STYLESHEETS = (
     "editor.css",
     "editor-tabs.css",
     "analysis-panel.css",
+    "ast-view.css",
     "kong-browser.css",
 )
 
@@ -94,6 +96,9 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._focus_mode_active = False
         self._editor_zoom = 0
         self._editor_font_providers: dict[int, Gtk.CssProvider] = {}
+        self._ast_editor: EditorPanel | None = None
+        self._ast_buffer_handler: int | None = None
+        self._ast_refresh_source_id = 0
 
         self._install_css()
         self.theme_manager = ThemeManager()
@@ -240,7 +245,9 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         )
         project_panel.set_name("project-panel")
 
-        analysis_panel = AnalysisPanel()
+        analysis_panel = AnalysisPanel(
+            on_source_navigate=self._navigate_to_ast_node
+        )
         analysis_panel.set_name("analysis-panel")
         self.analysis_panel = analysis_panel
 
@@ -1199,6 +1206,7 @@ layout after exiting focus mode. The view menu is updated after
     edit menus when those menu objects have already been initialized.
     """
     def _on_active_editor_changed(self, page: Gtk.Widget | None) -> None:
+        self._set_ast_editor(page if isinstance(page, EditorPanel) else None)
         if isinstance(page, EditorPanel):
             self.center_stack.set_visible_child_name("editor")
             self.status_label.set_text(str(page.file_path or page.title.get_text()))
@@ -1217,6 +1225,87 @@ layout after exiting focus mode. The view menu is updated after
             self.file_menu.update_state()
         if hasattr(self, "edit_menu"):
             self.edit_menu.update_state()
+
+    def _set_ast_editor(self, editor: EditorPanel | None) -> None:
+        if self._ast_refresh_source_id:
+            GLib.source_remove(self._ast_refresh_source_id)
+            self._ast_refresh_source_id = 0
+        if self._ast_editor is not None and self._ast_buffer_handler is not None:
+            self._ast_editor.buffer.disconnect(self._ast_buffer_handler)
+        self._ast_editor = editor
+        self._ast_buffer_handler = None
+        if editor is None:
+            self.analysis_panel.set_source(None, None)
+            return
+        self._ast_buffer_handler = editor.buffer.connect(
+            "changed", self._on_ast_source_changed
+        )
+        self._refresh_ast_source()
+
+    def _on_ast_source_changed(self, _buffer: Gtk.TextBuffer) -> None:
+        if self._ast_refresh_source_id:
+            GLib.source_remove(self._ast_refresh_source_id)
+        self._ast_refresh_source_id = GLib.timeout_add(
+            180, self._refresh_ast_source_debounced
+        )
+
+    def _refresh_ast_source_debounced(self) -> bool:
+        self._ast_refresh_source_id = 0
+        self._refresh_ast_source()
+        return GLib.SOURCE_REMOVE
+
+    def _refresh_ast_source(self) -> None:
+        editor = self._ast_editor
+        if editor is None:
+            self.analysis_panel.set_source(None, None)
+            return
+        buffer = editor.buffer
+        start, end = buffer.get_bounds()
+        source = buffer.get_text(start, end, True)
+        language = buffer.get_language()
+        language_id = language.get_id() if language is not None else None
+        if language_id not in {"c", "cpp"}:
+            language_id = None
+        self.analysis_panel.set_source(
+            source,
+            editor.file_path,
+            language_id,
+        )
+
+    def _navigate_to_ast_node(self, node: ASTNode) -> None:
+        editor = self.editor_tabs.active_editor
+        if editor is None or not node.location.has_range:
+            return
+
+        buffer = editor.buffer
+
+        def iter_at(line_number: int, byte_column: int) -> Gtk.TextIter:
+            line_index = max(0, min(line_number - 1, buffer.get_line_count() - 1))
+            line_start = EditorPanel._as_text_iter(
+                buffer.get_iter_at_line(line_index)
+            )
+            if line_index + 1 < buffer.get_line_count():
+                line_end = EditorPanel._as_text_iter(
+                    buffer.get_iter_at_line(line_index + 1)
+                )
+            else:
+                line_end = buffer.get_end_iter()
+            line_text = buffer.get_text(line_start, line_end, True)
+            char_column = len(
+                line_text.encode("utf-8")[: max(0, byte_column)].decode(
+                    "utf-8", errors="ignore"
+                )
+            )
+            result = line_start.copy()
+            result.forward_chars(min(char_column, len(line_text)))
+            return result
+
+        start = iter_at(node.location.start_line, node.location.start_column - 1)
+        end = iter_at(node.location.end_line, node.location.end_column - 1)
+        buffer.select_range(end, start)
+        editor.source_view.scroll_to_iter(start, 0.15, True, 0.5, 0.5)
+        editor.source_view.grab_focus()
+        self.center_stack.set_visible_child_name("editor")
 
     """Creates the window's file actions and assigns keyboard accelerators.
     It pairs action names with methods, connects each GTK action to its callback,
@@ -1389,6 +1478,8 @@ layout after exiting focus mode. The view menu is updated after
             return False
 
         self.status_label.set_text(f"Saved {saved_path}")
+        if editor is self._ast_editor:
+            self._refresh_ast_source()
         return True
 
     """Returns the complete text stored in an editor's text buffer.

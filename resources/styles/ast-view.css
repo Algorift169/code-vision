@@ -1,0 +1,89 @@
+.ast-view
+{
+    padding: 6px;
+}
+
+.ast-search
+{
+    min-height: 28px;
+}
+
+.ast-summary
+{
+    padding: 2px 4px;
+    color: @muted;
+    font-size: 10px;
+}
+
+.ast-tree
+{
+    background: transparent;
+}
+
+.ast-node-label
+{
+    padding: 3px 4px;
+    color: @text;
+    font-size: 11px;
+}
+
+.ast-tree row:selected .ast-node-label
+{
+    background-color: @select;
+}
+
+.ast-tree row:hover .ast-node-label
+{
+    background-color: @hover;
+}
+
+.ast-node-function
+{
+    color: @accent;
+}
+
+.ast-node-declaration
+{
+    font-weight: 700;
+}
+
+.ast-node-control
+{
+    font-style: italic;
+}
+
+.ast-node-identifier
+{
+    color: @accent-2;
+}
+
+.ast-error-node
+{
+    color: @accent-2;
+    font-weight: 700;
+}
+
+.ast-details
+{
+    padding: 6px;
+    border-top: 1px solid @line;
+}
+
+.ast-detail-name
+{
+    color: @accent;
+    font-weight: 700;
+}
+
+.ast-detail,
+.ast-detail-source
+{
+    color: @muted;
+    font-size: 10px;
+}
+
+.ast-empty-state
+{
+    padding: 18px;
+    color: @muted;
+}
