@@ -13,7 +13,7 @@ This repository is in an active development state. The codebase already includes
 - configurable theme registry with multiple CSS theme files
 - a test suite covering themes, file operations, menu actions, and selection/copy behavior
 
-The code analyzer itself is not implemented yet. The project currently provides the editor and desktop shell foundation, but the actual C/C++ analysis engine, diagnostics generation, and deep code intelligence are still planned work.
+The Analyzer panel includes an initial C/C++ AST inspector backed by Tree-sitter. It parses the active editor buffer, shows the normalized syntax tree, supports search and expand/collapse, and navigates selected nodes back to their source range. Other analysis sections remain placeholders.
 
 This is not a fully complete IDE yet; it is a structured desktop app foundation with working UI and service-level functionality.
 
@@ -24,7 +24,7 @@ This is not a fully complete IDE yet; it is a structured desktop app foundation 
   - `ui/` - UI widgets, theme manager, and menu integrations
   - `services/` - project/file/operation support services
   - `editor/` - editor tab and editor-related components
-  - `analysis/`, `compiler/`, `execution/`, `graphs/`, `memory/`, `model/`, `parser/`, `project/`, `utils/` - planned or partial subsystems, including the future code analysis stack
+  - `analysis/`, `compiler/`, `execution/`, `graphs/`, `memory/`, `model/`, `parser/`, `project/`, `utils/` - analysis, parsing, and supporting subsystems
 - `resources/styles/` - GTK CSS theme files
 - `tests/` - pytest coverage for core behaviors
 - `build/` - generated build artifacts and package output
@@ -69,7 +69,7 @@ This runs the GTK app using the project source and a build-local package path se
 ## Testing
 
 ```bash
-test -q
+.venv/bin/python -m pytest -q
 ```
 
 or with the project Makefile:
@@ -80,11 +80,20 @@ make test
 
 The current tests cover:
 
+- C/C++ Tree-sitter parsing, normalized AST models, structural extraction, and AST UI behavior
 - theme registration and persistence
 - file rename/delete behavior
 - menu action enablement and validation
 - path copying and relative path handling
 - terminal copy/paste and selection behavior
+
+Run the focused AST tests with:
+
+```bash
+.venv/bin/python -m pytest -q tests/test_ast_parser.py tests/test_ast_model.py tests/test_ast_analyzer.py tests/test_ast_view.py
+```
+
+AST parsing currently supports `.c` and `.h` as C, and `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`, and `.hxx` as C++. Tree-sitter error and missing nodes are retained in partial parse results.
 
 ## Build behavior
 
@@ -93,6 +102,6 @@ The project intentionally keeps generated artifacts under `build/` and avoids le
 ## Notes
 
 - The application is currently structured as a desktop editor/analysis tool rather than a finished production IDE.
-- The actual code analyzer is still to be implemented; the current project shell is ready for that next layer of functionality.
+- AST inspection is an initial structural feature; diagnostics and the other analysis sections remain in development.
 - UI styling is handled through GTK CSS theme files under `resources/styles/`.
 - The current package is versioned as `0.1.0` and is still evolving.

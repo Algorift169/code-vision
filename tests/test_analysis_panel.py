@@ -5,6 +5,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from codevision.ui.analysis_panel import SECTIONS, AnalysisPanel
+from codevision.ui.ast_view import ASTView
 
 
 def test_analysis_panel_has_all_sections_in_order() -> None:
@@ -36,7 +37,10 @@ def test_analysis_section_selects_its_placeholder(section: str) -> None:
     assert panel.current_section == section
     assert button.get_active()
     assert placeholder is panel._section_placeholders[section]
-    assert placeholder.get_first_child().get_text() == section
+    if section == "AST":
+        assert isinstance(placeholder, ASTView)
+    else:
+        assert placeholder.get_first_child().get_text() == section
 
     for other_section, other_button in panel.section_buttons.items():
         assert other_button.get_active() is (other_section == section)

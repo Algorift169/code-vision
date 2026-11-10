@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from pathlib import Path
+
 import gi
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
+from ..model import ASTNode
 from .analyzer_theme import AnalyzerTheme
+from .ast_view import ASTView
 
 SECTIONS = (
     "Overview",
@@ -22,7 +27,10 @@ SECTIONS = (
 class AnalysisPanel(Gtk.Box):
     """Right-side analysis panel with navigable empty section placeholders."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        on_source_navigate: Callable[[ASTNode], None] | None = None,
+    ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self._analyzer_theme = AnalyzerTheme()
         self.set_name("analysis-panel")
@@ -75,6 +83,12 @@ class AnalysisPanel(Gtk.Box):
 
         self._section_placeholders: dict[str, Gtk.Widget] = {}
         for index, section in enumerate(SECTIONS):
+            if section == "AST":
+                placeholder = ASTView(on_source_navigate=on_source_navigate)
+                self.views.add_named(placeholder, f"section-{index}")
+                self._section_placeholders[section] = placeholder
+                continue
+
             placeholder = Gtk.Box(
                 orientation=Gtk.Orientation.VERTICAL, spacing=0
             )
@@ -109,6 +123,16 @@ class AnalysisPanel(Gtk.Box):
         if section not in self._section_buttons:
             raise ValueError(f"Unknown analysis section: {section}")
         self._section_buttons[section].set_active(True)
+
+    def set_source(
+        self,
+        source: str | None,
+        file_path: Path | None,
+        language: str | None = None,
+    ) -> None:
+        ast_view = self._section_placeholders["AST"]
+        if isinstance(ast_view, ASTView):
+            ast_view.set_source(source, file_path, language)
 
     def _on_section_toggled(
         self, button: Gtk.ToggleButton, section: str
