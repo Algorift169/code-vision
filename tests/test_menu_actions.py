@@ -27,6 +27,27 @@ from codevision.ui.widgets.terminal_menu import TerminalMenuButton
 from codevision.ui.widgets.view_menu import ViewMenuButton
 
 
+def test_project_menu_vision_opens_analysis_panel() -> None:
+    opened: list[bool] = []
+
+    class DummyWindow:
+        def __init__(self) -> None:
+            self.content_overlay = Gtk.Overlay()
+
+        def show_analysis_panel(self) -> None:
+            opened.append(True)
+
+    window = DummyWindow()
+    menu = ProjectMenuButton(window, window.content_overlay)
+
+    assert menu._items["vision"].get_label() == "Vision"
+    menu.popup()
+    menu._items["vision"].emit("clicked")
+
+    assert opened == [True]
+    assert not menu.get_active()
+
+
 class SelectionWidget:
     def __init__(self) -> None:
         self.focused = False

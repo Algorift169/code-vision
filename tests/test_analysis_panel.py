@@ -22,7 +22,7 @@ def test_analysis_panel_has_all_sections_in_order() -> None:
     )
     assert tuple(panel.section_buttons) == panel.sections
     assert len(panel.section_buttons) == 8
-    assert panel.get_size_request() == (184, -1)
+    assert panel.get_size_request() == (0, -1)
 
 
 @pytest.mark.parametrize("section", SECTIONS)
@@ -59,3 +59,24 @@ def test_unknown_analysis_section_is_rejected() -> None:
 
     with pytest.raises(ValueError, match="Unknown analysis section"):
         panel.select_section("Parser")
+
+
+def test_analysis_panel_can_shrink_to_edge_and_be_reopened() -> None:
+    from codevision.app.main_window import CodeVisionWindow
+
+    window = CodeVisionWindow(
+        Gtk.Application(application_id="com.codevision.test.analysis-panel")
+    )
+
+    assert window.right_pane.get_shrink_start_child()
+    assert window.right_pane.get_shrink_end_child()
+    assert window.center_stack.get_size_request()[0] == 0
+    assert window.analysis_panel.get_size_request()[0] == 0
+
+    window.toggle_analysis_panel()
+    assert not window.analysis_panel_visible()
+    assert window.right_pane.get_end_child() is window._analysis_placeholder
+
+    window.show_analysis_panel()
+    assert window.analysis_panel_visible()
+    assert window.right_pane.get_end_child() is window.analysis_panel

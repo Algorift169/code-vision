@@ -177,8 +177,8 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._editor_placeholder.set_vexpand(True)
         right_pane = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
         right_pane.set_wide_handle(True)
-        right_pane.set_shrink_start_child(False)
-        right_pane.set_shrink_end_child(False)
+        right_pane.set_shrink_start_child(True)
+        right_pane.set_shrink_end_child(True)
         self.right_pane = right_pane
 
         welcome_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -200,7 +200,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self.center_stack.set_name("editor-stack")
         self.center_stack.set_hexpand(True)
         self.center_stack.set_vexpand(True)
-        self.center_stack.set_size_request(320, -1)
+        self.center_stack.set_size_request(0, -1)
         self.center_stack.add_named(welcome_page, "welcome")
 
         self.editor_tabs = EditorTabs(
@@ -478,6 +478,19 @@ layout after exiting focus mode. The view menu is updated after
         else:
             self.right_pane.set_end_child(self._analysis_placeholder)
         self.view_menu._update_state()
+
+    def show_analysis_panel(self) -> None:
+        self._analysis_panel_visible = True
+        if self._focus_mode_active:
+            self._focus_mode_previous_analysis = True
+        self.right_pane.set_end_child(self.analysis_panel)
+
+        pane_width = self.right_pane.get_width()
+        if pane_width and self.right_pane.get_position() >= pane_width - 8:
+            self.right_pane.set_position(max(0, pane_width - 260))
+
+        if hasattr(self, "view_menu"):
+            self.view_menu._update_state()
 
     """Enables a simpler workspace and restores the layout when disabled.
     On entry it remembers each side panel's visibility before hiding them; on

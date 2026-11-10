@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -13,12 +15,26 @@ class ProjectMenuButton(OverlayMenuButton):
 
     def __init__(self, window: object, overlay: Gtk.Overlay | None = None) -> None:
         super().__init__(window, label="Project", overlay=overlay)
-        menu_content = Gtk.Label(label="Project menu is not implemented yet")
-        menu_content.set_margin_top(10)
-        menu_content.set_margin_bottom(10)
-        menu_content.set_margin_start(12)
-        menu_content.set_margin_end(12)
-        self._content.append(menu_content)
+        self._items: dict[str, Gtk.Button] = {}
+        self._items["vision"] = self._append_action(
+            "Vision", self._window.show_analysis_panel
+        )
+
+    def _append_action(
+        self, label: str, callback: Callable[[], None]
+    ) -> Gtk.Button:
+        button = Gtk.Button(label=label)
+        button.set_has_frame(False)
+        button.set_halign(Gtk.Align.FILL)
+        button.add_css_class("context-menu-item")
+
+        def on_clicked(_button: Gtk.Button) -> None:
+            self.popdown()
+            callback()
+
+        button.connect("clicked", on_clicked)
+        self._content.append(button)
+        return button
 
 
 __all__ = ["ProjectMenuButton"]

@@ -29,7 +29,7 @@ class AnalysisPanel(Gtk.Box):
         self.add_css_class("panel")
         self.set_vexpand(True)
         self.set_hexpand(True)
-        self.set_size_request(184, -1)
+        self.set_size_request(0, -1)
         self.set_margin_top(0)
         self.set_margin_bottom(0)
         self.current_section = SECTIONS[0]
