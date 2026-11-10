@@ -13,7 +13,7 @@
     background-color: @hover;
 }
 
-#analysis-paneanalysis-nav-button:focusl .
+#analysis-panel .analysis-nav-button:focus
 {
     color: @accent-2;
     outline: 2px solid @accent-2;
