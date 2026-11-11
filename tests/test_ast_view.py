@@ -10,7 +10,7 @@ def test_ast_section_uses_interactive_ast_view() -> None:
     assert isinstance(panel.views.get_visible_child(), ASTView)
 
 
-def test_ast_view_populates_tree_and_search_navigates_to_node() -> None:
+def test_ast_view_search_keeps_editor_focus_until_source_navigation() -> None:
     navigated = []
     view = ASTView(on_source_navigate=navigated.append)
     result = SourceParser().parse("int main() { return 0; }", language="c")
@@ -30,8 +30,22 @@ def test_ast_view_populates_tree_and_search_navigates_to_node() -> None:
     assert view._selection is not None
     selected_row = view._selection.get_selected_item()
     assert selected_row is not None
+    assert not navigated
+
+    view._on_navigate_clicked(None)
     assert navigated
     assert navigated[-1].node_type == "return_statement"
+
+
+def test_ast_search_row_has_no_match_navigation_buttons() -> None:
+    view = ASTView()
+
+    assert view.search_entry.get_focusable()
+    search_row = view.search_entry.get_parent()
+    assert search_row is not None
+    assert search_row.get_first_child() is view.search_entry
+    assert search_row.get_last_child() is view._match_count
+    assert view._match_count.get_next_sibling() is None
 
 
 def test_ast_view_restores_tree_for_unchanged_source() -> None:

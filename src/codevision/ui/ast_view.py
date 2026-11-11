@@ -63,17 +63,14 @@ class ASTView(Gtk.Box):
         self.search_entry = Gtk.SearchEntry()
         self.search_entry.set_placeholder_text("Search AST nodes...")
         self.search_entry.add_css_class("ast-search")
+        self.search_entry.set_focusable(True)
         self.search_entry.set_hexpand(True)
         self.search_entry.connect("search-changed", self._on_search_changed)
+        search_focus_gesture = Gtk.GestureClick.new()
+        search_focus_gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        search_focus_gesture.connect("pressed", self._on_search_pressed)
+        self.search_entry.add_controller(search_focus_gesture)
         search_row.append(self.search_entry)
-        self._previous_match_button = Gtk.Button(label="‹")
-        self._previous_match_button.set_tooltip_text("Previous match")
-        self._previous_match_button.connect("clicked", self._previous_match)
-        search_row.append(self._previous_match_button)
-        self._next_match_button = Gtk.Button(label="›")
-        self._next_match_button.set_tooltip_text("Next match")
-        self._next_match_button.connect("clicked", self._next_match)
-        search_row.append(self._next_match_button)
         self._match_count = Gtk.Label(label="")
         self._match_count.add_css_class("ast-summary")
         search_row.append(self._match_count)
@@ -423,11 +420,9 @@ class ASTView(Gtk.Box):
         item = row.get_item()
         if isinstance(item, _ASTTreeItem):
             self._show_details(item.node)
-            if (
-                item.node.location.has_range
-                and self._on_source_navigate is not None
-            ):
-                self._on_source_navigate(item.node)
+            self._navigate_button.set_sensitive(
+                item.node.location.has_range and self._on_source_navigate is not None
+            )
 
     def _expand_all(self, _button: Gtk.Button) -> None:
         model = self._tree_model
@@ -514,15 +509,14 @@ class ASTView(Gtk.Box):
             return
         self._select_search_match()
 
-    def _previous_match(self, _button: Gtk.Button) -> None:
-        if self._search_matches:
-            self._search_index = (self._search_index - 1) % len(self._search_matches)
-            self._select_search_match()
-
-    def _next_match(self, _button: Gtk.Button) -> None:
-        if self._search_matches:
-            self._search_index = (self._search_index + 1) % len(self._search_matches)
-            self._select_search_match()
+    def _on_search_pressed(
+        self,
+        _gesture: Gtk.GestureClick,
+        _press_count: int,
+        _x: float,
+        _y: float,
+    ) -> None:
+        self.search_entry.grab_focus()
 
     def _select_search_match(self) -> None:
         if (

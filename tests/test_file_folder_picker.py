@@ -92,12 +92,15 @@ def test_folder_picker_opens_folder_and_navigates(tmp_path: Path) -> None:
     double_row = next(
         row for row, entry in double_click_picker._entries_by_row.items() if entry.path == sub.resolve()
     )
+    double_click_picker._on_row_activated(double_click_picker.list_box, double_row)
+    assert double_click_picker._current_directory == tmp_path.resolve()
+    double_click_picker._handle_folder_row_click(double_row, 1)
     double_click_picker._handle_folder_row_click(double_row, 2)
     assert opened_folders == [sub.resolve()]
     assert not double_click_picker.get_visible()
 
     assert picker.action_button.get_visible() is False
-    assert picker.list_box.get_activate_on_single_click() is True
+    assert picker.list_box.get_activate_on_single_click() is False
 
 
 def test_folder_picker_file_mode_opens_file(tmp_path: Path) -> None:

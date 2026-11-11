@@ -138,7 +138,7 @@ class FolderPickerOverlay(Gtk.Box):
         # List box and scrolling area
         self.list_box = Gtk.ListBox()
         self.list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        self.list_box.set_activate_on_single_click(True)
+        self.list_box.set_activate_on_single_click(False)
         self.list_box.add_css_class("folder-picker-list")
         self.list_box.connect("row-activated", self._on_row_activated)
         self.list_box.connect("selected-rows-changed", self._on_selection_changed)
@@ -501,14 +501,8 @@ class FolderPickerOverlay(Gtk.Box):
 
     def _on_row_activated(self, _list_box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
         if self._mode == "folder":
-            # Folder navigation is handled via the click gesture so we do not
-            # trigger duplicate opens when a row is activated from both a click
-            # and a GTK row activation signal. This avoids recursive re-entry and
-            # UI freezes when a user double-clicks a directory entry.
-            entry = self._entries_by_row.get(row)
-            if entry is not None and entry.is_directory:
-                self._navigate(entry.path)
-                return
+            # Folder mode uses the click gesture to distinguish navigation from
+            # opening; GTK row activation must not navigate on the second click.
             return
         self._activate_row(row)
 
