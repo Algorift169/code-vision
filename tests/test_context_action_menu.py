@@ -137,6 +137,45 @@ def test_context_menu_dispatches_inline_action_with_clicked_anchor() -> None:
     assert not menu.get_visible()
 
 
+def test_project_tree_context_menu_shows_requested_actions_only(
+    tmp_path: Path,
+) -> None:
+    overlay = Gtk.Overlay()
+    content = Gtk.Box()
+    overlay.set_child(content)
+    target = tmp_path / "sample.py"
+    target.touch()
+    context = MenuContext(
+        widget=content,
+        kind="explorer",
+        path=target,
+        project_root=tmp_path,
+        open_path=lambda _path: None,
+        view_in_analyzer=lambda _path: None,
+    )
+    menu = ContextMenu(overlay, content, lambda _x, _y: context)
+
+    menu._context = context
+    menu._update_state()
+
+    expected = {
+        "open",
+        "cut",
+        "copy",
+        "copy-path",
+        "copy-relative-path",
+        "view-in-analyzer",
+        "rename",
+        "delete",
+    }
+    visible = {
+        action_id
+        for action_id, (button, _action) in menu._items.items()
+        if button.get_visible()
+    }
+    assert visible == expected
+
+
 def test_explorer_new_file_button_opens_inline_form(tmp_path: Path) -> None:
     directory = tmp_path / "project"
     directory.mkdir()

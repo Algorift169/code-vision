@@ -11,6 +11,7 @@ from gi.repository import GdkPixbuf, GLib, Gtk
 
 from ..services.folder_browser import FolderBrowserService
 from ..services.terminal import TerminalService
+from ..utils.gtk_text import gtk_safe_text, path_from_gtk_token, path_to_gtk_token
 from .explorer_actions.collapse_all import CollapseAllAction
 from .explorer_actions.new_file import NewFileAction
 from .explorer_actions.new_folder import NewFolderAction
@@ -155,7 +156,7 @@ class ProjectExplorer(Gtk.Box):
             row_iter = self._store.get_iter(tree_path)
             path_text = self._store.get_value(row_iter, 1)
             if path_text:
-                selected_path = Path(path_text)
+                selected_path = path_from_gtk_token(path_text)
                 if not selection.path_is_selected(tree_path):
                     selection.unselect_all()
                     selection.select_path(tree_path)
@@ -167,7 +168,7 @@ class ProjectExplorer(Gtk.Box):
 
         _model, selected_rows = selection.get_selected_rows()
         selected_paths = tuple(
-            Path(path_text)
+            path_from_gtk_token(path_text)
             for selected_row in selected_rows
             if (path_text := self._store.get_value(self._store.get_iter(selected_row), 1))
         )
@@ -205,8 +206,16 @@ class ProjectExplorer(Gtk.Box):
         if self._root_path is None and paths:
             self._set_project_folder(paths[0].parent)
             return
-        for path in paths:
-            self._insert_created_entry(path)
+        self.refresh()
+
+    def open_tree_item(self, path: Path) -> None:
+        if path.is_dir():
+            row_iter = self._find_path_iter(path.resolve())
+            if row_iter is not None:
+                self.tree.expand_row(self._store.get_path(row_iter), False)
+            return
+        if path.is_file():
+            self._on_file_open(path)
 
     def _on_path_deleted(self, _path: Path) -> None:
         self.tree.get_selection().unselect_all()
@@ -264,7 +273,7 @@ class ProjectExplorer(Gtk.Box):
             return self._root_path
 
         selected_iter = model.get_iter(selected_rows[0])
-        selected_path = Path(self._store.get_value(selected_iter, 1))
+        selected_path = path_from_gtk_token(self._store.get_value(selected_iter, 1))
         if self._store.get_value(selected_iter, 2):
             return selected_path
         return selected_path.parent
@@ -304,7 +313,7 @@ class ProjectExplorer(Gtk.Box):
             return
 
         is_directory = path.is_dir()
-        new_key = (not is_directory, path.name.casefold())
+        new_key = (not is_directory, gtk_safe_text(path.name).casefold())
         sibling = None
         for index in range(self._store.iter_n_children(parent_iter)):
             child_iter = self._store.iter_nth_child(parent_iter, index)
@@ -323,8 +332,8 @@ class ProjectExplorer(Gtk.Box):
             row_iter,
             [0, 1, 2, 3, 4, 5],
             [
-                path.name,
-                str(path),
+                gtk_safe_text(path.name),
+                path_to_gtk_token(path),
                 is_directory,
                 False,
                 self._tree_icons["folder" if is_directory else "file"],
@@ -340,8 +349,8 @@ class ProjectExplorer(Gtk.Box):
         root_iter = self._store.append(
             None,
             [
-                self._root_path.name,
-                str(self._root_path),
+                gtk_safe_text(self._root_path.name),
+                path_to_gtk_token(self._root_path),
                 True,
                 False,
                 self._tree_icons["folder"],
@@ -369,8 +378,8 @@ class ProjectExplorer(Gtk.Box):
             child_iter = self._store.append(
                 parent_iter,
                 [
-                    entry.name,
-                    str(entry.path),
+                    gtk_safe_text(entry.name),
+                    path_to_gtk_token(entry.path),
                     entry.is_directory,
                     False,
                     self._tree_icons["folder" if entry.is_directory else "file"],
@@ -393,7 +402,7 @@ class ProjectExplorer(Gtk.Box):
         if self._store.get_value(row_iter, 2):
             if not self._store.get_value(row_iter, 3):
                 self._load_directory(
-                    row_iter, Path(self._store.get_value(row_iter, 1))
+                    row_iter, path_from_gtk_token(self._store.get_value(row_iter, 1))
                 )
             self.tree.expand_row(path, False)
         return GLib.SOURCE_REMOVE
@@ -412,8 +421,7 @@ class ProjectExplorer(Gtk.Box):
                 tree.expand_row(path, False)
             return
 
-        file_path = self._store.get_value(row_iter, 1)
-        path = Path(file_path)
+        path = path_from_gtk_token(self._store.get_value(row_iter, 1))
         if path.is_file():
             self._on_file_open(path)
 
@@ -436,7 +444,9 @@ class ProjectExplorer(Gtk.Box):
             row_path = self._store.get_path(row_iter)
             if self.tree.row_expanded(row_path):
                 if self._store.get_value(row_iter, 2):
-                    expanded.add(Path(self._store.get_value(row_iter, 1)))
+                    expanded.add(
+                        path_from_gtk_token(self._store.get_value(row_iter, 1))
+                    )
 
                 for index in range(self._store.iter_n_children(row_iter)):
                     child_iter = self._store.iter_nth_child(row_iter, index)
@@ -460,7 +470,7 @@ class ProjectExplorer(Gtk.Box):
                 child_iter = self._store.iter_nth_child(row_iter, index)
                 if (
                     child_iter is not None
-                    and self._store.get_value(child_iter, 0) == part
+                    and self._store.get_value(child_iter, 0) == gtk_safe_text(part)
                 ):
                     match = child_iter
                     break

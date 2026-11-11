@@ -35,6 +35,8 @@ class MenuContext:
     action_anchor: Gtk.Widget | None = None
     open_terminal: Callable[[], None] | None = None
     open_kong_browser: Callable[[str | None], None] | None = None
+    open_path: Callable[[Path], None] | None = None
+    view_in_analyzer: Callable[[Path], None] | None = None
     on_path_created: Callable[[Path], None] | None = None
     on_files_pasted: Callable[[list[Path]], None] | None = None
     on_path_deleted: Callable[[Path], None] | None = None

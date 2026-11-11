@@ -11,17 +11,20 @@ from gi.repository import Gdk, Gtk
 from .menu_actions import (
     change_theme,
     copy,
-    copy_full_path,
     copy_relative_path,
+    copy_path,
+    cut,
     delete,
     kill_terminal,
     new_file,
+    open as open_item,
     open_kong_browser,
     open_terminal,
     paste,
     rename,
     select,
     select_all,
+    view_in_analyzer,
 )
 from .menu_context import MenuContext
 from .symbolic_icon import create_symbolic_icon
@@ -31,19 +34,47 @@ class ContextMenu(Gtk.Box):
     """Reusable overlay context menu that delegates to focused action modules."""
 
     _ACTIONS = (
+        ("open", "Open", "document-open-symbolic", open_item),
+        ("cut", "Cut", "edit-cut-symbolic", cut),
+        ("copy", "Copy", "edit-copy-symbolic", copy),
+        ("copy-path", "Copy Path", "document-open-symbolic", copy_path),
+        ("copy-relative-path", "Copy Relative Path", "folder-symbolic", copy_relative_path),
+        ("view-in-analyzer", "View in Analyzer", "system-search-symbolic", view_in_analyzer),
+        ("rename", "Rename", "edit-rename-symbolic", rename),
+        ("delete", "Delete", "edit-delete-symbolic", delete),
         ("new-file", "New File", "document-new-symbolic", new_file),
         ("open-terminal", "Open Terminal", "utilities-terminal-symbolic", open_terminal),
         ("change-theme", "Change Theme", "preferences-desktop-theme-symbolic", change_theme),
-        ("rename", "Rename", "edit-rename-symbolic", rename),
-        ("delete", "Delete", "edit-delete-symbolic", delete),
-        ("copy", "Copy", "edit-copy-symbolic", copy),
         ("paste", "Paste", "edit-paste-symbolic", paste),
-        ("copy-full-path", "Copy Full Path", "document-open-symbolic", copy_full_path),
-        ("copy-relative-path", "Copy Relative Path", "folder-symbolic", copy_relative_path),
         ("select", "Select", "edit-select-all-symbolic", select),
         ("select-all", "Select All", "edit-select-all-symbolic", select_all),
         ("kong-browser", "Kong Browser", "network-transmit-symbolic", open_kong_browser),
         ("kill-terminal", "Kill Terminal", "process-stop-symbolic", kill_terminal),
+    )
+    _TREE_ACTION_ORDER = (
+        "open",
+        "cut",
+        "copy",
+        "copy-path",
+        "copy-relative-path",
+        "view-in-analyzer",
+        "rename",
+        "delete",
+    )
+    _GENERAL_ACTION_ORDER = (
+        "new-file",
+        "open-terminal",
+        "change-theme",
+        "rename",
+        "delete",
+        "copy",
+        "paste",
+        "copy-path",
+        "copy-relative-path",
+        "select",
+        "select-all",
+        "kong-browser",
+        "kill-terminal",
     )
 
     def __init__(
@@ -68,8 +99,6 @@ class ContextMenu(Gtk.Box):
         self._items: dict[str, tuple[Gtk.Button, object]] = {}
 
         for action_id, label, icon_name, action in self._ACTIONS:
-            if action_id in {"copy", "select"}:
-                self.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
             button = Gtk.Button()
             button.set_has_frame(False)
             button.set_halign(Gtk.Align.FILL)
@@ -83,8 +112,8 @@ class ContextMenu(Gtk.Box):
             row.append(title)
             button.set_child(row)
             button.connect("clicked", self._on_action_clicked, action_id)
-            self.append(button)
             self._items[action_id] = (button, action)
+        self._compose_menu(tree_context=False)
         overlay.add_overlay(self)
         overlay.set_measure_overlay(self, False)
 
@@ -196,8 +225,29 @@ class ContextMenu(Gtk.Box):
     def _update_state(self) -> None:
         if self._context is None:
             return
+        tree_context = self._context.kind == "explorer" and self._context.path is not None
+        self._compose_menu(tree_context)
         for button, action in self._items.values():
-            button.set_sensitive(action.is_enabled(self._context))
+            if button.get_visible():
+                button.set_sensitive(action.is_enabled(self._context))
+
+    def _compose_menu(self, tree_context: bool) -> None:
+        for button, _action in self._items.values():
+            button.set_visible(False)
+
+        child = self.get_first_child()
+        while child is not None:
+            following = child.get_next_sibling()
+            self.remove(child)
+            child = following
+
+        order = self._TREE_ACTION_ORDER if tree_context else self._GENERAL_ACTION_ORDER
+        for action_id in order:
+            if not tree_context and action_id in {"copy", "select"}:
+                self.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+            button = self._items[action_id][0]
+            button.set_visible(True)
+            self.append(button)
 
     def _on_action_clicked(self, _button: Gtk.Button, action_id: str) -> None:
         context = self._context

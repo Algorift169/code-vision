@@ -13,10 +13,13 @@ from codevision.ui.widgets.help_menu import HelpMenuButton
 from codevision.ui.widgets.menu import ContextMenu
 from codevision.ui.widgets.menu_actions import (
     copy,
+    cut,
     kill_terminal,
+    open as open_item,
     paste,
     select,
     select_all,
+    view_in_analyzer,
 )
 from codevision.ui.widgets.menu_actions.copy_full_path import full_path
 from codevision.ui.widgets.menu_actions.copy_relative_path import relative_path
@@ -264,6 +267,49 @@ def test_file_paste_copies_files_and_directories_with_spaces(tmp_path: Path) -> 
     assert copied == [destination / source_file.name, destination / source_folder.name]
     assert copied[0].read_text(encoding="utf-8") == "print('hello')"
     assert (copied[1] / "nested.txt").read_text(encoding="utf-8") == "nested"
+
+
+def test_cut_moves_files_and_directories_to_destination(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    file_path = source / "main.py"
+    file_path.write_text("print('hello')", encoding="utf-8")
+    folder_path = source / "assets"
+    folder_path.mkdir()
+    destination = tmp_path / "destination"
+    destination.mkdir()
+
+    moved = cut.move_files_to_directory([file_path, folder_path], destination)
+
+    assert moved == [destination / "main.py", destination / "assets"]
+    assert not file_path.exists()
+    assert not folder_path.exists()
+    assert moved[0].read_text(encoding="utf-8") == "print('hello')"
+
+
+def test_open_and_view_in_analyzer_dispatch_selected_tree_path(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "main.py"
+    target.touch()
+    opened: list[Path] = []
+    analyzed: list[Path] = []
+    context = MenuContext(
+        widget=Gtk.Box(),
+        kind="explorer",
+        path=target,
+        project_root=tmp_path,
+        open_path=opened.append,
+        view_in_analyzer=analyzed.append,
+    )
+
+    assert open_item.is_enabled(context)
+    assert view_in_analyzer.is_enabled(context)
+    open_item.run(context)
+    view_in_analyzer.run(context)
+
+    assert opened == [target]
+    assert analyzed == [target]
 
 
 def test_select_actions_are_enabled_and_work_in_terminal_context() -> None:

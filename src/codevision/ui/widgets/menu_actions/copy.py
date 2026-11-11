@@ -27,6 +27,9 @@ def is_enabled(context: MenuContext) -> bool:
 
 
 def run(context: MenuContext) -> None:
+    from .cut import clear_cut_selection
+
+    clear_cut_selection()
     if context.editor_view is not None:
         display = Gdk.Display.get_default()
         if display is not None and context.has_text_selection:

@@ -41,7 +41,17 @@ def run(context: MenuContext) -> None:
             value = clipboard.read_value_finish(result)
             file_list = value.get_value()
             sources = [Path(file.get_path()) for file in file_list.get_files()]
-            copied = copy_files_to_directory(sources, context.directory)
+            from .cut import (
+                clear_cut_selection,
+                is_cut_selection,
+                move_files_to_directory,
+            )
+
+            if is_cut_selection(sources):
+                copied = move_files_to_directory(sources, context.directory)
+                clear_cut_selection()
+            else:
+                copied = copy_files_to_directory(sources, context.directory)
         except (GLib.Error, OSError, TypeError, ValueError) as error:
             if context.set_status is not None:
                 context.set_status(str(error))

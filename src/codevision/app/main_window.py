@@ -1133,7 +1133,20 @@ layout after exiting focus mode. The view menu is updated after
         context.open_theme_menu = self.theme_menu.popup_at
         context.open_action_menu = self.context_action_menu.popup_for
         context.on_path_created = self.project_explorer._on_file_created
+        context.open_path = self.project_explorer.open_tree_item
+        context.view_in_analyzer = self._view_in_analyzer
+        context.set_status = self.status_label.set_text
         return context
+
+    def _view_in_analyzer(self, path: Path) -> None:
+        if not path.is_file():
+            return
+        self._open_file(path)
+        active_editor = self.editor_tabs.active_editor
+        if active_editor is None or active_editor.file_path != path.resolve():
+            return
+        self.show_analysis_panel()
+        self.analysis_panel.select_section("AST")
 
     """Creates a fallback menu context for the window or a selected widget.
     It chooses the project root or current directory and packages shared services

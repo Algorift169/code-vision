@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import gi
@@ -160,6 +161,44 @@ def test_folder_picker_file_and_folder_icons_have_visible_styling(
     )
     assert picker.up_button.get_child().has_css_class("folder-picker-control-icon")
     assert picker.up_button.get_child().get_content_width() == 18
+
+
+def test_folder_picker_handles_names_with_undecodable_bytes(tmp_path: Path) -> None:
+    invalid_name = os.fsdecode(b"folder-\xff-name")
+    invalid_folder = tmp_path / invalid_name
+    invalid_folder.mkdir()
+
+    picker = FolderPickerOverlay(
+        overlay=Gtk.Overlay(),
+        initial_directory=tmp_path,
+        service=FolderBrowserService(),
+        mode="folder",
+    )
+
+    row, entry = next(
+        (row, entry)
+        for row, entry in picker._entries_by_row.items()
+        if entry.path == invalid_folder
+    )
+    label = row.get_child().get_last_child()
+    assert entry.path == invalid_folder
+    assert label.get_text() == "folder-\\udcff-name"
+
+
+def test_project_explorer_preserves_paths_with_undecodable_bytes(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    invalid_name = os.fsdecode(b"folder-\xff-name")
+    invalid_folder = project / invalid_name
+    invalid_folder.mkdir()
+
+    explorer = ProjectExplorer(on_file_open=lambda _path: None)
+    explorer._set_project_folder(project)
+
+    row_iter = explorer._find_path_iter(invalid_folder)
+    assert row_iter is not None
+    explorer.tree.get_selection().select_iter(row_iter)
+    assert explorer._get_target_directory() == invalid_folder
 
 
 def test_project_tree_uses_bundled_visible_file_and_folder_icons(

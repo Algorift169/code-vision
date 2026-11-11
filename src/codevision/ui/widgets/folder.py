@@ -11,6 +11,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, GLib, Gtk
 
 from ...services.folder_browser import BrowserEntry, FolderBrowserService
+from ...utils.gtk_text import gtk_safe_text
 from .symbolic_icon import create_symbolic_icon
 
 
@@ -450,11 +451,11 @@ class FolderPickerOverlay(Gtk.Box):
                 directory, show_hidden=self.show_hidden_toggle.get_active()
             )
         except OSError as error:
-            self.status.set_text(str(error))
+            self.status.set_text(gtk_safe_text(str(error)))
             return
 
         self._current_directory = directory
-        self.path_label.set_text(str(directory))
+        self.path_label.set_text(gtk_safe_text(str(directory)))
         self.status.set_text(f"{len(entries)} items")
         self.up_button.set_sensitive(
             self._service.parent_directory(directory) is not None
@@ -489,7 +490,7 @@ class FolderPickerOverlay(Gtk.Box):
         icon = create_symbolic_icon(icon_name, "folder-picker-item-icon")
         content.append(icon)
 
-        label = Gtk.Label(label=entry.name)
+        label = Gtk.Label(label=gtk_safe_text(entry.name))
         label.set_halign(Gtk.Align.START)
         label.set_hexpand(True)
         label.set_ellipsize(3)
@@ -562,7 +563,7 @@ class FolderPickerOverlay(Gtk.Box):
             else None
         )
         if self._mode == "save" and entry is not None and not entry.is_directory:
-            self.filename_entry.set_text(entry.name)
+            self.filename_entry.set_text(gtk_safe_text(entry.name))
 
     def _navigate_up(self) -> None:
         parent = self._service.parent_directory(self._current_directory)
@@ -597,14 +598,14 @@ class FolderPickerOverlay(Gtk.Box):
             return
 
         if self._mode == "save":
-            self.filename_entry.set_text(entry.name)
+            self.filename_entry.set_text(gtk_safe_text(entry.name))
             return
 
         if self._on_file_opened is not None:
             try:
                 self._on_file_opened(entry.path)
             except OSError as error:
-                self.status.set_text(str(error))
+                self.status.set_text(gtk_safe_text(str(error)))
                 return
             self.close()
 
