@@ -138,7 +138,7 @@ class FolderPickerOverlay(Gtk.Box):
         # List box and scrolling area
         self.list_box = Gtk.ListBox()
         self.list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        self.list_box.set_activate_on_single_click(False)
+        self.list_box.set_activate_on_single_click(True)
         self.list_box.add_css_class("folder-picker-list")
         self.list_box.connect("row-activated", self._on_row_activated)
         self.list_box.connect("selected-rows-changed", self._on_selection_changed)
@@ -288,6 +288,7 @@ class FolderPickerOverlay(Gtk.Box):
         if mode == "folder":
             self.set_title("Open Folder")
             self.heading.set_text("Browse folders")
+            self.action_button.set_label("Open Folder")
             self.action_button.set_visible(False)
             self.save_row.set_visible(False)
         elif mode == "file":
@@ -500,13 +501,15 @@ class FolderPickerOverlay(Gtk.Box):
 
     def _on_row_activated(self, _list_box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
         if self._mode == "folder":
-            self._cancel_pending_folder_navigation()
+            # Folder navigation is handled via the click gesture so we do not
+            # trigger duplicate opens when a row is activated from both a click
+            # and a GTK row activation signal. This avoids recursive re-entry and
+            # UI freezes when a user double-clicks a directory entry.
             entry = self._entries_by_row.get(row)
             if entry is not None and entry.is_directory:
-                if self._on_folder_opened is not None:
-                    self._on_folder_opened(entry.path)
-                self.close()
+                self._navigate(entry.path)
                 return
+            return
         self._activate_row(row)
 
     def _on_folder_row_clicked(
@@ -526,17 +529,21 @@ class FolderPickerOverlay(Gtk.Box):
         if self._mode != "folder" or entry is None or not entry.is_directory:
             self._cancel_pending_folder_navigation()
             return
-        if press_count != 1:
+
+        if press_count == 1:
             self._cancel_pending_folder_navigation()
+            self._pending_folder_row = row
+            settings = Gtk.Settings.get_default()
+            delay = settings.get_property("gtk-double-click-time") if settings else 250
+            self._pending_folder_navigation_id = GLib.timeout_add(
+                delay, self._navigate_pending_folder
+            )
             return
 
         self._cancel_pending_folder_navigation()
-        self._pending_folder_row = row
-        settings = Gtk.Settings.get_default()
-        delay = settings.get_property("gtk-double-click-time") if settings else 250
-        self._pending_folder_navigation_id = GLib.timeout_add(
-            delay, self._navigate_pending_folder
-        )
+        if self._on_folder_opened is not None:
+            self._on_folder_opened(entry.path)
+        self.close()
 
     def _navigate_pending_folder(self) -> bool:
         row = self._pending_folder_row

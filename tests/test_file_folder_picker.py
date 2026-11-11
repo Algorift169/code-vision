@@ -65,14 +65,39 @@ def test_folder_picker_opens_folder_and_navigates(tmp_path: Path) -> None:
     assert picker.get_visible()
     assert picker.get_active()
 
-    # Navigate into subdir
-    picker._navigate(sub)
-    assert picker._current_directory == sub.resolve()
+    # Single click should navigate into a folder without immediately opening it
+    enter_picker = FolderPickerOverlay(
+        overlay=Gtk.Overlay(),
+        initial_directory=tmp_path,
+        on_folder_opened=lambda _: None,
+        service=FolderBrowserService(),
+        mode="folder",
+    )
+    enter_row = next(
+        row for row, entry in enter_picker._entries_by_row.items() if entry.path == sub.resolve()
+    )
+    enter_picker._handle_folder_row_click(enter_row, 1)
+    assert enter_picker._pending_folder_row is enter_row
+    enter_picker._navigate_pending_folder()
+    assert enter_picker._current_directory == sub.resolve()
 
-    # Confirm action in folder mode opens current directory
-    picker._on_action_confirmed()
+    # Double click should confirm the selected folder and close the picker
+    double_click_picker = FolderPickerOverlay(
+        overlay=Gtk.Overlay(),
+        initial_directory=tmp_path,
+        on_folder_opened=opened_folders.append,
+        service=FolderBrowserService(),
+        mode="folder",
+    )
+    double_row = next(
+        row for row, entry in double_click_picker._entries_by_row.items() if entry.path == sub.resolve()
+    )
+    double_click_picker._handle_folder_row_click(double_row, 2)
     assert opened_folders == [sub.resolve()]
-    assert not picker.get_visible()
+    assert not double_click_picker.get_visible()
+
+    assert picker.action_button.get_visible() is False
+    assert picker.list_box.get_activate_on_single_click() is True
 
 
 def test_folder_picker_file_mode_opens_file(tmp_path: Path) -> None:
