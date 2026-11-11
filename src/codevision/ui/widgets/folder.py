@@ -54,6 +54,8 @@ class FolderPickerOverlay(Gtk.Box):
 
         self._entries_by_row: dict[Gtk.ListBoxRow, BrowserEntry] = {}
         self._hovered_row: Gtk.ListBoxRow | None = None
+        self._pending_folder_row: Gtk.ListBoxRow | None = None
+        self._pending_folder_navigation_id = 0
 
         self.set_hexpand(True)
         self.set_vexpand(True)
@@ -140,6 +142,12 @@ class FolderPickerOverlay(Gtk.Box):
         self.list_box.add_css_class("folder-picker-list")
         self.list_box.connect("row-activated", self._on_row_activated)
         self.list_box.connect("selected-rows-changed", self._on_selection_changed)
+
+        click_controller = Gtk.GestureClick.new()
+        click_controller.set_button(Gdk.BUTTON_PRIMARY)
+        click_controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        click_controller.connect("pressed", self._on_folder_row_clicked)
+        self.list_box.add_controller(click_controller)
 
         empty_label = Gtk.Label(label="This folder is empty")
         empty_label.add_css_class("folder-picker-empty")
@@ -275,21 +283,24 @@ class FolderPickerOverlay(Gtk.Box):
         pass
 
     def set_mode(self, mode: str) -> None:
+        self._cancel_pending_folder_navigation()
         self._mode = mode
         if mode == "folder":
             self.set_title("Open Folder")
             self.heading.set_text("Browse folders")
-            self.action_button.set_label("Open Folder")
+            self.action_button.set_visible(False)
             self.save_row.set_visible(False)
         elif mode == "file":
             self.set_title("Open File")
             self.heading.set_text("Browse files")
             self.action_button.set_label("Open File")
+            self.action_button.set_visible(True)
             self.save_row.set_visible(False)
         elif mode == "save":
             self.set_title(self._title or "Save File As")
             self.heading.set_text("Select save location")
             self.action_button.set_label("Save")
+            self.action_button.set_visible(True)
             self.save_row.set_visible(True)
 
     def show_open_folder(
@@ -366,6 +377,7 @@ class FolderPickerOverlay(Gtk.Box):
     def close(self) -> bool:
         if not self.get_visible():
             return False
+        self._cancel_pending_folder_navigation()
         self.set_visible(False)
         for handler, args in list(self._close_handlers):
             try:
@@ -430,6 +442,7 @@ class FolderPickerOverlay(Gtk.Box):
         return False
 
     def _navigate(self, directory: Path) -> None:
+        self._cancel_pending_folder_navigation()
         try:
             directory = directory.expanduser().resolve(strict=True)
             entries = self._service.list_entries(
@@ -486,7 +499,59 @@ class FolderPickerOverlay(Gtk.Box):
         self._entries_by_row[row] = entry
 
     def _on_row_activated(self, _list_box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
+        if self._mode == "folder":
+            self._cancel_pending_folder_navigation()
+            entry = self._entries_by_row.get(row)
+            if entry is not None and entry.is_directory:
+                if self._on_folder_opened is not None:
+                    self._on_folder_opened(entry.path)
+                self.close()
+                return
         self._activate_row(row)
+
+    def _on_folder_row_clicked(
+        self,
+        _gesture: Gtk.GestureClick,
+        press_count: int,
+        _x: float,
+        y: float,
+    ) -> None:
+        row = self.list_box.get_row_at_y(int(y))
+        self._handle_folder_row_click(row, press_count)
+
+    def _handle_folder_row_click(
+        self, row: Gtk.ListBoxRow | None, press_count: int
+    ) -> None:
+        entry = self._entries_by_row.get(row) if row is not None else None
+        if self._mode != "folder" or entry is None or not entry.is_directory:
+            self._cancel_pending_folder_navigation()
+            return
+        if press_count != 1:
+            self._cancel_pending_folder_navigation()
+            return
+
+        self._cancel_pending_folder_navigation()
+        self._pending_folder_row = row
+        settings = Gtk.Settings.get_default()
+        delay = settings.get_property("gtk-double-click-time") if settings else 250
+        self._pending_folder_navigation_id = GLib.timeout_add(
+            delay, self._navigate_pending_folder
+        )
+
+    def _navigate_pending_folder(self) -> bool:
+        row = self._pending_folder_row
+        self._pending_folder_row = None
+        self._pending_folder_navigation_id = 0
+        entry = self._entries_by_row.get(row) if row is not None else None
+        if self._mode == "folder" and entry is not None and entry.is_directory:
+            self._navigate(entry.path)
+        return GLib.SOURCE_REMOVE
+
+    def _cancel_pending_folder_navigation(self) -> None:
+        if self._pending_folder_navigation_id:
+            GLib.source_remove(self._pending_folder_navigation_id)
+            self._pending_folder_navigation_id = 0
+        self._pending_folder_row = None
 
     def _on_selection_changed(self, _list_box: Gtk.ListBox) -> None:
         selected_row = self.list_box.get_selected_row()

@@ -13,7 +13,9 @@ def test_language_registry_maps_supported_extensions() -> None:
             LanguageRegistry.resolve(file_path=f"unit{extension}").language_id
             == "cpp"
         )
-    assert LanguageRegistry.resolve(file_path="main.py") is None
+    assert LanguageRegistry.resolve(file_path="Main.java").language_id == "java"
+    assert LanguageRegistry.resolve(file_path="main.py").language_id == "python"
+    assert LanguageRegistry.resolve(file_path="client.ts").language_id == "typescript"
 
 
 def test_parser_normalizes_valid_c_structure(tmp_path: Path) -> None:
@@ -73,6 +75,23 @@ public:
         "class_specifier",
         "function_definition",
     } <= node_types
+
+
+def test_parser_supports_java_classes_and_methods() -> None:
+    source = """public class Sample {
+    private int value;
+
+    public int getValue() {
+        return value;
+    }
+}
+"""
+    result = SourceParser().parse(source, language="java")
+    node_types = {node.node_type for node in result.root.walk()}
+
+    assert result.succeeded
+    assert result.language == "java"
+    assert {"class_declaration", "method_declaration", "return_statement"} <= node_types
 
 
 def test_parser_accepts_empty_source_as_empty_translation_unit() -> None:

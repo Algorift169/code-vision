@@ -11,7 +11,7 @@ class NativeParseResult:
 
 
 class TreeSitterParser:
-    """Create Tree-sitter parsers for supported C-family grammars."""
+    """Create Tree-sitter parsers for the supported language grammars."""
 
     @staticmethod
     def parse(source: bytes, language_id: str) -> NativeParseResult:
@@ -19,14 +19,21 @@ class TreeSitterParser:
             from tree_sitter import Language, Parser
             import tree_sitter_c
             import tree_sitter_cpp
+            import tree_sitter_java
+            import tree_sitter_javascript
+            import tree_sitter_typescript as tree_sitter_typescript
         except ImportError as error:
             raise RuntimeError(
-                "Tree-sitter C/C++ parser dependencies are unavailable"
+                "Tree-sitter parser dependencies are unavailable"
             ) from error
 
         grammar_factory = {
             "c": tree_sitter_c.language,
             "cpp": tree_sitter_cpp.language,
+            "java": tree_sitter_java.language,
+            "javascript": tree_sitter_javascript.language,
+            "typescript": getattr(tree_sitter_typescript, "language_typescript", None),
+            "tsx": getattr(tree_sitter_typescript, "language_tsx", None),
         }.get(language_id)
         if grammar_factory is None:
             raise ValueError(f"Unsupported parser language: {language_id}")

@@ -63,6 +63,9 @@ class SourceParser:
         if language_info is None:
             target = language if language is not None else str(path or "")
             raise ValueError(f"AST analysis does not support: {target or 'unknown source'}")
+        if not language_info.supports_parsing:
+            target = language_info.display_name or language or str(path or "")
+            raise ValueError(f"AST analysis does not support: {target or 'unknown source'}")
         source_bytes = source.encode("utf-8") if isinstance(source, str) else source
         if not isinstance(source_bytes, bytes):
             raise TypeError("Source must be str or bytes")
