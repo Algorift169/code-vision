@@ -27,10 +27,34 @@ def _configure_renderer() -> None:
         os.environ["GSK_RENDERER"] = "ngl"
 
 
+def _configure_display_backend() -> None:
+    configured = os.environ.get("GDK_BACKEND", "")
+    backends = {backend.strip() for backend in configured.split(",") if backend.strip()}
+    if os.environ.get("DISPLAY") and {"x11", "wayland"} <= backends:
+        os.environ["GDK_BACKEND"] = "x11"
+        return
+    if configured:
+        return
+    if os.environ.get("DISPLAY"):
+        os.environ["GDK_BACKEND"] = "x11"
+    elif os.environ.get("WAYLAND_DISPLAY"):
+        os.environ["GDK_BACKEND"] = "wayland"
+    else:
+        os.environ["GDK_BACKEND"] = "x11"
+
+
 def main() -> int:
     """Delegate startup to the application lifecycle package."""
     _configure_session_bus()
     _configure_renderer()
+    _configure_display_backend()
+    if not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
+        print(
+            "CodeVision needs an active X11 or Wayland desktop session. "
+            "No display server is available in this environment.",
+            file=sys.stderr,
+        )
+        return 1
     try:
         from .app.application import main as run_application
     except (ImportError, ValueError, RuntimeError) as error:

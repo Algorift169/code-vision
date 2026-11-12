@@ -79,10 +79,14 @@ class SourceParser:
             nonlocal next_id, syntax_error_count
             node_id = str(next_id)
             next_id += 1
-            start_point = native_node.start_point
-            end_point = native_node.end_point
             start_byte = native_node.start_byte
             end_byte = native_node.end_byte
+            start_prefix = source_bytes[:start_byte]
+            end_prefix = source_bytes[:end_byte]
+            start_line = start_prefix.count(b"\n") + 1
+            end_line = end_prefix.count(b"\n") + 1
+            start_column = len(start_prefix.rsplit(b"\n", 1)[-1]) + 1
+            end_column = len(end_prefix.rsplit(b"\n", 1)[-1]) + 1
             node_type = str(native_node.type)
             has_error = bool(native_node.is_error)
             is_missing = bool(native_node.is_missing)
@@ -99,10 +103,10 @@ class SourceParser:
                 display_name=name,
                 source_text=source_text,
                 location=SourceLocation(
-                    start_line=start_point.row + 1,
-                    start_column=start_point.column + 1,
-                    end_line=end_point.row + 1,
-                    end_column=end_point.column + 1,
+                    start_line=start_line,
+                    start_column=start_column,
+                    end_line=end_line,
+                    end_column=end_column,
                     start_byte=start_byte,
                     end_byte=end_byte,
                 ),

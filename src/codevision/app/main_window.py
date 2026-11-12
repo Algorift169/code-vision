@@ -158,7 +158,9 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         controls.append(fullscreen_button)
 
         close_button = self._create_window_control("Close window", "close")
-        close_button.connect("clicked", lambda _button: self.close())
+        close_button.connect(
+            "clicked", lambda _button: GLib.idle_add(self._close_window)
+        )
         controls.append(close_button)
 
         header.pack_end(controls)
@@ -1566,6 +1568,10 @@ layout after exiting focus mode. The view menu is updated after
         self.editor_tabs.close_all_terminals()
         self.terminal_service.close_all()
         return False
+
+    def _close_window(self) -> bool:
+        self.close()
+        return GLib.SOURCE_REMOVE
 
     """Asks the terminal service to start a session in the requested directory.
     It reports startup errors in the status bar; on success it adds the session

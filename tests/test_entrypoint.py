@@ -13,7 +13,7 @@ gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
 from codevision.app.main_window import _launch_external_uri
-from codevision.main import _configure_session_bus
+from codevision.main import _configure_display_backend, _configure_session_bus
 
 
 def test_configure_session_bus_uses_runtime_socket_when_disabled(
@@ -27,6 +27,26 @@ def test_configure_session_bus_uses_runtime_socket_when_disabled(
     _configure_session_bus()
 
     assert os.environ["DBUS_SESSION_BUS_ADDRESS"] == f"unix:path={bus_socket}"
+
+
+def test_configure_display_backend_prefers_x11_when_both_are_enabled(monkeypatch):
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.setenv("WAYLAND_DISPLAY", "wayland-0")
+    monkeypatch.setenv("GDK_BACKEND", "wayland,x11")
+
+    _configure_display_backend()
+
+    assert os.environ["GDK_BACKEND"] == "x11"
+
+
+def test_configure_display_backend_preserves_explicit_single_backend(monkeypatch):
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.setenv("WAYLAND_DISPLAY", "wayland-0")
+    monkeypatch.setenv("GDK_BACKEND", "wayland")
+
+    _configure_display_backend()
+
+    assert os.environ["GDK_BACKEND"] == "wayland"
 
 
 def test_codevision_module_entrypoint_exits_with_main_result(monkeypatch):

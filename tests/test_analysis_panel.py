@@ -6,6 +6,7 @@ from gi.repository import Gtk
 
 from codevision.ui.analysis_panel import SECTIONS, AnalysisPanel
 from codevision.ui.ast_view import ASTView
+from codevision.ui.graphs import FlowchartView
 
 
 def test_analysis_panel_has_all_sections_in_order() -> None:
@@ -39,6 +40,9 @@ def test_analysis_section_selects_its_placeholder(section: str) -> None:
     assert placeholder is panel._section_placeholders[section]
     if section == "AST":
         assert isinstance(placeholder, ASTView)
+    elif section == "Flowchart":
+        assert isinstance(placeholder, FlowchartView)
+        assert isinstance(placeholder.canvas, Gtk.DrawingArea)
     else:
         assert placeholder.get_first_child().get_text() == section
 
@@ -56,6 +60,19 @@ def test_analysis_navigation_scrolls_horizontally() -> None:
         Gtk.PolicyType.NEVER,
     )
     assert scroller.get_child().get_child() is panel.navigation
+
+
+def test_analysis_panel_updates_flowchart_view_when_source_changes(tmp_path) -> None:
+    panel = AnalysisPanel()
+    flowchart = panel._section_placeholders["Flowchart"]
+    assert isinstance(flowchart, FlowchartView)
+
+    source = "int main() { return 0; }"
+    panel.set_source(source, tmp_path / "main.c", "c")
+
+    assert flowchart.graph is not None
+    assert flowchart.graph.language == "c"
+    assert flowchart.graph.entry is not None
 
 
 def test_unknown_analysis_section_is_rejected() -> None:

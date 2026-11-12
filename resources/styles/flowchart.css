@@ -1,0 +1,13 @@
+.flowchart-canvas {
+    background-color: @surface;
+}
+
+.flowchart-node {
+    background-color: @surface-2;
+    color: @text;
+    border: 1px solid @line;
+}
+
+.flowchart-node--decision {
+    border-radius: 0;
+}

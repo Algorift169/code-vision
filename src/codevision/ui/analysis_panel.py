@@ -11,6 +11,7 @@ from gi.repository import Gtk
 from ..model import ASTNode
 from .analyzer_theme import AnalyzerTheme
 from .ast_view import ASTView
+from .graphs import FlowchartView
 
 SECTIONS = (
     "Overview",
@@ -88,6 +89,11 @@ class AnalysisPanel(Gtk.Box):
                 self.views.add_named(placeholder, f"section-{index}")
                 self._section_placeholders[section] = placeholder
                 continue
+            if section == "Flowchart":
+                placeholder = FlowchartView()
+                self.views.add_named(placeholder, f"section-{index}")
+                self._section_placeholders[section] = placeholder
+                continue
 
             placeholder = Gtk.Box(
                 orientation=Gtk.Orientation.VERTICAL, spacing=0
@@ -133,6 +139,10 @@ class AnalysisPanel(Gtk.Box):
         ast_view = self._section_placeholders["AST"]
         if isinstance(ast_view, ASTView):
             ast_view.set_source(source, file_path, language)
+
+        flowchart_view = self._section_placeholders["Flowchart"]
+        if hasattr(flowchart_view, "set_source"):
+            flowchart_view.set_source(source, file_path, language)
 
     def _on_section_toggled(
         self, button: Gtk.ToggleButton, section: str
