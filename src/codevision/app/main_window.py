@@ -34,7 +34,6 @@ from ..ui.widgets.terminal_menu import TerminalMenuButton
 from ..ui.widgets.theme_menu import ThemeMenu
 from ..ui.widgets.view_menu import ViewMenuButton
 
-
 STYLESHEETS = (
     "main-window.css",
     "window-border.css",
@@ -48,6 +47,7 @@ STYLESHEETS = (
     "editor-tabs.css",
     "analysis-panel.css",
     "ast-view.css",
+    "flowchart.css",
     "kong-browser.css",
 )
 

@@ -1,3 +1,2 @@
-Graph visualization UI.
-This directory contains GTK components responsible for displaying control-flow,
-function-call, dependency, and other CodeVision graphs.
+GTK graph views live here. The flowchart view renders graph IR, exposes function
+selection and source navigation, and provides zoom, pan, and export controls.

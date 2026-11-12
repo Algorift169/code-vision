@@ -52,7 +52,7 @@ class LanguageRegistry:
         (".py", ".pyw"),
         aliases=("py", "python3"),
         supports_parsing=True,
-        capabilities=("ast", "diagnostics"),
+        capabilities=("ast", "flowchart", "diagnostics"),
     )
     CSS = LanguageInfo(
         "css",

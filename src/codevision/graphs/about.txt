@@ -1,4 +1,3 @@
-Program graph generation.
-This directory constructs graph representations of analyzed programs.
-It will generate control-flow graphs, function-call graphs, dependency graphs,
-and provide Graphviz integration for graph layout and rendering.
+Language-independent graph models, flowchart construction from the shared AST,
+deterministic layout, validation, and SVG/PNG/PDF export live here. GTK rendering
+and interaction are owned by codevision.ui.graphs.

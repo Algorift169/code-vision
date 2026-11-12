@@ -58,6 +58,7 @@ class FlowchartEdge:
 class GraphValidationResult:
     valid: bool
     issues: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -74,31 +75,74 @@ class FlowchartGraph:
 
     def validate(self) -> GraphValidationResult:
         issues: list[str] = []
+        warnings: list[str] = []
         seen_ids: set[str] = set()
+        node_ids: set[str] = set()
         for node in self.nodes:
             if node.node_id in seen_ids:
                 issues.append(f"duplicate node id: {node.node_id}")
             seen_ids.add(node.node_id)
+            node_ids.add(node.node_id)
+            try:
+                FlowchartNodeKind(node.kind)
+            except (TypeError, ValueError):
+                issues.append(f"invalid node kind: {node.kind}")
+
+        edge_ids: set[str] = set()
+        adjacency: dict[str, list[str]] = {node_id: [] for node_id in node_ids}
         for edge in self.edges:
-            if isinstance(edge, str):
-                issues.append(f"edge record is not a FlowchartEdge: {edge}")
+            if not isinstance(edge, FlowchartEdge):
+                issues.append(f"edge record is not a FlowchartEdge: {edge!r}")
                 continue
-            source_id = getattr(edge, "source_id", None)
-            target_id = getattr(edge, "target_id", None)
-            if source_id not in seen_ids:
-                issues.append(f"edge source missing: {source_id}")
-            if target_id not in seen_ids:
-                issues.append(f"edge target missing: {target_id}")
+            if not edge.edge_id:
+                issues.append("edge id is empty")
+            elif edge.edge_id in edge_ids:
+                issues.append(f"duplicate edge id: {edge.edge_id}")
+            edge_ids.add(edge.edge_id)
+            if edge.source_id not in node_ids:
+                issues.append(f"edge source missing: {edge.source_id}")
+            if edge.target_id not in node_ids:
+                issues.append(f"edge target missing: {edge.target_id}")
+            if edge.source_id in adjacency and edge.target_id in node_ids:
+                adjacency[edge.source_id].append(edge.target_id)
+            if edge.branch_label and not edge.edge_type in {
+                "decision",
+                "loop",
+                "loop-exit",
+                "break",
+            }:
+                issues.append(
+                    f"branch label on non-branch edge: {edge.edge_id}"
+                )
         if self.entry is None:
             issues.append("graph entry node is missing")
-        elif self.entry not in seen_ids:
+        elif self.entry not in node_ids:
             issues.append(f"entry node is missing: {self.entry}")
         if not self.exit_nodes:
             issues.append("graph has no exit nodes")
         for exit_id in self.exit_nodes:
-            if exit_id not in seen_ids:
+            if exit_id not in node_ids:
                 issues.append(f"exit node missing: {exit_id}")
-        return GraphValidationResult(valid=not issues, issues=issues)
+
+        if self.entry in node_ids:
+            reachable = {self.entry}
+            pending = [self.entry]
+            while pending:
+                current = pending.pop()
+                for target in adjacency[current]:
+                    if target not in reachable:
+                        reachable.add(target)
+                        pending.append(target)
+            unreachable = node_ids - reachable
+            if unreachable:
+                warnings.append(
+                    "unreachable nodes: " + ", ".join(sorted(unreachable))
+                )
+        return GraphValidationResult(
+            valid=not issues,
+            issues=issues,
+            warnings=warnings,
+        )
 
 
 __all__ = [

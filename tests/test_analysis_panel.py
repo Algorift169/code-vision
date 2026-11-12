@@ -6,7 +6,7 @@ from gi.repository import Gtk
 
 from codevision.ui.analysis_panel import SECTIONS, AnalysisPanel
 from codevision.ui.ast_view import ASTView
-from codevision.ui.graphs import FlowchartView
+from codevision.ui.graphs import CallGraphView, FlowchartView
 
 
 def test_analysis_panel_has_all_sections_in_order() -> None:
@@ -43,6 +43,9 @@ def test_analysis_section_selects_its_placeholder(section: str) -> None:
     elif section == "Flowchart":
         assert isinstance(placeholder, FlowchartView)
         assert isinstance(placeholder.canvas, Gtk.DrawingArea)
+    elif section == "Call Graph":
+        assert isinstance(placeholder, CallGraphView)
+        assert isinstance(placeholder.canvas, Gtk.DrawingArea)
     else:
         assert placeholder.get_first_child().get_text() == section
 
@@ -73,6 +76,51 @@ def test_analysis_panel_updates_flowchart_view_when_source_changes(tmp_path) -> 
     assert flowchart.graph is not None
     assert flowchart.graph.language == "c"
     assert flowchart.graph.entry is not None
+
+
+def test_flowchart_function_selector_switches_graphs(tmp_path) -> None:
+    panel = AnalysisPanel()
+    flowchart = panel._section_placeholders["Flowchart"]
+    source = "int first() { return 1; } int second() { return 2; }"
+
+    panel.set_source(source, tmp_path / "functions.c", "c")
+    flowchart.function_selector.set_selected(1)
+
+    assert flowchart.graph.function_name == "second"
+
+
+def test_analysis_panel_updates_call_graph_view_when_source_changes(tmp_path) -> None:
+    panel = AnalysisPanel()
+    call_graph = panel._section_placeholders["Call Graph"]
+    source = "int leaf() { return 1; } int root() { return leaf(); }"
+
+    panel.set_source(source, tmp_path / "calls.c", "c")
+
+    assert call_graph.graph is not None
+    assert len(call_graph.graph.nodes) == 2
+    assert len(call_graph.graph.edges) == 1
+
+
+def test_flowchart_node_click_navigates_to_ast_source(tmp_path) -> None:
+    navigated = []
+    flowchart = FlowchartView(on_source_navigate=navigated.append)
+    source = "int main() { int value = 1; return value; }"
+    flowchart.set_source(source, tmp_path / "main.c", "c")
+    node = next(node for node in flowchart.graph.nodes if node.kind.value == "process")
+    scale, origin_x = flowchart._graph_transform(
+        flowchart.graph, max(1, flowchart.canvas.get_width())
+    )
+
+    flowchart._on_canvas_pressed(
+        None,
+        1,
+        origin_x + (node.x + node.width / 2) * scale,
+        16 + (node.y + node.height / 2) * scale,
+    )
+
+    assert len(navigated) == 1
+    assert navigated[0].node_type == "declaration"
+    assert flowchart._selected_node_id == node.node_id
 
 
 def test_unknown_analysis_section_is_rejected() -> None:
