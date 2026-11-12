@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from importlib import import_module
 from dataclasses import dataclass
 from time import perf_counter
 
@@ -17,26 +18,30 @@ class TreeSitterParser:
     def parse(source: bytes, language_id: str) -> NativeParseResult:
         try:
             from tree_sitter import Language, Parser
-            import tree_sitter_c
-            import tree_sitter_cpp
-            import tree_sitter_java
-            import tree_sitter_javascript
-            import tree_sitter_typescript as tree_sitter_typescript
         except ImportError as error:
             raise RuntimeError(
-                "Tree-sitter parser dependencies are unavailable"
+                "Tree-sitter is unavailable; install the parser dependencies"
             ) from error
 
-        grammar_factory = {
-            "c": tree_sitter_c.language,
-            "cpp": tree_sitter_cpp.language,
-            "java": tree_sitter_java.language,
-            "javascript": tree_sitter_javascript.language,
-            "typescript": getattr(tree_sitter_typescript, "language_typescript", None),
-            "tsx": getattr(tree_sitter_typescript, "language_tsx", None),
+        grammar = {
+            "c": ("tree_sitter_c", "language"),
+            "cpp": ("tree_sitter_cpp", "language"),
+            "css": ("tree_sitter_css", "language"),
+            "java": ("tree_sitter_java", "language"),
+            "javascript": ("tree_sitter_javascript", "language"),
+            "python": ("tree_sitter_python", "language"),
+            "typescript": ("tree_sitter_typescript", "language_typescript"),
+            "tsx": ("tree_sitter_typescript", "language_tsx"),
         }.get(language_id)
-        if grammar_factory is None:
+        if grammar is None:
             raise ValueError(f"Unsupported parser language: {language_id}")
+        module_name, factory_name = grammar
+        try:
+            grammar_factory = getattr(import_module(module_name), factory_name)
+        except (ImportError, AttributeError) as error:
+            raise RuntimeError(
+                f"The Tree-sitter grammar for {language_id} is unavailable"
+            ) from error
 
         try:
             language = Language(grammar_factory())

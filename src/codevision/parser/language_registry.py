@@ -51,8 +51,16 @@ class LanguageRegistry:
         "Python",
         (".py", ".pyw"),
         aliases=("py", "python3"),
-        supports_parsing=False,
-        capabilities=("detection", "diagnostics"),
+        supports_parsing=True,
+        capabilities=("ast", "diagnostics"),
+    )
+    CSS = LanguageInfo(
+        "css",
+        "CSS",
+        (".css",),
+        aliases=("stylesheet",),
+        supports_parsing=True,
+        capabilities=("ast", "diagnostics"),
     )
     JAVA = LanguageInfo(
         "java",
@@ -103,7 +111,7 @@ class LanguageRegistry:
         ),
     )
 
-    _ALL = (C, CPP, PYTHON, JAVA, JAVASCRIPT, TYPESCRIPT)
+    _ALL = (C, CPP, PYTHON, CSS, JAVA, JAVASCRIPT, TYPESCRIPT)
 
     @classmethod
     def resolve(
@@ -111,7 +119,16 @@ class LanguageRegistry:
     ) -> LanguageInfo | None:
         if language is not None:
             normalized = language.strip().lower().replace(" ", "")
-            aliases = {"c++": "cpp", "cxx": "cpp", "cc": "cpp", "py": "python", "python3": "python", "js": "javascript", "ts": "typescript"}
+            aliases = {
+                "c++": "cpp",
+                "cxx": "cpp",
+                "cc": "cpp",
+                "py": "python",
+                "python3": "python",
+                "js": "javascript",
+                "ts": "typescript",
+                "stylesheet": "css",
+            }
             normalized = aliases.get(normalized, normalized)
             for info in cls._ALL:
                 if normalized == info.language_id:

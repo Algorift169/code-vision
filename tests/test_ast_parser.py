@@ -15,6 +15,7 @@ def test_language_registry_maps_supported_extensions() -> None:
         )
     assert LanguageRegistry.resolve(file_path="Main.java").language_id == "java"
     assert LanguageRegistry.resolve(file_path="main.py").language_id == "python"
+    assert LanguageRegistry.resolve(file_path="theme.css").language_id == "css"
     assert LanguageRegistry.resolve(file_path="client.ts").language_id == "typescript"
 
 
@@ -94,6 +95,32 @@ def test_parser_supports_java_classes_and_methods() -> None:
     assert {"class_declaration", "method_declaration", "return_statement"} <= node_types
 
 
+def test_parser_supports_python_functions_and_classes(tmp_path: Path) -> None:
+    source = """class Counter:
+    def increment(self, amount):
+        value = amount + 1
+        return value
+"""
+    result = SourceParser().parse(source, file_path=tmp_path / "counter.py")
+    node_types = {node.node_type for node in result.root.walk()}
+
+    assert result.succeeded
+    assert result.language == "python"
+    assert {"class_definition", "function_definition", "return_statement"} <= node_types
+
+
+def test_parser_supports_css_rules_and_declarations(tmp_path: Path) -> None:
+    source = """.panel { color: red; margin: 0 auto; }
+@media (min-width: 40rem) { .panel { display: grid; } }
+"""
+    result = SourceParser().parse(source, file_path=tmp_path / "theme.css")
+    node_types = {node.node_type for node in result.root.walk()}
+
+    assert result.succeeded
+    assert result.language == "css"
+    assert {"stylesheet", "rule_set", "declaration"} <= node_types
+
+
 def test_parser_accepts_empty_source_as_empty_translation_unit() -> None:
     result = SourceParser().parse("", language="c")
 
@@ -114,8 +141,6 @@ def test_parser_retains_malformed_syntax_as_partial_result() -> None:
 def test_parser_rejects_unsupported_language_and_source_type() -> None:
     parser = SourceParser()
 
-    with pytest.raises(ValueError, match="does not support"):
-        parser.parse("print('no')", file_path="main.py")
     with pytest.raises(ValueError, match="does not support"):
         parser.parse("int main() {}", language="rust")
     with pytest.raises(TypeError, match="must be str or bytes"):

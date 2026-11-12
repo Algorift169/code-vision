@@ -13,6 +13,7 @@ from gi.repository import Gdk, Gio, GLib, Gtk
 from ..editor.editor import EditorPanel
 from ..editor.tab import EditorTabs
 from ..model import ASTNode
+from ..parser import LanguageRegistry as ParserLanguageRegistry
 from ..services.auto_save import AutoSaveSettings
 from ..services.save import SaveService
 from ..services.terminal import TerminalService
@@ -1277,8 +1278,8 @@ layout after exiting focus mode. The view menu is updated after
         source = buffer.get_text(start, end, True)
         language = buffer.get_language()
         language_id = language.get_id() if language is not None else None
-        if language_id not in {"c", "cpp"}:
-            language_id = None
+        language_info = ParserLanguageRegistry.resolve(language=language_id)
+        language_id = language_info.language_id if language_info is not None else None
         self.analysis_panel.set_source(
             source,
             editor.file_path,

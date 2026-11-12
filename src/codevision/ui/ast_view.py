@@ -76,7 +76,7 @@ class ASTView(Gtk.Box):
         search_row.append(self._match_count)
         self.append(search_row)
 
-        self.summary = Gtk.Label(label="Open a C or C++ source file to inspect its AST.")
+        self.summary = Gtk.Label(label="Open a supported source file to inspect its AST.")
         self.summary.set_halign(Gtk.Align.START)
         self.summary.add_css_class("ast-summary")
         self.append(self.summary)
@@ -137,7 +137,7 @@ class ASTView(Gtk.Box):
 
         self.content_stack.add_named(body, "tree")
         self.append(self.content_stack)
-        self._show_state("Open a C or C++ source file to inspect its AST.")
+        self._show_state("Open a supported source file to inspect its AST.")
 
     @property
     def result(self) -> ASTResult | None:
