@@ -10,7 +10,8 @@ from ..model import ASTNode
 class CallGraphNode:
     node_id: str
     name: str
-    source_node: ASTNode
+    qualified_name: str = ""
+    source_node: ASTNode | None = None
     x: float = 0.0
     y: float = 0.0
     width: float = 184.0

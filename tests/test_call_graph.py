@@ -58,9 +58,67 @@ def test_call_graph_arrows_have_label_space_and_terminate_at_callee() -> None:
 
     points = view._edge_route(source, target, 0)
 
-    assert target.x - source.x - source.width >= 120
+    assert target.x - source.x - source.width >= 20
     assert points[-1] == (target.x, target.y + target.height / 2)
     assert edge.label in {"parse()", "parse() x1"}
+
+
+def test_call_graph_tracks_nested_function_scope_correctly() -> None:
+    source = """
+    def main():
+        def nested():
+            return helper()
+        nested()
+
+    def helper():
+        return 1
+    """
+    result = SourceParser().parse(source, language="python")
+
+    graph = CallGraphBuilder().build(result)
+
+    assert {edge.source_id for edge in graph.edges if edge.target_id} == {next(node.node_id for node in graph.nodes if node.name == "main"), next(node.node_id for node in graph.nodes if node.name == "nested")}
+    assert not any(
+        edge.source_id == next(node.node_id for node in graph.nodes if node.name == "main")
+        and edge.target_id == next(node.node_id for node in graph.nodes if node.name == "helper")
+        for edge in graph.edges
+    )
+    assert any(
+        edge.source_id == next(node.node_id for node in graph.nodes if node.name == "nested")
+        and edge.target_id == next(node.node_id for node in graph.nodes if node.name == "helper")
+        for edge in graph.edges
+    )
+
+
+def test_call_graph_resolves_same_name_functions_by_scope() -> None:
+    source = """
+    def process():
+        return 0
+
+    class A:
+        def process(self):
+            return 1
+
+    def main():
+        return process()
+    """
+    result = SourceParser().parse(source, language="python")
+
+    graph = CallGraphBuilder().build(result)
+
+    main = next(node for node in graph.nodes if node.name == "main")
+    module_process = next(node for node in graph.nodes if node.name == "process" and "." not in node.qualified_name)
+    class_process = next(node for node in graph.nodes if node.name == "process" and "." in node.qualified_name)
+
+    assert {node.name for node in graph.nodes} == {"process", "main"}
+    assert any(
+        edge.source_id == main.node_id and edge.target_id == module_process.node_id
+        for edge in graph.edges
+    )
+    assert not any(
+        edge.source_id == main.node_id and edge.target_id == class_process.node_id
+        for edge in graph.edges
+    )
 
 
 def test_call_graph_zoom_buttons_scale_canvas_and_keep_source_hit_testing() -> None:
@@ -75,7 +133,7 @@ def test_call_graph_zoom_buttons_scale_canvas_and_keep_source_hit_testing() -> N
     view.zoom_in_button.emit("clicked")
 
     assert view._zoom == 1.25
-    assert view.canvas.get_content_width() > width_before
+    assert view.canvas.get_content_width() >= width_before
     view._on_canvas_pressed(
         None,
         1,

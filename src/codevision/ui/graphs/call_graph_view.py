@@ -104,6 +104,22 @@ class CallGraphView(Gtk.Box):
         self._state.set_text(message)
         self.scroller.set_child(self._state)
 
+    @staticmethod
+    def _column_step(graph: CallGraph) -> float:
+        if not graph.edges:
+            return 220.0
+        label_width = max((len(edge.label) * 7.5 + 60.0 for edge in graph.edges), default=220.0)
+        node_map = {node.node_id: node for node in graph.nodes}
+        actual_gap = 0.0
+        for edge in graph.edges:
+            source = node_map.get(edge.source_id)
+            target = node_map.get(edge.target_id)
+            if source is None or target is None:
+                continue
+            gap = max(0.0, target.x - source.x - source.width)
+            actual_gap = max(actual_gap, gap)
+        return max(220.0, label_width, actual_gap + 80.0)
+
     def _layout_graph(self) -> None:
         graph = self.graph
         if graph is None:
@@ -136,12 +152,29 @@ class CallGraphView(Gtk.Box):
                     if target_id not in depths:
                         depths[target_id] = depths[source_id] + 1
                         pending.append(target_id)
+
+        column_step = self._column_step(graph)
         rows_by_depth: dict[int, int] = defaultdict(int)
-        for node in sorted(graph.nodes, key=lambda item: item.source_node.location.start_line):
+        for node in sorted(
+            graph.nodes, key=lambda item: item.source_node.location.start_line
+        ):
             depth = depths[node.node_id]
-            node.x = 36 + depth * 330
-            node.y = 54 + rows_by_depth[depth] * 112
+            node.x = 20 + depth * column_step
+            node.y = 20 + rows_by_depth[depth] * 90
             rows_by_depth[depth] += 1
+
+        actual_gap = 0.0
+        node_map = {node.node_id: node for node in graph.nodes}
+        for edge in graph.edges:
+            source = node_map.get(edge.source_id)
+            target = node_map.get(edge.target_id)
+            if source is None or target is None:
+                continue
+            actual_gap = max(actual_gap, max(0.0, target.x - source.x - source.width))
+        if actual_gap > 0:
+            column_step = max(column_step, actual_gap + 40.0)
+            for node in graph.nodes:
+                node.x = 20 + depths[node.node_id] * column_step
 
     def _render_graph(self) -> None:
         if self.graph is None or not self.graph.nodes:
@@ -149,10 +182,10 @@ class CallGraphView(Gtk.Box):
         right = max(node.x + node.width for node in self.graph.nodes)
         bottom = max(node.y + node.height for node in self.graph.nodes)
         self.canvas.set_content_width(
-            max(320, math.ceil((right + 36) * self._zoom))
+            max(260, math.ceil((right + 18) * self._zoom))
         )
         self.canvas.set_content_height(
-            max(240, math.ceil((bottom + 36) * self._zoom))
+            max(200, math.ceil((bottom + 18) * self._zoom))
         )
         self.scroller.set_child(self.canvas)
         self.canvas.queue_draw()
@@ -193,28 +226,45 @@ class CallGraphView(Gtk.Box):
     def _edge_route(
         source: object, target: object, index: int
     ) -> list[tuple[float, float]]:
-        start = (source.x + source.width, source.y + source.height / 2)
-        end = (target.x, target.y + target.height / 2)
+        start_x = source.x + source.width
+        end_x = target.x
+        start = (start_x, source.y + source.height / 2)
+        end = (end_x, target.y + target.height / 2)
+        pipe_gap = 18.0
+        lane_y = min(source.y, target.y) - 18.0 - (index % 5) * 8.0
         if source.node_id == target.node_id:
-            lane_x = source.x + source.width + 18 + index % 4 * 10
-            lane_y = source.y - 20 - index % 4 * 10
+            lane_x = start_x + pipe_gap + 14.0
             return [
                 start,
                 (lane_x, start[1]),
-                (lane_x, lane_y),
-                (source.x + source.width / 2, lane_y),
+                (lane_x, source.y - 28.0),
+                (source.x + source.width / 2, source.y - 28.0),
                 (source.x + source.width / 2, source.y),
             ]
-        if end[0] > start[0]:
-            middle_x = (start[0] + end[0]) / 2
-            return [start, (middle_x, start[1]), (middle_x, end[1]), end]
-        lane_y = min(source.y, target.y) - 24 - index % 5 * 10
+
+        if end_x >= start_x:
+            pipe_start = start_x + pipe_gap
+            pipe_end = end_x - pipe_gap
+            if pipe_end <= pipe_start:
+                pipe_end = start_x + (end_x - start_x) / 2.0
+                pipe_start = pipe_end
+            return [
+                (start_x, start[1]),
+                (pipe_start, start[1]),
+                (pipe_start, lane_y),
+                (pipe_end, lane_y),
+                (pipe_end, end[1]),
+                end,
+            ]
+
+        pipe_start = start_x + pipe_gap
+        pipe_end = end_x - pipe_gap
         return [
-            start,
-            (start[0] + 16, start[1]),
-            (start[0] + 16, lane_y),
-            (end[0] - 16, lane_y),
-            (end[0] - 16, end[1]),
+            (start_x, start[1]),
+            (pipe_start, start[1]),
+            (pipe_start, lane_y),
+            (pipe_end, lane_y),
+            (pipe_end, end[1]),
             end,
         ]
 
@@ -259,7 +309,7 @@ class CallGraphView(Gtk.Box):
             if source is None or target is None:
                 continue
             points = self._edge_route(source, target, index)
-            context.set_source_rgba(0.24, 0.55, 0.78, 0.95)
+            context.set_source_rgba(0.08, 0.74, 0.96, 0.95)
             context.set_line_width(3.0)
             context.move_to(*points[0])
             for point in points[1:]:
@@ -271,14 +321,12 @@ class CallGraphView(Gtk.Box):
             extents = context.text_extents(label)
             label_x = (points[1][0] + points[-2][0]) / 2 - extents.width / 2
             label_y = (points[1][1] + points[-2][1]) / 2 - 14
-            context.set_source_rgba(0.96, 0.97, 0.94, 0.94)
+            context.set_source_rgba(0.04, 0.62, 0.92, 0.9)
             context.rectangle(
                 label_x - 4, label_y - 12, extents.width + 8, 17
             )
             context.fill()
-            context.set_source_rgba(
-                foreground.red, foreground.green, foreground.blue, foreground.alpha
-            )
+            context.set_source_rgba(1.0, 1.0, 1.0, 1.0)
             context.move_to(label_x, label_y)
             context.show_text(label)
 
