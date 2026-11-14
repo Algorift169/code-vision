@@ -11,7 +11,7 @@ from gi.repository import Gtk
 from ..model import ASTNode
 from .analyzer_theme import AnalyzerTheme
 from .ast_view import ASTView
-from .graphs import CallGraphView, FlowchartView
+from .graphs import CallGraphView, FlowchartView, VariableFlowView
 
 SECTIONS = (
     "Overview",
@@ -99,6 +99,11 @@ class AnalysisPanel(Gtk.Box):
                 self.views.add_named(placeholder, f"section-{index}")
                 self._section_placeholders[section] = placeholder
                 continue
+            if section == "Var Flow":
+                placeholder = VariableFlowView(on_source_navigate=on_source_navigate)
+                self.views.add_named(placeholder, f"section-{index}")
+                self._section_placeholders[section] = placeholder
+                continue
 
             placeholder = Gtk.Box(
                 orientation=Gtk.Orientation.VERTICAL, spacing=0
@@ -152,6 +157,10 @@ class AnalysisPanel(Gtk.Box):
         call_graph_view = self._section_placeholders["Call Graph"]
         if isinstance(call_graph_view, CallGraphView):
             call_graph_view.set_source(source, file_path, language)
+
+        variable_flow_view = self._section_placeholders["Var Flow"]
+        if isinstance(variable_flow_view, VariableFlowView):
+            variable_flow_view.set_source(source, file_path, language)
 
     def _on_section_toggled(
         self, button: Gtk.ToggleButton, section: str

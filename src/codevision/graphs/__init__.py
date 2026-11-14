@@ -12,6 +12,8 @@ from .flowchart_builder import FlowchartBuilder
 from .graph_export import GraphExporter
 from .graph_layout import GraphLayout
 from .graph_validation import GraphValidator
+from .variable_flow import VariableFlowEdge, VariableFlowGraph, VariableFlowNode
+from .variable_flow_builder import VariableFlowBuilder
 
 __all__ = [
     "CallGraph",
@@ -28,4 +30,8 @@ __all__ = [
     "GraphLayout",
     "GraphValidationResult",
     "GraphValidator",
+    "VariableFlowBuilder",
+    "VariableFlowEdge",
+    "VariableFlowGraph",
+    "VariableFlowNode",
 ]
