@@ -107,15 +107,13 @@ def test_flowchart_node_click_navigates_to_ast_source(tmp_path) -> None:
     source = "int main() { int value = 1; return value; }"
     flowchart.set_source(source, tmp_path / "main.c", "c")
     node = next(node for node in flowchart.graph.nodes if node.kind.value == "process")
-    scale, origin_x = flowchart._graph_transform(
-        flowchart.graph, max(1, flowchart.canvas.get_width())
-    )
+    scale, origin_x, origin_y = flowchart._graph_origin()
 
     flowchart._on_canvas_pressed(
         None,
         1,
         origin_x + (node.x + node.width / 2) * scale,
-        16 + (node.y + node.height / 2) * scale,
+        origin_y + (node.y + node.height / 2) * scale,
     )
 
     assert len(navigated) == 1

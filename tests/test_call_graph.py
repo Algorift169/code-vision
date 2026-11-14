@@ -56,11 +56,47 @@ def test_call_graph_arrows_have_label_space_and_terminate_at_callee() -> None:
         if item.source_id == source.node_id and item.target_id == target.node_id
     )
 
-    points = view._edge_route(source, target, 0)
+    points = view._edge_route(source, target, 0, view.graph.nodes)
 
     assert target.x - source.x - source.width >= 20
     assert points[-1] == (target.x, target.y + target.height / 2)
     assert edge.label in {"parse()", "parse() x1"}
+
+
+def test_call_graph_routes_avoid_unrelated_node_boxes() -> None:
+    view = CallGraphView()
+    view.set_source(
+        "void leaf() {} "
+        "void detect() { leaf(); } "
+        "void print_info() { leaf(); } "
+        "void initialize() { detect(); print_info(); } "
+        "void capabilities() { initialize(); } "
+        "void recursive() { recursive(); }",
+        None,
+        "c",
+    )
+    graph = view.graph
+    node_by_id = {node.node_id: node for node in graph.nodes}
+
+    for index, edge in enumerate(graph.edges):
+        source = node_by_id[edge.source_id]
+        target = node_by_id[edge.target_id]
+        points = view._edge_route(source, target, index, graph.nodes)
+        for first, second in zip(points, points[1:]):
+            for node in graph.nodes:
+                if first[1] == second[1]:
+                    crosses = (
+                        node.y < first[1] < node.y + node.height
+                        and max(min(first[0], second[0]), node.x)
+                        < min(max(first[0], second[0]), node.x + node.width)
+                    )
+                else:
+                    crosses = (
+                        node.x < first[0] < node.x + node.width
+                        and max(min(first[1], second[1]), node.y)
+                        < min(max(first[1], second[1]), node.y + node.height)
+                    )
+                assert not crosses, f"edge {edge.label} crossed node {node.name}"
 
 
 def test_call_graph_tracks_nested_function_scope_correctly() -> None:
@@ -144,6 +180,38 @@ def test_call_graph_zoom_buttons_scale_canvas_and_keep_source_hit_testing() -> N
 
     view.zoom_out_button.emit("clicked")
     assert view._zoom == 1.0
+
+
+def test_call_graph_drag_pans_canvas_without_changing_node_hit_testing() -> None:
+    navigated = []
+    view = CallGraphView(on_source_navigate=navigated.append)
+    view.set_source("int leaf() { return 1; } int main() { return leaf(); }", None, "c")
+    view._on_pan_begin(None, 0, 0)
+    view._on_pan_update(None, -35, 20)
+
+    assert view._pan_offset == (-35, 20)
+    node = next(node for node in view.graph.nodes if node.name == "main")
+    origin_x, origin_y = view._graph_origin()
+    view._on_canvas_pressed(
+        None,
+        1,
+        node.x + node.width / 2 + origin_x + view._pan_offset[0],
+        node.y + node.height / 2 + origin_y + view._pan_offset[1],
+    )
+    assert len(navigated) == 1
+
+
+def test_call_graph_is_centered_in_its_canvas() -> None:
+    view = CallGraphView()
+    view.set_source("int leaf() { return 1; } int main() { return leaf(); }", None, "c")
+    left = min(node.x for node in view.graph.nodes)
+    right = max(node.x + node.width for node in view.graph.nodes)
+    top = min(node.y for node in view.graph.nodes)
+    bottom = max(node.y + node.height for node in view.graph.nodes)
+    origin_x, origin_y = view._graph_origin()
+
+    assert (left + right) / 2 + origin_x == view.canvas.get_content_width() / 2
+    assert (top + bottom) / 2 + origin_y == view.canvas.get_content_height() / 2
 
 
 def test_call_graph_supports_python_call_nodes() -> None:

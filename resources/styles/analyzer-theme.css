@@ -27,11 +27,39 @@
     box-shadow: inset 0 -2px @accent;
 }
 
+#analysis-panel button,
+#analysis-panel button label,
+#analysis-panel button image
+{
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    text-shadow: none;
+    color: @text;
+}
+
+#analysis-panel button:hover,
+#analysis-panel button:active,
+#analysis-panel button:checked,
+#analysis-panel button:focus,
+#analysis-panel button:focus-visible
+{
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+    outline: none;
+}
+
 #analysis-panel .analysis-placeholder-title
 {
     color: @muted;
 }
 
+#analysis-panel .theme-toolbar-button,
+#analysis-panel .theme-action-button,
 #analysis-panel .var-flow-panel,
 #analysis-panel .var-flow-workspace,
 #analysis-panel .var-flow-explorer,
@@ -58,22 +86,29 @@
     border-radius: 8px;
 }
 
+#analysis-panel .theme-toolbar-button,
+#analysis-panel .theme-action-button,
 #analysis-panel .var-flow-search-entry,
 #analysis-panel .var-flow-action-button,
 #analysis-panel .var-flow-toolbar-button
 {
-    background-color: @raised;
+    background-color: transparent;
     background-image: none;
     color: @text;
-    border: 1px solid @line;
-    border-radius: 6px;
+    border: none;
+    border-radius: 0;
     box-shadow: none;
     min-height: 28px;
+    padding: 4px 8px;
 }
 
+#analysis-panel .theme-toolbar-button image,
+#analysis-panel .theme-action-button image,
 #analysis-panel .var-flow-search-entry image,
 #analysis-panel .var-flow-action-button image,
 #analysis-panel .var-flow-toolbar-button image,
+#analysis-panel .theme-toolbar-button label,
+#analysis-panel .theme-action-button label,
 #analysis-panel .var-flow-action-button label,
 #analysis-panel .var-flow-toolbar-button label
 {
@@ -81,12 +116,14 @@
     background-color: transparent;
 }
 
+#analysis-panel .theme-toolbar-button:hover,
+#analysis-panel .theme-action-button:hover,
 #analysis-panel .var-flow-search-entry:focus,
 #analysis-panel .var-flow-action-button:focus,
 #analysis-panel .var-flow-toolbar-button:focus
 {
-    border-color: @accent;
-    box-shadow: inset 0 0 0 1px @accent;
+    border: none;
+    box-shadow: none;
 }
 
 #analysis-panel .var-flow-search-entry placeholder,
@@ -106,22 +143,28 @@
     color: @accent-2;
 }
 
+#analysis-panel .theme-toolbar-button:hover,
+#analysis-panel .theme-action-button:hover,
 #analysis-panel .var-flow-toolbar-button:hover,
 #analysis-panel .var-flow-action-button:hover
 {
-    background-color: @hover;
-    color: @accent-2;
-    border-color: @accent;
+    background-color: transparent;
+    color: @text;
+    border: none;
 }
 
+#analysis-panel .theme-toolbar-button:active,
+#analysis-panel .theme-action-button:active,
 #analysis-panel .var-flow-toolbar-button:active,
 #analysis-panel .var-flow-action-button:active,
+#analysis-panel .theme-toolbar-button:checked,
+#analysis-panel .theme-action-button:checked,
 #analysis-panel .var-flow-toolbar-button:checked,
 #analysis-panel .var-flow-action-button:checked
 {
-    background-color: @select;
-    color: @accent;
-    border-color: @accent;
+    background-color: transparent;
+    color: @text;
+    border: none;
 }
 
 #analysis-panel .var-flow-canvas-panel,

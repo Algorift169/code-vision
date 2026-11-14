@@ -66,7 +66,7 @@ class EditorPanel(Gtk.Box):
         source_view.set_tab_width(4)
         source_view.set_indent_width(4)
         source_view.set_insert_spaces_instead_of_tabs(True)
-        source_view.set_vexpand(True)
+        source_view.set_vexpand(False)
         source_view.set_hexpand(True)
         source_view.set_margin_top(6)
         source_view.set_margin_bottom(6)
@@ -86,6 +86,8 @@ class EditorPanel(Gtk.Box):
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_hexpand(True)
+        scrolled.set_vexpand(True)
         scrolled.set_child(source_view)
         self.append(scrolled)
 

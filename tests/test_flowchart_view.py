@@ -77,6 +77,29 @@ def test_graph_transform_centers_full_graph_in_available_canvas_width() -> None:
     assert abs((left + right) / 2 - 240) < 1
 
 
+def test_flowchart_drag_pans_canvas() -> None:
+    view = FlowchartView()
+    view.set_source("int main() { return 1; }", None, "c")
+
+    view._on_pan_begin(None, 0, 0)
+    view._on_pan_update(None, -35, 20)
+
+    assert view._pan_offset == (-35, 20)
+
+
+def test_flowchart_is_centered_in_its_canvas() -> None:
+    view = FlowchartView()
+    view.set_source("int main() { return 1; }", None, "c")
+    left = min(node.x for node in view.graph.nodes)
+    right = max(node.x + node.width for node in view.graph.nodes)
+    top = min(node.y for node in view.graph.nodes)
+    bottom = max(node.y + node.height for node in view.graph.nodes)
+    scale, origin_x, origin_y = view._graph_origin()
+
+    assert (left + right) * scale / 2 + origin_x == view.canvas.get_content_width() / 2
+    assert (top + bottom) * scale / 2 + origin_y == view.canvas.get_content_height() / 2
+
+
 def test_long_condition_is_complete_and_wrapped_inside_its_node() -> None:
     condition = " && ".join(f"feature_flag_{index:02d}" for index in range(12))
     source = f"int main() {{ if ({condition}) return 1; return 0; }}"

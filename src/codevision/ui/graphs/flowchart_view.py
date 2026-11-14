@@ -62,6 +62,7 @@ class FlowchartView(Gtk.Box):
         self._language: str | None = None
         self._selected_node_id: str | None = None
         self._zoom = 1.0
+        self._pan_offset = (0.0, 0.0)
         self._drag_origin = (0.0, 0.0)
         self.graph: FlowchartGraph | None = None
 
@@ -78,28 +79,34 @@ class FlowchartView(Gtk.Box):
         self.function_selector.connect("notify::selected", self._on_function_selected)
         header.append(self.function_selector)
         self.refresh_button = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
+        self.refresh_button.add_css_class("theme-toolbar-button")
         self.refresh_button.set_tooltip_text("Refresh flowchart")
         self.refresh_button.connect("clicked", self._on_refresh_clicked)
         header.append(self.refresh_button)
         self.zoom_out_button = Gtk.Button.new_from_icon_name("zoom-out-symbolic")
+        self.zoom_out_button.add_css_class("theme-toolbar-button")
         self.zoom_out_button.set_tooltip_text("Zoom out")
         self.zoom_out_button.connect("clicked", lambda _button: self._change_zoom(0.8))
         header.append(self.zoom_out_button)
         self.zoom_in_button = Gtk.Button.new_from_icon_name("zoom-in-symbolic")
+        self.zoom_in_button.add_css_class("theme-toolbar-button")
         self.zoom_in_button.set_tooltip_text("Zoom in")
         self.zoom_in_button.connect("clicked", lambda _button: self._change_zoom(1.25))
         header.append(self.zoom_in_button)
         self.fit_button = Gtk.Button.new_from_icon_name("zoom-fit-best-symbolic")
+        self.fit_button.add_css_class("theme-toolbar-button")
         self.fit_button.set_tooltip_text("Fit graph")
         self.fit_button.connect("clicked", self._fit_graph)
         header.append(self.fit_button)
         self.export_button = Gtk.MenuButton()
+        self.export_button.add_css_class("theme-toolbar-button")
         self.export_button.set_child(Gtk.Image.new_from_icon_name("document-save-symbolic"))
         self.export_button.set_tooltip_text("Export flowchart")
         export_popover = Gtk.Popover()
         export_actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         for file_type in ("svg", "png", "pdf"):
             button = Gtk.Button(label=f"Export {file_type.upper()}")
+            button.add_css_class("theme-toolbar-button")
             button.connect("clicked", self._on_export_clicked, file_type)
             export_actions.append(button)
         export_popover.set_child(export_actions)
@@ -202,6 +209,7 @@ class FlowchartView(Gtk.Box):
             return
         self.graph = self._graphs[index]
         self._selected_node_id = None
+        self._pan_offset = (0.0, 0.0)
         self._render_graph()
 
     def _render_graph(self) -> None:
@@ -209,6 +217,7 @@ class FlowchartView(Gtk.Box):
             self.scroller.set_child(self._empty_label)
             return
 
+        min_y = min(node.y for node in self.graph.nodes)
         max_y = max(node.y + node.height for node in self.graph.nodes)
         min_x = min(node.x for node in self.graph.nodes)
         max_x = max(node.x + node.width for node in self.graph.nodes)
@@ -216,13 +225,38 @@ class FlowchartView(Gtk.Box):
         viewport_height = max(320, self.scroller.get_height())
         scale = self._graph_transform(self.graph, viewport_width)[0]
         self.canvas.set_content_width(
-            max(viewport_width, math.ceil((max_x - min_x + 140) * scale * self._zoom))
+            max(
+                viewport_width,
+                math.ceil((max_x - min_x + 140) * scale * self._zoom),
+            )
         )
         self.canvas.set_content_height(
-            max(viewport_height, math.ceil((max_y + 40) * scale * self._zoom))
+            max(
+                viewport_height,
+                math.ceil((max_y - min_y + 32) * scale * self._zoom),
+            )
         )
         self.scroller.set_child(self.canvas)
         self.canvas.queue_draw()
+
+    def _graph_origin(self) -> tuple[float, float, float]:
+        graph = self.graph
+        if graph is None or not graph.nodes:
+            return 1.0, 0.0, 0.0
+        viewport_width = max(320, self.scroller.get_width())
+        scale, _origin_x = self._graph_transform(graph, viewport_width)
+        min_x = min(node.x for node in graph.nodes)
+        max_x = max(node.x + node.width for node in graph.nodes)
+        min_y = min(node.y for node in graph.nodes)
+        max_y = max(node.y + node.height for node in graph.nodes)
+        width = self.canvas.get_content_width() or viewport_width
+        height = self.canvas.get_content_height() or max(320, self.scroller.get_height())
+        scale *= self._zoom
+        return (
+            scale,
+            (width - (max_x - min_x) * scale) / 2 - min_x * scale,
+            (height - (max_y - min_y) * scale) / 2 - min_y * scale,
+        )
 
     def _on_function_selected(
         self, dropdown: Gtk.DropDown, _pspec: object
@@ -238,31 +272,36 @@ class FlowchartView(Gtk.Box):
 
     def _fit_graph(self, _button: Gtk.Button) -> None:
         self._zoom = 1.0
+        self._pan_offset = (0.0, 0.0)
         self._render_graph()
-        self.scroller.get_hadjustment().set_value(0)
-        self.scroller.get_vadjustment().set_value(0)
 
     def _on_pan_begin(
         self, _gesture: Gtk.GestureDrag, _x: float, _y: float
     ) -> None:
-        self._drag_origin = (
-            self.scroller.get_hadjustment().get_value(),
-            self.scroller.get_vadjustment().get_value(),
-        )
+        self._drag_origin = self._pan_offset
 
     def _on_pan_update(
         self, _gesture: Gtk.GestureDrag, offset_x: float, offset_y: float
     ) -> None:
-        horizontal = self.scroller.get_hadjustment()
-        vertical = self.scroller.get_vadjustment()
-        horizontal.set_value(
-            min(horizontal.get_upper() - horizontal.get_page_size(),
-                max(0, self._drag_origin[0] - offset_x))
+        graph = self.graph
+        if graph is None or not graph.nodes:
+            return
+        scale, origin_x, origin_y = self._graph_origin()
+        canvas_width = self.canvas.get_content_width()
+        canvas_height = self.canvas.get_content_height()
+        left = min(node.x for node in graph.nodes) * scale + origin_x
+        right = max(node.x + node.width for node in graph.nodes) * scale + origin_x
+        top = min(node.y for node in graph.nodes) * scale + origin_y
+        bottom = max(node.y + node.height for node in graph.nodes) * scale + origin_y
+        min_x = min(0.0, 40.0 - right)
+        max_x = max(0.0, canvas_width - 40.0 - left)
+        min_y = min(0.0, 40.0 - bottom)
+        max_y = max(0.0, canvas_height - 40.0 - top)
+        self._pan_offset = (
+            min(max_x, max(min_x, self._drag_origin[0] + offset_x)),
+            min(max_y, max(min_y, self._drag_origin[1] + offset_y)),
         )
-        vertical.set_value(
-            min(vertical.get_upper() - vertical.get_page_size(),
-                max(0, self._drag_origin[1] - offset_y))
-        )
+        self.canvas.queue_draw()
 
     def _on_export_clicked(self, _button: Gtk.Button, file_type: str) -> None:
         self.export_button.get_popover().popdown()
@@ -311,11 +350,9 @@ class FlowchartView(Gtk.Box):
         graph = self.graph
         if graph is None:
             return
-        viewport_width = self.scroller.get_width() or self.canvas.get_width()
-        scale, origin_x = self._graph_transform(graph, max(1, viewport_width))
-        scale *= self._zoom
-        graph_x = (x - origin_x * self._zoom) / scale
-        graph_y = (y - 16 * self._zoom) / scale
+        scale, origin_x, origin_y = self._graph_origin()
+        graph_x = (x - self._pan_offset[0] - origin_x) / scale
+        graph_y = (y - self._pan_offset[1] - origin_y) / scale
         selected = next(
             (
                 node
@@ -375,10 +412,9 @@ class FlowchartView(Gtk.Box):
         graph_right = max(node.x + node.width for node in graph.nodes)
         graph_left = min(node.x for node in graph.nodes)
         context.save()
-        viewport_width = self.scroller.get_width() or width
-        scale, origin_x = self._graph_transform(graph, viewport_width)
-        context.translate(origin_x * self._zoom, 16 * self._zoom)
-        scale *= self._zoom
+        scale, origin_x, origin_y = self._graph_origin()
+        context.translate(*self._pan_offset)
+        context.translate(origin_x, origin_y)
         context.scale(scale, scale)
         for edge_index, edge in enumerate(graph.edges):
             source = node_by_id.get(edge.source_id)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import heapq
 from collections import defaultdict, deque
 from collections.abc import Callable
 from pathlib import Path
@@ -29,6 +30,9 @@ class CallGraphView(Gtk.Box):
         self._builder = CallGraphBuilder()
         self._on_source_navigate = on_source_navigate
         self._zoom = 1.0
+        self._pan_offset = (0.0, 0.0)
+        self._drag_origin = (0.0, 0.0)
+        self._routes: list[list[tuple[float, float]]] = []
         self.graph: CallGraph | None = None
 
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
@@ -38,10 +42,12 @@ class CallGraphView(Gtk.Box):
         self.title.set_hexpand(True)
         header.append(self.title)
         self.zoom_out_button = Gtk.Button.new_from_icon_name("zoom-out-symbolic")
+        self.zoom_out_button.add_css_class("theme-toolbar-button")
         self.zoom_out_button.set_tooltip_text("Zoom out")
         self.zoom_out_button.connect("clicked", lambda _button: self._change_zoom(0.8))
         header.append(self.zoom_out_button)
         self.zoom_in_button = Gtk.Button.new_from_icon_name("zoom-in-symbolic")
+        self.zoom_in_button.add_css_class("theme-toolbar-button")
         self.zoom_in_button.set_tooltip_text("Zoom in")
         self.zoom_in_button.connect("clicked", lambda _button: self._change_zoom(1.25))
         header.append(self.zoom_in_button)
@@ -57,6 +63,10 @@ class CallGraphView(Gtk.Box):
         click = Gtk.GestureClick.new()
         click.connect("pressed", self._on_canvas_pressed)
         self.canvas.add_controller(click)
+        drag = Gtk.GestureDrag.new()
+        drag.connect("drag-begin", self._on_pan_begin)
+        drag.connect("drag-update", self._on_pan_update)
+        self.canvas.add_controller(drag)
 
         self.scroller = Gtk.ScrolledWindow()
         self.scroller.set_policy(
@@ -80,6 +90,7 @@ class CallGraphView(Gtk.Box):
     ) -> None:
         if source is None or not source.strip():
             self.graph = None
+            self._routes = []
             self.title.set_text("Function Call Graph")
             self._show_state("Open a source file to view its call graph.")
             return
@@ -88,6 +99,7 @@ class CallGraphView(Gtk.Box):
             self.graph = self._builder.build(result)
         except (RuntimeError, ValueError, TypeError) as error:
             self.graph = None
+            self._routes = []
             self._show_state(f"Call graph unavailable: {error}")
             return
 
@@ -95,9 +107,21 @@ class CallGraphView(Gtk.Box):
             f"Function Call Graph · {file_path.name if file_path else 'Untitled source'}"
         )
         if not self.graph.nodes:
+            self._routes = []
             self._show_state("No function definitions found in this source.")
             return
+        self._pan_offset = (0.0, 0.0)
         self._layout_graph()
+        node_by_id = {node.node_id: node for node in self.graph.nodes}
+        self._routes = [
+            self._edge_route(
+                node_by_id[edge.source_id],
+                node_by_id[edge.target_id],
+                index,
+                self.graph.nodes,
+            )
+            for index, edge in enumerate(self.graph.edges)
+        ]
         self._render_graph()
 
     def _show_state(self, message: str) -> None:
@@ -179,20 +203,68 @@ class CallGraphView(Gtk.Box):
     def _render_graph(self) -> None:
         if self.graph is None or not self.graph.nodes:
             return
+        left = min(node.x for node in self.graph.nodes)
         right = max(node.x + node.width for node in self.graph.nodes)
+        top = min(node.y for node in self.graph.nodes)
         bottom = max(node.y + node.height for node in self.graph.nodes)
+        viewport_width = max(260, self.scroller.get_width())
+        viewport_height = max(200, self.scroller.get_height())
+        padding = 80
         self.canvas.set_content_width(
-            max(260, math.ceil((right + 18) * self._zoom))
+            max(viewport_width, math.ceil((right - left) * self._zoom + padding))
         )
         self.canvas.set_content_height(
-            max(200, math.ceil((bottom + 18) * self._zoom))
+            max(viewport_height, math.ceil((bottom - top) * self._zoom + padding))
         )
         self.scroller.set_child(self.canvas)
         self.canvas.queue_draw()
 
+    def _graph_origin(self) -> tuple[float, float]:
+        graph = self.graph
+        if graph is None or not graph.nodes:
+            return 0.0, 0.0
+        left = min(node.x for node in graph.nodes)
+        right = max(node.x + node.width for node in graph.nodes)
+        top = min(node.y for node in graph.nodes)
+        bottom = max(node.y + node.height for node in graph.nodes)
+        width = self.canvas.get_content_width() or self.canvas.get_width()
+        height = self.canvas.get_content_height() or self.canvas.get_height()
+        return (
+            (width - (right - left) * self._zoom) / 2 - left * self._zoom,
+            (height - (bottom - top) * self._zoom) / 2 - top * self._zoom,
+        )
+
     def _change_zoom(self, factor: float) -> None:
         self._zoom = min(3.0, max(0.4, self._zoom * factor))
         self._render_graph()
+
+    def _on_pan_begin(
+        self, _gesture: Gtk.GestureDrag, _x: float, _y: float
+    ) -> None:
+        self._drag_origin = self._pan_offset
+
+    def _on_pan_update(
+        self, _gesture: Gtk.GestureDrag, offset_x: float, offset_y: float
+    ) -> None:
+        graph = self.graph
+        if graph is None or not graph.nodes:
+            return
+        origin_x, origin_y = self._graph_origin()
+        canvas_width = self.canvas.get_content_width()
+        canvas_height = self.canvas.get_content_height()
+        left = min(node.x for node in graph.nodes) * self._zoom + origin_x
+        right = max(node.x + node.width for node in graph.nodes) * self._zoom + origin_x
+        top = min(node.y for node in graph.nodes) * self._zoom + origin_y
+        bottom = max(node.y + node.height for node in graph.nodes) * self._zoom + origin_y
+        min_x = min(0.0, 40.0 - right)
+        max_x = max(0.0, canvas_width - 40.0 - left)
+        min_y = min(0.0, 40.0 - bottom)
+        max_y = max(0.0, canvas_height - 40.0 - top)
+        self._pan_offset = (
+            min(max_x, max(min_x, self._drag_origin[0] + offset_x)),
+            min(max_y, max(min_y, self._drag_origin[1] + offset_y)),
+        )
+        self.canvas.queue_draw()
 
     def _on_canvas_pressed(
         self,
@@ -203,8 +275,9 @@ class CallGraphView(Gtk.Box):
     ) -> None:
         if self.graph is None or self._on_source_navigate is None:
             return
-        x /= self._zoom
-        y /= self._zoom
+        origin_x, origin_y = self._graph_origin()
+        x = (x - self._pan_offset[0] - origin_x) / self._zoom
+        y = (y - self._pan_offset[1] - origin_y) / self._zoom
         node = next(
             (
                 item for item in reversed(self.graph.nodes)
@@ -224,49 +297,115 @@ class CallGraphView(Gtk.Box):
 
     @staticmethod
     def _edge_route(
-        source: object, target: object, index: int
+        source: object,
+        target: object,
+        index: int,
+        nodes: list[object] | None = None,
     ) -> list[tuple[float, float]]:
-        start_x = source.x + source.width
-        end_x = target.x
-        start = (start_x, source.y + source.height / 2)
-        end = (end_x, target.y + target.height / 2)
-        pipe_gap = 18.0
-        lane_y = min(source.y, target.y) - 18.0 - (index % 5) * 8.0
+        source_right = source.x + source.width
+        target_right = target.x + target.width
         if source.node_id == target.node_id:
-            lane_x = start_x + pipe_gap + 14.0
-            return [
-                start,
-                (lane_x, start[1]),
-                (lane_x, source.y - 28.0),
-                (source.x + source.width / 2, source.y - 28.0),
-                (source.x + source.width / 2, source.y),
-            ]
+            start = (source_right, source.y + source.height / 2)
+            end = (source.x, source.y + source.height / 2)
+        elif target.x >= source_right:
+            start = (source_right, source.y + source.height / 2)
+            end = (target.x, target.y + target.height / 2)
+        else:
+            start = (source.x, source.y + source.height / 2)
+            end = (target_right, target.y + target.height / 2)
 
-        if end_x >= start_x:
-            pipe_start = start_x + pipe_gap
-            pipe_end = end_x - pipe_gap
-            if pipe_end <= pipe_start:
-                pipe_end = start_x + (end_x - start_x) / 2.0
-                pipe_start = pipe_end
-            return [
-                (start_x, start[1]),
-                (pipe_start, start[1]),
-                (pipe_start, lane_y),
-                (pipe_end, lane_y),
-                (pipe_end, end[1]),
-                end,
-            ]
+        obstacles = nodes if nodes is not None else [source, target]
+        padding = 18.0
+        x_values = {start[0], end[0]}
+        y_values = {start[1], end[1]}
+        for node in obstacles:
+            x_values.update(
+                (node.x - padding, node.x, node.x + node.width,
+                 node.x + node.width + padding)
+            )
+            y_values.update(
+                (node.y - padding, node.y, node.y + node.height,
+                 node.y + node.height + padding, node.y + node.height / 2)
+            )
 
-        pipe_start = start_x + pipe_gap
-        pipe_end = end_x - pipe_gap
-        return [
-            (start_x, start[1]),
-            (pipe_start, start[1]),
-            (pipe_start, lane_y),
-            (pipe_end, lane_y),
-            (pipe_end, end[1]),
-            end,
+        xs = sorted(x_values)
+        ys = sorted(y_values)
+        points = [(x, y) for y in ys for x in xs]
+        point_index = {point: index for index, point in enumerate(points)}
+
+        def inside_node(point: tuple[float, float], node: object) -> bool:
+            x, y = point
+            return node.x < x < node.x + node.width and node.y < y < node.y + node.height
+
+        def segment_clear(
+            first: tuple[float, float], second: tuple[float, float]
+        ) -> bool:
+            for node in obstacles:
+                left, right = node.x, node.x + node.width
+                top, bottom = node.y, node.y + node.height
+                if first[1] == second[1]:
+                    if top <= first[1] <= bottom and max(min(first[0], second[0]), left) < min(max(first[0], second[0]), right):
+                        return False
+                elif left <= first[0] <= right and max(min(first[1], second[1]), top) < min(max(first[1], second[1]), bottom):
+                    return False
+            return True
+
+        valid = [
+            not any(inside_node(point, node) for node in obstacles)
+            or point in {start, end}
+            for point in points
         ]
+        start_index = point_index[start]
+        end_index = point_index[end]
+        distances = [math.inf] * len(points)
+        previous: list[int | None] = [None] * len(points)
+        distances[start_index] = 0.0
+        pending = [(0.0, start_index)]
+        while pending:
+            distance, current = heapq.heappop(pending)
+            if distance != distances[current]:
+                continue
+            if current == end_index:
+                break
+            x_index = current % len(xs)
+            y_index = current // len(xs)
+            neighbors = []
+            if x_index > 0:
+                neighbors.append(current - 1)
+            if x_index + 1 < len(xs):
+                neighbors.append(current + 1)
+            if y_index > 0:
+                neighbors.append(current - len(xs))
+            if y_index + 1 < len(ys):
+                neighbors.append(current + len(xs))
+            for neighbor in neighbors:
+                if not valid[neighbor] or not segment_clear(points[current], points[neighbor]):
+                    continue
+                step = abs(points[current][0] - points[neighbor][0]) + abs(points[current][1] - points[neighbor][1])
+                candidate = distance + step
+                if candidate < distances[neighbor]:
+                    distances[neighbor] = candidate
+                    previous[neighbor] = current
+                    heapq.heappush(pending, (candidate, neighbor))
+
+        if not math.isfinite(distances[end_index]):
+            return [start, (start[0], source.y - padding),
+                    (end[0], source.y - padding), end]
+        route = []
+        current: int | None = end_index
+        while current is not None:
+            route.append(points[current])
+            current = previous[current]
+        route.reverse()
+        simplified = [route[0]]
+        for point in route[1:]:
+            if len(simplified) >= 2:
+                first, middle = simplified[-2], simplified[-1]
+                if (first[0] == middle[0] == point[0]) or (first[1] == middle[1] == point[1]):
+                    simplified[-1] = point
+                    continue
+            simplified.append(point)
+        return simplified
 
     @staticmethod
     def _draw_arrow(
@@ -295,6 +434,8 @@ class CallGraphView(Gtk.Box):
         if graph is None:
             return
         context.save()
+        context.translate(*self._pan_offset)
+        context.translate(*self._graph_origin())
         context.scale(self._zoom, self._zoom)
         context.select_font_face("Sans", 0, 0)
         context.set_font_size(12)
@@ -308,7 +449,7 @@ class CallGraphView(Gtk.Box):
             target = node_by_id.get(edge.target_id)
             if source is None or target is None:
                 continue
-            points = self._edge_route(source, target, index)
+            points = self._routes[index]
             context.set_source_rgba(0.08, 0.74, 0.96, 0.95)
             context.set_line_width(3.0)
             context.move_to(*points[0])
@@ -319,16 +460,19 @@ class CallGraphView(Gtk.Box):
             self._draw_arrow(context, start, end)
             label = edge.label
             extents = context.text_extents(label)
-            label_x = (points[1][0] + points[-2][0]) / 2 - extents.width / 2
-            label_y = (points[1][1] + points[-2][1]) / 2 - 14
-            context.set_source_rgba(0.04, 0.62, 0.92, 0.9)
-            context.rectangle(
-                label_x - 4, label_y - 12, extents.width + 8, 17
-            )
-            context.fill()
-            context.set_source_rgba(1.0, 1.0, 1.0, 1.0)
-            context.move_to(label_x, label_y)
-            context.show_text(label)
+            horizontal_segments = [
+                (abs(second[0] - first[0]), first, second)
+                for first, second in zip(points, points[1:])
+                if first[1] == second[1]
+            ]
+            if horizontal_segments:
+                segment_length, first, second = max(horizontal_segments, key=lambda item: item[0])
+                if segment_length >= extents.width + 12:
+                    label_x = (first[0] + second[0]) / 2 - extents.width / 2
+                    label_y = first[1] - 6
+                    context.set_source_rgba(0.65, 0.88, 0.98, 0.95)
+                    context.move_to(label_x, label_y)
+                    context.show_text(label)
 
         for node in graph.nodes:
             context.set_source_rgba(0.16, 0.48, 0.42, 0.20)

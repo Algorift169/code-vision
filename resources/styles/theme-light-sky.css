@@ -60,7 +60,25 @@ headerbar button,
 window#codevision-window headerbar .menu-button,
 window#codevision-window headerbar .window-title
 {
-    color: #ffffff;
+    color: @text;
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+button:hover,
+button:active,
+button:checked,
+button:focus,
+button:focus-visible
+{
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+    outline: none;
 }
 
 #project-panel .explorer-open-folder,
@@ -155,8 +173,8 @@ window#codevision-window .section-title,
 .context-menu-item:hover,
 .codevision-context-menu .context-menu-item:hover
 {
-    background-color: @hover;
-    color: #111111;
+    background-color: transparent;
+    color: @text;
 }
 
 .search-entry,
