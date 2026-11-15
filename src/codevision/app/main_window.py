@@ -92,7 +92,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._open_dialog: Gtk.FileChooserNative | None = None
         self._save_dialog: Gtk.FileChooserNative | None = None
         self._project_explorer_visible = True
-        self._analysis_panel_visible = True
+        self._analysis_panel_visible = False
         self._editor_visible = True
         self._focus_mode_active = False
         self._editor_zoom = 0
@@ -180,6 +180,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._analysis_placeholder = Gtk.Box()
         self._analysis_placeholder.set_hexpand(True)
         self._analysis_placeholder.set_vexpand(True)
+        self._analysis_placeholder.set_visible(False)
         self._editor_placeholder = Gtk.Box()
         self._editor_placeholder.set_hexpand(True)
         self._editor_placeholder.set_vexpand(True)
@@ -259,7 +260,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         workspace.set_position(260)
 
         right_pane.set_start_child(self.center_stack)
-        right_pane.set_end_child(analysis_panel)
+        right_pane.set_end_child(self._analysis_placeholder)
         right_pane.set_position(820)
         self.project_panel = project_panel
 
@@ -484,17 +485,23 @@ layout after exiting focus mode. The view menu is updated after
     def toggle_analysis_panel(self) -> None:
         self._analysis_panel_visible = not self._analysis_panel_visible
         if self._analysis_panel_visible:
+            self.analysis_panel.set_visible(True)
+            self._analysis_placeholder.set_visible(False)
             self.right_pane.set_end_child(self.analysis_panel)
         else:
+            self.analysis_panel.set_visible(False)
+            self._analysis_placeholder.set_visible(False)
             self.right_pane.set_end_child(self._analysis_placeholder)
-        self.view_menu._update_state()
+        if hasattr(self, "view_menu"):
+            self.view_menu._update_state()
 
     def show_analysis_panel(self) -> None:
         self._analysis_panel_visible = True
         if self._focus_mode_active:
             self._focus_mode_previous_analysis = True
+        self.analysis_panel.set_visible(True)
+        self._analysis_placeholder.set_visible(False)
         self.right_pane.set_end_child(self.analysis_panel)
-        self.right_pane.set_position(180)
 
         if hasattr(self, "view_menu"):
             self.view_menu._update_state()
@@ -518,8 +525,12 @@ layout after exiting focus mode. The view menu is updated after
             else:
                 self.workspace.set_start_child(self._project_placeholder)
             if self._analysis_panel_visible:
+                self.analysis_panel.set_visible(True)
+                self._analysis_placeholder.set_visible(False)
                 self.right_pane.set_end_child(self.analysis_panel)
             else:
+                self.analysis_panel.set_visible(False)
+                self._analysis_placeholder.set_visible(False)
                 self.right_pane.set_end_child(self._analysis_placeholder)
         self.view_menu._update_state()
 

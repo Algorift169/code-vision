@@ -124,7 +124,14 @@ class AnalysisPanel(Gtk.Box):
             self.views.add_named(placeholder, page_name)
             self._section_placeholders[section] = placeholder
 
-        self.append(self.views)
+        views_scroller = Gtk.ScrolledWindow()
+        views_scroller.set_policy(
+            Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC
+        )
+        views_scroller.set_hexpand(True)
+        views_scroller.set_vexpand(True)
+        views_scroller.set_child(self.views)
+        self.append(views_scroller)
         self.select_section(SECTIONS[0])
 
     @property
