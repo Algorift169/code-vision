@@ -12,7 +12,7 @@ PYCACHE_DIR := $(BUILD_DIR)/pycache
 PIP_CACHE_DIR := $(BUILD_DIR)/pip-cache
 BINARY_NAME := codevision
 
-.PHONY: install run test clean build-binary
+.PHONY: install run test test-all clean build-binary
 
 install:
 	# Create the build directories before any package or binary output is generated.
@@ -29,9 +29,11 @@ run:
 	# Run from the source tree while also resolving the build-local package copy.
 	exec env PYTHONPYCACHEPREFIX="$(PYCACHE_DIR)" PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m codevision
 
-test:
-	# Keep test runs aligned with the same source import path.
+test-all:
+	# Run the full project test suite using the same source import path.
 	PYTHONPYCACHEPREFIX="$(PYCACHE_DIR)" PYTHONPATH="src:$(SITE_PACKAGES)" $(PYTHON) -m pytest -q
+
+test: test-all
 
 build-binary:
 	# Build any executable output under the project build tree only.
