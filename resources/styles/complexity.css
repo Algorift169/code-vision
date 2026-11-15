@@ -1,0 +1,186 @@
+#analysis-panel .complexity-header {
+  padding: 2px 0 8px 0;
+}
+
+#analysis-panel .complexity-header-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: @text;
+}
+
+#analysis-panel .complexity-meta-label,
+#analysis-panel .complexity-status-badge,
+#analysis-panel .complexity-card-subtitle,
+#analysis-panel .complexity-panel-title,
+#analysis-panel .complexity-hotspot-meta,
+#analysis-panel .complexity-empty-label,
+#analysis-panel .complexity-panel-subtitle,
+#analysis-panel .complexity-chart-count,
+#analysis-panel .complexity-status-box {
+  color: @muted;
+}
+
+#analysis-panel .complexity-status-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: @hover;
+  border: 1px solid @line;
+}
+
+#analysis-panel .complexity-summary-grid {
+  margin-bottom: 8px;
+}
+
+#analysis-panel .complexity-metric-card {
+  background-color: @surface;
+  border: 1px solid @line;
+  border-radius: 12px;
+  padding: 12px 14px;
+  min-width: 150px;
+}
+
+#analysis-panel .complexity-card-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: @muted;
+}
+
+#analysis-panel .complexity-card-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: @text;
+}
+
+#analysis-panel .complexity-card-subtitle {
+  font-size: 11px;
+}
+
+#analysis-panel .complexity-card-low { border-left: 3px solid #3ddc97; }
+#analysis-panel .complexity-card-moderate { border-left: 3px solid #ffd166; }
+#analysis-panel .complexity-card-high { border-left: 3px solid #ff8c42; }
+
+#analysis-panel .complexity-distribution-box,
+#analysis-panel .complexity-chart-panel,
+#analysis-panel .complexity-main-box,
+#analysis-panel .complexity-details-panel,
+#analysis-panel .complexity-hotspots,
+#analysis-panel .complexity-function-list {
+  background-color: @surface;
+  border: 1px solid @line;
+  border-radius: 12px;
+}
+
+#analysis-panel .complexity-chart-panel,
+#analysis-panel .complexity-details-panel,
+#analysis-panel .complexity-hotspots {
+  padding: 12px;
+}
+
+#analysis-panel .complexity-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: @text;
+  margin-bottom: 6px;
+}
+
+#analysis-panel .complexity-chart-row {
+  padding: 4px 0;
+  border-radius: 8px;
+}
+
+#analysis-panel .complexity-chart-button {
+  min-width: 96px;
+  color: @text;
+  background: transparent;
+  border: 1px solid @line;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+#analysis-panel .complexity-chart-count {
+  min-width: 28px;
+  text-align: end;
+}
+
+#analysis-panel progressbar trough {
+  min-height: 8px;
+  border-radius: 999px;
+  background-color: #1a1d2a;
+}
+
+#analysis-panel progressbar progress {
+  border-radius: 999px;
+}
+
+#analysis-panel .complexity-bar-low progress { background: #3ddc97; }
+#analysis-panel .complexity-bar-moderate progress { background: #ffd166; }
+#analysis-panel .complexity-bar-high progress { background: #ff8c42; }
+#analysis-panel .complexity-bar-very-high progress { background: #ff4d6d; }
+
+#analysis-panel .complexity-table-toolbar {
+  padding: 0 0 8px 0;
+}
+
+#analysis-panel .complexity-filter-button,
+#analysis-panel .complexity-chart-button,
+#analysis-panel .theme-toolbar-button {
+  color: @text;
+  background-color: transparent;
+  border: 1px solid @line;
+  border-radius: 8px;
+}
+
+#analysis-panel .complexity-filter-button:checked {
+  background-color: @hover;
+  border-color: @accent;
+  color: @text;
+}
+
+#analysis-panel .complexity-function-list {
+  background: transparent;
+}
+
+#analysis-panel .complexity-function-row {
+  padding: 8px 10px;
+  border-bottom: 1px solid @line;
+  background: transparent;
+}
+
+#analysis-panel .complexity-function-row:hover {
+  background-color: @hover;
+}
+
+#analysis-panel .complexity-function-row label {
+  color: @text;
+}
+
+#analysis-panel .complexity-risk-low { color: #57d38b; }
+#analysis-panel .complexity-risk-moderate { color: #f8c86c; }
+#analysis-panel .complexity-risk-high { color: #ff7b54; }
+
+#analysis-panel .complexity-details-panel {
+  min-width: 260px;
+}
+
+#analysis-panel .complexity-details-summary,
+#analysis-panel .complexity-details-copy,
+#analysis-panel .complexity-hotspot-title,
+#analysis-panel .complexity-hotspot-meta {
+  color: @text;
+}
+
+#analysis-panel .complexity-hotspot-item {
+  padding: 10px 12px;
+  border: 1px solid @line;
+  border-radius: 10px;
+  background-color: @surface;
+}
+
+#analysis-panel .complexity-hotspot-item:hover {
+  background-color: @hover;
+}
+
+#analysis-panel .complexity-empty-label {
+  color: @muted;
+}

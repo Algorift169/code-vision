@@ -11,6 +11,7 @@ from gi.repository import Gtk
 from ..model import ASTNode
 from .analyzer_theme import AnalyzerTheme
 from .ast_view import ASTView
+from .complexity_view import ComplexityView
 from .graphs import CallGraphView, FlowchartView, VariableFlowView
 
 SECTIONS = (
@@ -38,7 +39,7 @@ class AnalysisPanel(Gtk.Box):
         self.add_css_class("panel")
         self.set_vexpand(True)
         self.set_hexpand(True)
-        self.set_size_request(0, -1)
+        self.set_size_request(360, -1)
         self.set_margin_top(0)
         self.set_margin_bottom(0)
         self.current_section = SECTIONS[0]
@@ -101,6 +102,11 @@ class AnalysisPanel(Gtk.Box):
                 continue
             if section == "Var Flow":
                 placeholder = VariableFlowView(on_source_navigate=on_source_navigate)
+                self.views.add_named(placeholder, f"section-{index}")
+                self._section_placeholders[section] = placeholder
+                continue
+            if section == "Complexity":
+                placeholder = ComplexityView(on_source_navigate=on_source_navigate)
                 self.views.add_named(placeholder, f"section-{index}")
                 self._section_placeholders[section] = placeholder
                 continue
@@ -168,6 +174,10 @@ class AnalysisPanel(Gtk.Box):
         variable_flow_view = self._section_placeholders["Var Flow"]
         if isinstance(variable_flow_view, VariableFlowView):
             variable_flow_view.set_source(source, file_path, language)
+
+        complexity_view = self._section_placeholders["Complexity"]
+        if isinstance(complexity_view, ComplexityView):
+            complexity_view.set_source(source, file_path, language)
 
     def _on_section_toggled(
         self, button: Gtk.ToggleButton, section: str

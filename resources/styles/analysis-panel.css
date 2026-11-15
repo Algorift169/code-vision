@@ -1,4 +1,35 @@
-#analysis-panel
+#analysis-panel,
+#analysis-panel *,
+#analysis-panel label,
+#analysis-panel box,
+#analysis-panel scrolledwindow,
+#analysis-panel viewport
+{
+    color: @text;
+    background-color: transparent;
+}
+
+#analysis-panel scrollbar,
+#analysis-panel scrollbar slider,
+#analysis-panel scrollbar trough,
+#analysis-panel scrolledwindow scrollbar,
+#analysis-panel scrolledwindow scrollbar slider,
+#analysis-panel scrolledwindow scrollbar trough
+{
+    min-width: 7px;
+    min-height: 7px;
+}
+
+#analysis-panel scrollbar slider,
+#analysis-panel scrolledwindow scrollbar slider
+{
+    border-radius: 999px;
+    background-color: alpha(currentColor, 0.48);
+    border: 1px solid alpha(currentColor, 0.18);
+}
+
+#analysis-panel scrollbar trough,
+#analysis-panel scrolledwindow scrollbar trough
 {
     background-color: transparent;
 }

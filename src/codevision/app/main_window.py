@@ -48,6 +48,7 @@ STYLESHEETS = (
     "analysis-panel.css",
     "ast-view.css",
     "flowchart.css",
+    "complexity.css",
     "kong-browser.css",
 )
 
@@ -96,7 +97,9 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._editor_visible = True
         self._focus_mode_active = False
         self._editor_zoom = 0
+        self._ui_zoom = 0
         self._editor_font_providers: dict[int, Gtk.CssProvider] = {}
+        self._ui_zoom_provider: Gtk.CssProvider | None = None
         self._ast_editor: EditorPanel | None = None
         self._ast_buffer_handler: int | None = None
         self._ast_refresh_source_id = 0
@@ -250,7 +253,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         project_panel.set_name("project-panel")
 
         analysis_panel = AnalysisPanel(
-            on_source_navigate=self._navigate_to_ast_node
+            on_source_navigate=self._navigate_to_ast_node,
         )
         analysis_panel.set_name("analysis-panel")
         self.analysis_panel = analysis_panel
@@ -488,6 +491,7 @@ layout after exiting focus mode. The view menu is updated after
             self.analysis_panel.set_visible(True)
             self._analysis_placeholder.set_visible(False)
             self.right_pane.set_end_child(self.analysis_panel)
+            self.right_pane.set_position(max(self.right_pane.get_position(), 360))
         else:
             self.analysis_panel.set_visible(False)
             self._analysis_placeholder.set_visible(False)
@@ -502,6 +506,7 @@ layout after exiting focus mode. The view menu is updated after
         self.analysis_panel.set_visible(True)
         self._analysis_placeholder.set_visible(False)
         self.right_pane.set_end_child(self.analysis_panel)
+        self.right_pane.set_position(max(self.right_pane.get_position(), 360))
 
         if hasattr(self, "view_menu"):
             self.view_menu._update_state()
@@ -528,6 +533,7 @@ layout after exiting focus mode. The view menu is updated after
                 self.analysis_panel.set_visible(True)
                 self._analysis_placeholder.set_visible(False)
                 self.right_pane.set_end_child(self.analysis_panel)
+                self.right_pane.set_position(max(self.right_pane.get_position(), 360))
             else:
                 self.analysis_panel.set_visible(False)
                 self._analysis_placeholder.set_visible(False)
@@ -540,7 +546,11 @@ layout after exiting focus mode. The view menu is updated after
     """
     def zoom_in(self) -> None:
         self._editor_zoom = min(self._editor_zoom + 1, 8)
+        self._ui_zoom = getattr(self, "_ui_zoom", 0)
+        self._ui_zoom = min(self._ui_zoom + 1, 8)
         self._apply_editor_zoom()
+        if hasattr(self, "_apply_global_zoom"):
+            self._apply_global_zoom()
 
     """Decreases the editor's zoom level by one step.
     The value is limited to -5 to keep the text from shrinking indefinitely,
@@ -548,7 +558,11 @@ layout after exiting focus mode. The view menu is updated after
     """
     def zoom_out(self) -> None:
         self._editor_zoom = max(self._editor_zoom - 1, -5)
+        self._ui_zoom = getattr(self, "_ui_zoom", 0)
+        self._ui_zoom = max(self._ui_zoom - 1, -5)
         self._apply_editor_zoom()
+        if hasattr(self, "_apply_global_zoom"):
+            self._apply_global_zoom()
 
     """Returns editor zoom to its default level.
     It resets the stored adjustment to zero and reapplies the default font size
@@ -556,7 +570,36 @@ layout after exiting focus mode. The view menu is updated after
     """
     def reset_zoom(self) -> None:
         self._editor_zoom = 0
+        self._ui_zoom = 0
         self._apply_editor_zoom()
+        if hasattr(self, "_apply_global_zoom"):
+            self._apply_global_zoom()
+
+    def _apply_global_zoom(self) -> None:
+        if not hasattr(self, "_ui_zoom"):
+            self._ui_zoom = 0
+        if not hasattr(self, "_ui_zoom_provider"):
+            self._ui_zoom_provider = None
+        if self._ui_zoom_provider is None:
+            self._ui_zoom_provider = Gtk.CssProvider()
+            display = Gdk.Display.get_default()
+            if display is not None:
+                Gtk.StyleContext.add_provider_for_display(
+                    display,
+                    self._ui_zoom_provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_USER,
+                )
+
+        size = max(9, 12 + self._ui_zoom)
+        css = (
+            f"window, box, label, button, entry, searchentry, menubutton, popover, menu, listbox, listview, treeview, textview, headerbar, toolbar, notebook, frame, scrolledwindow {{ font-size: {size}px; }}"
+            f"scrollbar {{ min-width: 7px; min-height: 7px; }}"
+            f"scrollbar slider {{ min-width: 7px; min-height: 7px; border-radius: 999px; background-color: alpha(currentColor, 0.45); }}"
+            f"scrollbar trough {{ background-color: transparent; }}"
+            f"#analysis-panel scrollbar {{ min-width: 7px; min-height: 7px; }}"
+            f"#analysis-panel scrollbar slider {{ min-width: 7px; min-height: 7px; border-radius: 999px; background-color: alpha(currentColor, 0.55); }}"
+        )
+        self._ui_zoom_provider.load_from_string(css)
 
     """Applies the current zoom level as CSS to every editor source view.
     It calculates a point size, skips tabs without a source view, reuses or
