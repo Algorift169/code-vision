@@ -20,6 +20,7 @@ class FlowchartBuilder:
         "method_declaration",
         "method_definition",
         "constructor_declaration",
+        "label_definition",
     }
     _BLOCK_TYPES: ClassVar[set[str]] = {
         "block",
@@ -59,6 +60,8 @@ class FlowchartBuilder:
         "assert_statement",
         "delete_expression",
         "yield_statement",
+        "directive",
+        "instruction",
     }
     _OUTPUT_CALLS: ClassVar[set[str]] = {
         "print",
@@ -110,6 +113,9 @@ class FlowchartBuilder:
 
     @classmethod
     def _function_name(cls, function: ASTNode) -> str:
+        if function.node_type == "label_definition":
+            text = function.source_text.strip() or function.display_name.replace("Label:", "", 1).strip()
+            return text.split(":", 1)[0].strip() or "label"
         for node in function.walk():
             if node.node_type in {"identifier", "name", "type_identifier"}:
                 return node.source_text.strip()
@@ -366,6 +372,25 @@ class FlowchartBuilder:
             loop_stack: list[dict[str, list[str]]],
         ) -> list[str]:
             node_type = ast_node.node_type
+            if node_type == "instruction":
+                text = exact_source(ast_node).strip().lower()
+                if text.startswith(("ret", "retn", "return")):
+                    item = make_node(
+                        ast_node,
+                        FlowchartNodeKind.RETURN,
+                        f"RETURN: {exact_source(ast_node)}",
+                    )
+                    connect_incoming(incoming, item.node_id)
+                    terminal_nodes.append(item.node_id)
+                    return []
+                if text.startswith(("call", "bl", "b", "jal")) and "call" in text:
+                    item = make_node(
+                        ast_node,
+                        FlowchartNodeKind.FUNCTION,
+                        f"CALL: {exact_source(ast_node)}",
+                    )
+                    connect_incoming(incoming, item.node_id)
+                    return [item.node_id]
             if node_type in self._BLOCK_TYPES:
                 return sequence(ast_node.children, incoming, loop_stack)
             if node_type in self._IF_TYPES or node_type in {"elif_clause", "else_if_clause"}:

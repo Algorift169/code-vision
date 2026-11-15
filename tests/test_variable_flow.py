@@ -72,3 +72,38 @@ def test_analysis_panel_var_flow_builds_graph_for_real_source_file(tmp_path) -> 
     assert var_flow._graph.variable_name in {"value", "result"}
     assert len(var_flow._graph.nodes) >= 2
     assert len(var_flow._graph.edges) >= 1
+
+
+def test_assembly_variable_flow_tracks_register_definitions_and_uses() -> None:
+    source = (
+        ".text\n"
+        "main:\n"
+        "    mov $1, %eax\n"
+        "    mov %eax, %ebx\n"
+        "    add %eax, %ebx\n"
+        "    ret\n"
+    )
+    result = SourceParser().parse(source, language="asm")
+
+    analysis = VariableFlowAnalysis(source_file=None, language="asm").analyze(result)
+    facts = {fact.name: fact for fact in analysis.facts}
+
+    assert {"eax", "ebx"} <= facts.keys()
+    assert facts["eax"].scope == "main"
+    assert facts["eax"].definitions
+    assert facts["eax"].uses
+    assert facts["ebx"].definitions
+    assert facts["ebx"].uses
+
+
+def test_assembly_var_flow_panel_builds_selected_register_graph() -> None:
+    panel = AnalysisPanel()
+    var_flow = panel._section_placeholders["Var Flow"]
+    source = ".text\nmain:\n    mov $1, %eax\n    add $2, %eax\n    ret\n"
+
+    panel.set_source(source, None, "asm")
+
+    assert var_flow._analysis.facts
+    assert var_flow._graph is not None
+    assert var_flow._graph.nodes
+    assert var_flow.summary_label.get_text().startswith("1 variables")

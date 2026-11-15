@@ -71,6 +71,17 @@ def test_flowchart_builder_supports_python_functions_and_output_calls() -> None:
     assert graph.validate().valid
 
 
+def test_flowchart_builder_supports_assembly_labels_and_directives() -> None:
+    source = ".text\n.globl main\nmain:\n    mov $1, %eax\n    ret\n"
+    result = SourceParser().parse(source, language="asm")
+
+    graphs = FlowchartBuilder().build_all(result, source)
+
+    assert graphs
+    assert [graph.function_name for graph in graphs] == ["main"]
+    assert all(graph.validate().valid for graph in graphs)
+
+
 def test_flowchart_builder_can_build_each_function_separately() -> None:
     source = "int first() { return 1; } int second() { return 2; }"
     result = SourceParser().parse(source, language="c")

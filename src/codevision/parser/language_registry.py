@@ -62,6 +62,22 @@ class LanguageRegistry:
         supports_parsing=True,
         capabilities=("ast", "diagnostics"),
     )
+    ASM = LanguageInfo(
+        "asm",
+        "Assembly",
+        (".asm", ".s", ".S"),
+        aliases=("assembly", "gas", "as", "asm86"),
+        supports_parsing=True,
+        capabilities=(
+            "ast",
+            "flowchart",
+            "call_graph",
+            "variable_flow",
+            "complexity",
+            "warnings",
+            "diagnostics",
+        ),
+    )
     JAVA = LanguageInfo(
         "java",
         "Java",
@@ -111,7 +127,7 @@ class LanguageRegistry:
         ),
     )
 
-    _ALL = (C, CPP, PYTHON, CSS, JAVA, JAVASCRIPT, TYPESCRIPT)
+    _ALL = (C, CPP, PYTHON, CSS, ASM, JAVA, JAVASCRIPT, TYPESCRIPT)
 
     @classmethod
     def resolve(
@@ -128,6 +144,10 @@ class LanguageRegistry:
                 "js": "javascript",
                 "ts": "typescript",
                 "stylesheet": "css",
+                "assembly": "asm",
+                "gas": "asm",
+                "as": "asm",
+                "asm86": "asm",
             }
             normalized = aliases.get(normalized, normalized)
             for info in cls._ALL:

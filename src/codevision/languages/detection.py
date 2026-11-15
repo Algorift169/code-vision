@@ -28,6 +28,8 @@ class LanguageDetector:
                 return LanguageRegistry.resolve("java")
             if "<typename" in normalized or "namespace " in normalized:
                 return LanguageRegistry.resolve("cpp")
+            if ".text" in normalized or ".globl" in normalized or ".byte" in normalized:
+                return LanguageRegistry.resolve("asm")
             if "#include" in normalized or "int main" in normalized:
                 return LanguageRegistry.resolve("c")
 

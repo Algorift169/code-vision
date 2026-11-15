@@ -16,6 +16,8 @@ def test_language_registry_maps_supported_extensions() -> None:
     assert LanguageRegistry.resolve(file_path="Main.java").language_id == "java"
     assert LanguageRegistry.resolve(file_path="main.py").language_id == "python"
     assert LanguageRegistry.resolve(file_path="theme.css").language_id == "css"
+    assert LanguageRegistry.resolve(file_path="kernel.S").language_id == "asm"
+    assert LanguageRegistry.resolve(file_path="boot.asm").language_id == "asm"
     assert LanguageRegistry.resolve(file_path="client.ts").language_id == "typescript"
 
 
@@ -119,6 +121,21 @@ def test_parser_supports_css_rules_and_declarations(tmp_path: Path) -> None:
     assert result.succeeded
     assert result.language == "css"
     assert {"stylesheet", "rule_set", "declaration"} <= node_types
+
+
+def test_parser_supports_assembly_files(tmp_path: Path) -> None:
+    source = """.text
+.globl main
+main:
+    mov $1, %eax
+    ret
+"""
+    result = SourceParser().parse(source, file_path=tmp_path / "main.S")
+
+    assert result.succeeded
+    assert result.language == "asm"
+    assert result.root is not None
+    assert result.file_path == (tmp_path / "main.S").resolve()
 
 
 def test_parser_accepts_empty_source_as_empty_translation_unit() -> None:

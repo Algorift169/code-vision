@@ -27,6 +27,7 @@ class TreeSitterParser:
             "c": ("tree_sitter_c", "language"),
             "cpp": ("tree_sitter_cpp", "language"),
             "css": ("tree_sitter_css", "language"),
+            "asm": ("tree_sitter_asm", "language"),
             "java": ("tree_sitter_java", "language"),
             "javascript": ("tree_sitter_javascript", "language"),
             "python": ("tree_sitter_python", "language"),

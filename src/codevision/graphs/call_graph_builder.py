@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from typing import ClassVar
 
 from ..model import ASTNode, ASTResult
@@ -15,8 +17,9 @@ class CallGraphBuilder:
         "method_declaration",
         "method_definition",
         "constructor_declaration",
+        "label_definition",
     }
-    _CALL_TYPES: ClassVar[set[str]] = {"call", "call_expression", "method_invocation"}
+    _CALL_TYPES: ClassVar[set[str]] = {"call", "call_expression", "method_invocation", "instruction"}
     _ARGUMENT_TYPES: ClassVar[set[str]] = {"argument_list", "arguments", "value_arguments"}
     _NAME_TYPES: ClassVar[set[str]] = {
         "identifier",
@@ -70,6 +73,9 @@ class CallGraphBuilder:
 
     @classmethod
     def _function_name(cls, function: ASTNode) -> str:
+        if function.node_type == "label_definition":
+            text = function.source_text.strip() or function.display_name.replace("Label:", "", 1).strip()
+            return text.split(":", 1)[0].strip() or "label"
         for node in function.walk():
             if node.node_type in cls._NAME_TYPES:
                 return node.source_text.strip()
@@ -132,6 +138,16 @@ class CallGraphBuilder:
 
     @classmethod
     def _callee_name(cls, call: ASTNode) -> str:
+        if call.node_type == "instruction":
+            text = call.source_text.strip()
+            match = re.search(
+                r"(?:call|bl|jal|jmp)\s+(?:\$)?([A-Za-z_.$@][\w.$@]*)",
+                text,
+                flags=re.IGNORECASE,
+            )
+            if match:
+                return match.group(1)
+            return ""
         callable_parts: list[ASTNode] = []
         for child in call.children:
             if child.node_type in cls._ARGUMENT_TYPES:
@@ -155,7 +171,10 @@ class CallGraphBuilder:
             for child in node.children:
                 if child.node_type in cls._FUNCTION_TYPES:
                     continue
-                if child.node_type in cls._CALL_TYPES:
+                if child.node_type in cls._CALL_TYPES and (
+                    child.node_type != "instruction"
+                    or re.search(r"\b(?:call|bl|jal|jmp)\b", child.source_text, flags=re.IGNORECASE)
+                ):
                     calls.append(child)
                 walk(child)
 

@@ -70,6 +70,9 @@ class SourceParser:
         if not isinstance(source_bytes, bytes):
             raise TypeError("Source must be str or bytes")
 
+        if language_info.language_id == "asm":
+            return self._parse_assembly_fallback(source_bytes, path, language_info.language_id)
+
         parsed = self._native_parser.parse(source_bytes, language_info.language_id)
         root_native = parsed.tree.root_node
         next_id = 0
@@ -155,6 +158,157 @@ class SourceParser:
             parse_duration_ms=parsed.duration_ms,
             syntax_error_count=syntax_error_count,
             errors=errors,
+        )
+
+    @staticmethod
+    def _parse_assembly_fallback(
+        source_bytes: bytes,
+        file_path: Path | None,
+        language_id: str,
+    ) -> ASTResult:
+        source_text = source_bytes.decode("utf-8", errors="replace")
+        lines = source_text.splitlines() or [""]
+
+        def location_for(line_number: int, text: str, start_offset: int) -> SourceLocation:
+            line_start = sum(len(line) + 1 for line in lines[: line_number - 1])
+            start_column = len(lines[line_number - 1][: start_offset]) + 1
+            end_column = start_column + len(text)
+            return SourceLocation(
+                start_line=line_number,
+                start_column=start_column,
+                end_line=line_number,
+                end_column=end_column,
+                start_byte=line_start + start_offset,
+                end_byte=line_start + start_offset + len(text),
+            )
+
+        root = ASTNode(
+            node_id="0",
+            node_type="translation_unit",
+            display_name="Translation Unit",
+            source_text=source_text[:180],
+            location=SourceLocation(
+                start_line=1,
+                start_column=1,
+                end_line=max(1, len(lines)),
+                end_column=max(1, len(lines[-1]) + 1),
+                start_byte=0,
+                end_byte=len(source_text.encode("utf-8")),
+            ),
+            parent_id=None,
+        )
+        next_id = 1
+        current_label: ASTNode | None = None
+
+        for line_number, raw_line in enumerate(lines, 1):
+            text = raw_line.rstrip("\r\n")
+            if not text.strip():
+                continue
+            if text.lstrip().startswith("."):
+                current_label = None
+                node_type = "directive"
+                name = "Directive"
+                directive_text = text.strip()
+                node = ASTNode(
+                    node_id=str(next_id),
+                    node_type=node_type,
+                    display_name=f"{name}: {directive_text}",
+                    source_text=directive_text,
+                    location=location_for(
+                        line_number, directive_text, raw_line.find(directive_text)
+                    ),
+                    parent_id=root.node_id,
+                )
+                next_id += 1
+                root.children.append(node)
+                continue
+
+            label_name = None
+            instruction_text = text
+            if ":" in text:
+                label_text, _, remainder = text.partition(":")
+                label_name = label_text.strip()
+                if label_name:
+                    current_label = ASTNode(
+                        node_id=str(next_id),
+                        node_type="label_definition",
+                        display_name=f"Label: {label_name}",
+                        source_text=label_name,
+                        location=location_for(
+                            line_number,
+                            label_name,
+                            raw_line.find(label_name),
+                        ),
+                        parent_id=root.node_id,
+                    )
+                    next_id += 1
+                    root.children.append(current_label)
+                    instruction_text = remainder.strip()
+                    if instruction_text:
+                        instruction_node = ASTNode(
+                            node_id=str(next_id),
+                            node_type="instruction",
+                            display_name=f"Instruction: {instruction_text}",
+                            source_text=instruction_text,
+                            location=location_for(
+                                line_number,
+                                instruction_text,
+                                raw_line.find(instruction_text),
+                            ),
+                            parent_id=current_label.node_id,
+                        )
+                        next_id += 1
+                        current_label.children.append(instruction_node)
+                    continue
+
+            if current_label is not None:
+                instruction_node = ASTNode(
+                    node_id=str(next_id),
+                    node_type="instruction",
+                    display_name=f"Instruction: {instruction_text}",
+                    source_text=instruction_text,
+                    location=location_for(
+                        line_number,
+                        instruction_text,
+                        raw_line.find(instruction_text),
+                    ),
+                    parent_id=current_label.node_id,
+                )
+                next_id += 1
+                current_label.children.append(instruction_node)
+                continue
+
+            instruction_node = ASTNode(
+                node_id=str(next_id),
+                node_type="instruction",
+                display_name=f"Instruction: {instruction_text}",
+                source_text=instruction_text,
+                location=location_for(
+                    line_number,
+                    instruction_text,
+                    raw_line.find(instruction_text),
+                ),
+                parent_id=root.node_id,
+            )
+            next_id += 1
+            root.children.append(instruction_node)
+
+        nodes = tuple(root.walk())
+        max_depth = 0
+        depth_by_id: dict[str, int] = {root.node_id: 1}
+        for node in nodes:
+            depth = depth_by_id.get(node.parent_id, 1) + 1 if node.parent_id is not None else 1
+            depth_by_id[node.node_id] = depth
+            max_depth = max(max_depth, depth)
+        return ASTResult(
+            root=root,
+            language=language_id,
+            file_path=file_path,
+            node_count=len(nodes),
+            max_depth=max_depth,
+            parse_duration_ms=0.0,
+            syntax_error_count=0,
+            errors=(),
         )
 
     @staticmethod

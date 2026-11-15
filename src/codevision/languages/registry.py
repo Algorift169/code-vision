@@ -46,6 +46,15 @@ class LanguageRegistry:
             description="Tree-sitter CSS syntax parsing and stylesheet AST generation.",
         ),
         LanguageAdapter(
+            language_id="asm",
+            display_name="Assembly",
+            extensions=(".asm", ".s", ".S"),
+            aliases=("assembly", "gas", "as"),
+            supports_parsing=True,
+            capabilities=("ast", "flowchart", "call_graph", "variable_flow", "complexity", "warnings", "diagnostics"),
+            description="Tree-sitter assembly parsing for GNU/Intel-style source files.",
+        ),
+        LanguageAdapter(
             language_id="java",
             display_name="Java",
             extensions=(".java",),

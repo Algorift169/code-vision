@@ -24,6 +24,27 @@ def test_call_graph_resolves_calls_between_local_functions() -> None:
     assert edges == {("middle", "leaf"): 1, ("root", "leaf"): 1, ("root", "middle"): 1}
 
 
+def test_call_graph_supports_assembly_label_calls() -> None:
+    source = (
+        ".text\n"
+        "main:\n"
+        "    call helper\n"
+        "    ret\n"
+        "helper:\n"
+        "    mov $0, %eax\n"
+        "    ret\n"
+    )
+    result = SourceParser().parse(source, language="asm")
+
+    graph = CallGraphBuilder().build(result)
+
+    names = {node.name for node in graph.nodes}
+    assert names == {"main", "helper"}
+    assert any(
+        edge.source_id != edge.target_id for edge in graph.edges
+    )
+
+
 def test_call_graph_edges_show_call_expression_and_repeated_call_count() -> None:
     source = "int leaf() { return 1; } int root() { leaf(); return leaf(); }"
     result = SourceParser().parse(source, language="c")
