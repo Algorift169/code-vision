@@ -5,7 +5,7 @@ import gi
 
 gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gdk, Gtk
+from gi.repository import Gdk, GLib, Gtk
 
 from codevision.app.main_window import CodeVisionWindow
 from codevision.services.folder_browser import FolderBrowserService
@@ -199,6 +199,25 @@ def test_project_explorer_preserves_paths_with_undecodable_bytes(tmp_path: Path)
     assert row_iter is not None
     explorer.tree.get_selection().select_iter(row_iter)
     assert explorer._get_target_directory() == invalid_folder
+
+
+def test_project_explorer_refreshes_when_terminal_creates_file(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+
+    explorer = ProjectExplorer(on_file_open=lambda _path: None)
+    explorer._set_project_folder(project)
+
+    created_file = project / "created-by-terminal.txt"
+    created_file.write_text("hello", encoding="utf-8")
+
+    for _ in range(50):
+        context = GLib.main_context_default()
+        context.iteration(False)
+        if explorer._find_path_iter(created_file) is not None:
+            break
+
+    assert explorer._find_path_iter(created_file) is not None
 
 
 def test_project_tree_uses_bundled_visible_file_and_folder_icons(

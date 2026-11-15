@@ -7,7 +7,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import GdkPixbuf, GLib, Gtk
+from gi.repository import GdkPixbuf, Gio, GLib, Gtk
 
 from ..services.folder_browser import FolderBrowserService
 from ..services.terminal import TerminalService
@@ -35,6 +35,7 @@ class ProjectExplorer(Gtk.Box):
         self.set_size_request(220, -1)
         self._on_file_open = on_file_open
         self._root_path: Path | None = None
+        self._root_monitor: Gio.FileMonitor | None = None
         self._folder_browser = FolderBrowserService()
         self._folder_picker: FolderPickerWindow | None = None
         self._terminal_service = terminal_service or TerminalService()
@@ -343,8 +344,50 @@ class ProjectExplorer(Gtk.Box):
         if is_directory:
             self._store.append(row_iter, ["", "", False, True, None, False])
 
+    def _attach_root_monitor(self) -> None:
+        if self._root_path is None:
+            return
+
+        if self._root_monitor is not None:
+            self._root_monitor.cancel()
+            self._root_monitor = None
+
+        try:
+            monitor = Gio.File.new_for_path(str(self._root_path)).monitor_directory(
+                Gio.FileMonitorFlags.NONE, None
+            )
+        except GLib.Error:
+            return
+
+        monitor.connect("changed", self._on_root_changed)
+        self._root_monitor = monitor
+
+    def _on_root_changed(
+        self,
+        _monitor: Gio.FileMonitor,
+        _file: Gio.File,
+        _other_file: Gio.File | None,
+        event_type: Gio.FileMonitorEvent,
+    ) -> None:
+        if event_type in {
+            Gio.FileMonitorEvent.CREATED,
+            Gio.FileMonitorEvent.DELETED,
+            Gio.FileMonitorEvent.RENAMED,
+            Gio.FileMonitorEvent.CHANGED,
+            Gio.FileMonitorEvent.MOVED_IN,
+            Gio.FileMonitorEvent.MOVED_OUT,
+        }:
+            GLib.idle_add(self._refresh_from_root_monitor)
+        return False
+
+    def _refresh_from_root_monitor(self) -> bool:
+        if self._root_path is not None:
+            self.refresh()
+        return GLib.SOURCE_REMOVE
+
     def _set_project_folder(self, path: Path) -> None:
         self._root_path = path.resolve()
+        self._attach_root_monitor()
         self._store.clear()
         root_iter = self._store.append(
             None,
