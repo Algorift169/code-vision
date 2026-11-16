@@ -83,16 +83,6 @@ class FlowchartView(Gtk.Box):
         self.refresh_button.set_tooltip_text("Refresh flowchart")
         self.refresh_button.connect("clicked", self._on_refresh_clicked)
         header.append(self.refresh_button)
-        self.zoom_out_button = Gtk.Button.new_from_icon_name("zoom-out-symbolic")
-        self.zoom_out_button.add_css_class("theme-toolbar-button")
-        self.zoom_out_button.set_tooltip_text("Zoom out")
-        self.zoom_out_button.connect("clicked", lambda _button: self._change_zoom(0.8))
-        header.append(self.zoom_out_button)
-        self.zoom_in_button = Gtk.Button.new_from_icon_name("zoom-in-symbolic")
-        self.zoom_in_button.add_css_class("theme-toolbar-button")
-        self.zoom_in_button.set_tooltip_text("Zoom in")
-        self.zoom_in_button.connect("clicked", lambda _button: self._change_zoom(1.25))
-        header.append(self.zoom_in_button)
         self.fit_button = Gtk.Button.new_from_icon_name("zoom-fit-best-symbolic")
         self.fit_button.add_css_class("theme-toolbar-button")
         self.fit_button.set_tooltip_text("Fit graph")
@@ -265,6 +255,12 @@ class FlowchartView(Gtk.Box):
 
     def _on_refresh_clicked(self, _button: Gtk.Button) -> None:
         self.set_source(self._source, self._file_path, self._language)
+
+    def zoom_in(self) -> None:
+        self._change_zoom(1.25)
+
+    def zoom_out(self) -> None:
+        self._change_zoom(0.8)
 
     def _change_zoom(self, factor: float) -> None:
         self._zoom = min(3.0, max(0.4, self._zoom * factor))

@@ -187,7 +187,7 @@ def test_call_graph_zoom_buttons_scale_canvas_and_keep_source_hit_testing() -> N
     source = next(node for node in view.graph.nodes if node.name == "main")
     width_before = view.canvas.get_content_width()
 
-    view.zoom_in_button.emit("clicked")
+    view.zoom_in()
 
     assert view._zoom == 1.25
     assert view.canvas.get_content_width() >= width_before
@@ -199,7 +199,7 @@ def test_call_graph_zoom_buttons_scale_canvas_and_keep_source_hit_testing() -> N
     )
     assert navigated[0].node_type == "function_definition"
 
-    view.zoom_out_button.emit("clicked")
+    view.zoom_out()
     assert view._zoom == 1.0
 
 

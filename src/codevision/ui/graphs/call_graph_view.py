@@ -41,16 +41,6 @@ class CallGraphView(Gtk.Box):
         self.title.add_css_class("analysis-placeholder-title")
         self.title.set_hexpand(True)
         header.append(self.title)
-        self.zoom_out_button = Gtk.Button.new_from_icon_name("zoom-out-symbolic")
-        self.zoom_out_button.add_css_class("theme-toolbar-button")
-        self.zoom_out_button.set_tooltip_text("Zoom out")
-        self.zoom_out_button.connect("clicked", lambda _button: self._change_zoom(0.8))
-        header.append(self.zoom_out_button)
-        self.zoom_in_button = Gtk.Button.new_from_icon_name("zoom-in-symbolic")
-        self.zoom_in_button.add_css_class("theme-toolbar-button")
-        self.zoom_in_button.set_tooltip_text("Zoom in")
-        self.zoom_in_button.connect("clicked", lambda _button: self._change_zoom(1.25))
-        header.append(self.zoom_in_button)
         self.append(header)
 
         self.canvas = Gtk.DrawingArea()
@@ -237,6 +227,12 @@ class CallGraphView(Gtk.Box):
     def _change_zoom(self, factor: float) -> None:
         self._zoom = min(3.0, max(0.4, self._zoom * factor))
         self._render_graph()
+
+    def zoom_in(self) -> None:
+        self._change_zoom(1.25)
+
+    def zoom_out(self) -> None:
+        self._change_zoom(0.8)
 
     def _on_pan_begin(
         self, _gesture: Gtk.GestureDrag, _x: float, _y: float

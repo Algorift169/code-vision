@@ -49,18 +49,6 @@ class ComplexityView(Gtk.Box):
         self.header.set_hexpand(True)
         self.header.add_css_class("complexity-header")
 
-        self.zoom_out_button = Gtk.Button.new_from_icon_name("zoom-out-symbolic")
-        self.zoom_out_button.add_css_class("theme-toolbar-button")
-        self.zoom_out_button.set_tooltip_text("Zoom out Complexity view")
-        self.zoom_out_button.connect("clicked", self._zoom_out)
-        self.header.append(self.zoom_out_button)
-
-        self.zoom_in_button = Gtk.Button.new_from_icon_name("zoom-in-symbolic")
-        self.zoom_in_button.add_css_class("theme-toolbar-button")
-        self.zoom_in_button.set_tooltip_text("Zoom in Complexity view")
-        self.zoom_in_button.connect("clicked", self._zoom_in)
-        self.header.append(self.zoom_in_button)
-
         self.title = Gtk.Label(label="Complexity Analysis")
         self.title.add_css_class("complexity-header-title")
         self.title.set_hexpand(True)
@@ -189,11 +177,11 @@ class ComplexityView(Gtk.Box):
     def _on_refresh_clicked(self, _button: Gtk.Button) -> None:
         self.set_source(self._source, self._file_path, self._language)
 
-    def _zoom_in(self, _button: Gtk.Button) -> None:
+    def zoom_in(self) -> None:
         self._zoom_level = min(self._zoom_level + 1, 5)
         self._apply_local_zoom()
 
-    def _zoom_out(self, _button: Gtk.Button) -> None:
+    def zoom_out(self) -> None:
         self._zoom_level = max(self._zoom_level - 1, -3)
         self._apply_local_zoom()
 

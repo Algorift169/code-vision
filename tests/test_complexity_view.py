@@ -3,13 +3,13 @@ from pathlib import Path
 from codevision.ui.analysis_panel import AnalysisPanel
 
 
-def test_complexity_header_zoom_buttons_change_only_local_zoom() -> None:
+def test_complexity_zoom_actions_change_only_local_zoom() -> None:
     panel = AnalysisPanel()
     complexity_view = panel._section_placeholders["Complexity"]
 
-    complexity_view.zoom_out_button.emit("clicked")
+    complexity_view.zoom_out()
     assert complexity_view._zoom_level == -1
-    complexity_view.zoom_in_button.emit("clicked")
+    complexity_view.zoom_in()
 
     assert complexity_view._zoom_level == 0
     assert complexity_view._zoom_provider is not None

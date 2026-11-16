@@ -64,6 +64,25 @@ class AnalysisPanel(Gtk.Box):
             self.navigation.append(button)
             self._section_buttons[section] = button
 
+        self.navigation_row = Gtk.Box(
+            orientation=Gtk.Orientation.HORIZONTAL, spacing=4
+        )
+        self.navigation_row.add_css_class("analysis-navigation-row")
+        self.zoom_out_button = Gtk.Button.new_from_icon_name("zoom-out-symbolic")
+        self.zoom_out_button.add_css_class("theme-toolbar-button")
+        self.zoom_out_button.set_tooltip_text("Zoom out current analysis view")
+        self.zoom_out_button.connect(
+            "clicked", lambda _button: self._zoom_current_view("zoom_out")
+        )
+        self.navigation_row.append(self.zoom_out_button)
+        self.zoom_in_button = Gtk.Button.new_from_icon_name("zoom-in-symbolic")
+        self.zoom_in_button.add_css_class("theme-toolbar-button")
+        self.zoom_in_button.set_tooltip_text("Zoom in current analysis view")
+        self.zoom_in_button.connect(
+            "clicked", lambda _button: self._zoom_current_view("zoom_in")
+        )
+        self.navigation_row.append(self.zoom_in_button)
+
         nav_scroller = Gtk.ScrolledWindow()
         nav_scroller.set_name("analysis-navigation-scroller")
         nav_scroller.add_css_class("analysis-navigation-scroller")
@@ -74,7 +93,9 @@ class AnalysisPanel(Gtk.Box):
         nav_scroller.set_max_content_height(40)
         nav_scroller.set_hexpand(True)
         nav_scroller.set_child(self.navigation)
-        self.append(nav_scroller)
+        self.navigation_scroller = nav_scroller
+        self.navigation_row.append(nav_scroller)
+        self.append(self.navigation_row)
 
         self.views = Gtk.Stack()
         self.views.set_name("analysis-section-views")
@@ -153,6 +174,20 @@ class AnalysisPanel(Gtk.Box):
             raise ValueError(f"Unknown analysis section: {section}")
         self._section_buttons[section].set_active(True)
 
+    def _zoom_current_view(self, method_name: str) -> None:
+        view = self._section_placeholders.get(self.current_section)
+        zoom_method = getattr(view, method_name, None)
+        if callable(zoom_method):
+            zoom_method()
+
+    def _update_zoom_controls(self) -> None:
+        view = self._section_placeholders.get(self.current_section)
+        can_zoom = callable(getattr(view, "zoom_in", None)) and callable(
+            getattr(view, "zoom_out", None)
+        )
+        self.zoom_in_button.set_sensitive(can_zoom)
+        self.zoom_out_button.set_sensitive(can_zoom)
+
     def set_source(
         self,
         source: str | None,
@@ -186,3 +221,4 @@ class AnalysisPanel(Gtk.Box):
             return
         self.current_section = section
         self.views.set_visible_child(self._section_placeholders[section])
+        self._update_zoom_controls()

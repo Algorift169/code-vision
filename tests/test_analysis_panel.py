@@ -53,9 +53,30 @@ def test_analysis_section_selects_its_placeholder(section: str) -> None:
         assert other_button.get_active() is (other_section == section)
 
 
+def test_analysis_zoom_controls_stay_visible_outside_scrolling_views() -> None:
+    panel = AnalysisPanel()
+
+    assert panel.zoom_out_button.get_parent() is panel.navigation_row
+    assert panel.zoom_in_button.get_parent() is panel.navigation_row
+    assert panel.zoom_out_button.get_next_sibling() is panel.zoom_in_button
+    assert panel.navigation_row.get_parent() is panel
+    assert panel.get_last_child().get_parent() is panel
+    assert panel.get_last_child() is not panel.navigation_row
+
+    call_graph = panel._section_placeholders["Call Graph"]
+    panel.select_section("Call Graph")
+    panel.zoom_in_button.emit("clicked")
+    assert call_graph._zoom == 1.25
+
+    complexity = panel._section_placeholders["Complexity"]
+    panel.select_section("Complexity")
+    panel.zoom_out_button.emit("clicked")
+    assert complexity._zoom_level == -1
+
+
 def test_analysis_navigation_scrolls_horizontally() -> None:
     panel = AnalysisPanel()
-    scroller = panel.get_first_child()
+    scroller = panel.navigation_scroller
 
     assert isinstance(scroller, Gtk.ScrolledWindow)
     assert scroller.get_policy() == (
