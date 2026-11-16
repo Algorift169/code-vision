@@ -28,6 +28,7 @@ class ProjectExplorer(Gtk.Box):
         self,
         on_file_open: Callable[[Path], None],
         terminal_service: TerminalService | None = None,
+        on_project_root_changed: Callable[[Path | None], None] | None = None,
     ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.set_name("project-tree")
@@ -39,6 +40,7 @@ class ProjectExplorer(Gtk.Box):
         self._folder_browser = FolderBrowserService()
         self._folder_picker: FolderPickerWindow | None = None
         self._terminal_service = terminal_service or TerminalService()
+        self._on_project_root_changed = on_project_root_changed
 
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         header.set_margin_top(10)
@@ -387,6 +389,8 @@ class ProjectExplorer(Gtk.Box):
 
     def _set_project_folder(self, path: Path) -> None:
         self._root_path = path.resolve()
+        if self._on_project_root_changed is not None:
+            self._on_project_root_changed(self._root_path)
         self._attach_root_monitor()
         self._store.clear()
         root_iter = self._store.append(

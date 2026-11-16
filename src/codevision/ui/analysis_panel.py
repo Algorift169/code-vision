@@ -12,7 +12,7 @@ from ..model import ASTNode
 from .analyzer_theme import AnalyzerTheme
 from .ast_view import ASTView
 from .complexity_view import ComplexityView
-from .graphs import CallGraphView, FlowchartView, VariableFlowView
+from .graphs import CallGraphView, DependencyView, FlowchartView, VariableFlowView
 
 SECTIONS = (
     "Overview",
@@ -21,6 +21,7 @@ SECTIONS = (
     "Call Graph",
     "Var Flow",
     "Complexity",
+    "Dependency",
     "Warnings",
     "Export",
 )
@@ -32,6 +33,7 @@ class AnalysisPanel(Gtk.Box):
     def __init__(
         self,
         on_source_navigate: Callable[[ASTNode], None] | None = None,
+        on_file_navigate: Callable[[Path], None] | None = None,
     ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self._analyzer_theme = AnalyzerTheme()
@@ -44,6 +46,7 @@ class AnalysisPanel(Gtk.Box):
         self.set_margin_bottom(0)
         self.current_section = SECTIONS[0]
         self._section_buttons: dict[str, Gtk.ToggleButton] = {}
+        self._project_root: Path | None = None
 
         self.navigation = Gtk.Box(
             orientation=Gtk.Orientation.HORIZONTAL, spacing=4
@@ -131,6 +134,11 @@ class AnalysisPanel(Gtk.Box):
                 self.views.add_named(placeholder, f"section-{index}")
                 self._section_placeholders[section] = placeholder
                 continue
+            if section == "Dependency":
+                placeholder = DependencyView(on_file_navigate=on_file_navigate)
+                self.views.add_named(placeholder, f"section-{index}")
+                self._section_placeholders[section] = placeholder
+                continue
 
             placeholder = Gtk.Box(
                 orientation=Gtk.Orientation.VERTICAL, spacing=0
@@ -174,6 +182,12 @@ class AnalysisPanel(Gtk.Box):
             raise ValueError(f"Unknown analysis section: {section}")
         self._section_buttons[section].set_active(True)
 
+    def set_project_root(self, project_root: Path | None) -> None:
+        self._project_root = project_root
+        dependency_view = self._section_placeholders.get("Dependency")
+        if hasattr(dependency_view, "set_project_root"):
+            dependency_view.set_project_root(project_root)
+
     def _zoom_current_view(self, method_name: str) -> None:
         view = self._section_placeholders.get(self.current_section)
         zoom_method = getattr(view, method_name, None)
@@ -213,6 +227,10 @@ class AnalysisPanel(Gtk.Box):
         complexity_view = self._section_placeholders["Complexity"]
         if isinstance(complexity_view, ComplexityView):
             complexity_view.set_source(source, file_path, language)
+
+        dependency_view = self._section_placeholders["Dependency"]
+        if hasattr(dependency_view, "set_project_root"):
+            dependency_view.set_project_root(self._project_root)
 
     def _on_section_toggled(
         self, button: Gtk.ToggleButton, section: str

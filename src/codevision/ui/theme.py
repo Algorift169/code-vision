@@ -113,6 +113,25 @@ class ThemeManager:
     min-width: 18px;
     min-height: 18px;
 }
+
+.context-menu-popup,
+.context-menu-content,
+.codevision-context-menu,
+popover#codevision-context-menu,
+popover.menu,
+popover.menu contents,
+popover.menu scrolledwindow,
+popover.menu listview,
+popover.dropdown,
+popover.dropdown contents,
+popover.dropdown scrolledwindow,
+popover.dropdown listview,
+.theme-picker-popover,
+.theme-picker-content {
+    background-color: @surface;
+    background-image: none;
+    opacity: 1;
+}
 """
         load_from_string = getattr(provider, "load_from_string", None)
         if load_from_string is None:

@@ -3,16 +3,40 @@
     padding: 0;
     border: none;
     border-radius: 0;
-    background: transparent;
+    background-color: @surface;
+    background-image: none;
     color: inherit;
 }
 
 .context-menu-content
 {
     min-width: 210px;
-    background: transparent;
+    background-color: @surface;
+    background-image: none;
     border: none;
     border-radius: 6px;
+}
+
+popover.menu,
+popover.menu contents,
+popover.menu scrolledwindow,
+popover.menu listview,
+popover.dropdown,
+popover.dropdown contents,
+popover.dropdown scrolledwindow,
+popover.dropdown listview
+{
+    background-color: @raised;
+    color: @text;
+}
+
+popover.menu listview row,
+popover.dropdown listview row
+{
+    min-height: 32px;
+    padding: 4px 10px;
+    background-color: @raised;
+    color: @text;
 }
 
 .context-menu-content separator
@@ -62,4 +86,19 @@ menubutton.context-menu-item button:hover
 {
     color: inherit;
     opacity: 0.55;
+}
+
+.theme-picker-popover,
+.theme-picker-content
+{
+    background-color: @surface;
+    color: @text;
+    border: 1px solid @line;
+    border-radius: 8px;
+}
+
+.theme-picker-content
+{
+    padding: 8px;
+    background: @surface;
 }

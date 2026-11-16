@@ -107,7 +107,7 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         self._install_css()
         self.theme_manager = ThemeManager()
         self.theme_manager.apply(self.theme_manager.current_theme)
-        self.set_opacity(self._theme_window_opacity())
+        self._apply_theme_transparency()
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         content_overlay = Gtk.Overlay()
@@ -239,9 +239,17 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             app_icon.set_margin_end(6)
             menu_bar.prepend(app_icon)
 
+        analysis_panel = AnalysisPanel(
+            on_source_navigate=self._navigate_to_ast_node,
+            on_file_navigate=self._open_file,
+        )
+        analysis_panel.set_name("analysis-panel")
+        self.analysis_panel = analysis_panel
+
         project_panel = ProjectExplorer(
             on_file_open=self._open_file,
             terminal_service=self.terminal_service,
+            on_project_root_changed=self.analysis_panel.set_project_root,
         )
         self.project_explorer = project_panel
         self.workspace_search = WorkspaceSearch(
@@ -251,12 +259,6 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
             self.project_explorer.reveal_path,
         )
         project_panel.set_name("project-panel")
-
-        analysis_panel = AnalysisPanel(
-            on_source_navigate=self._navigate_to_ast_node,
-        )
-        analysis_panel.set_name("analysis-panel")
-        self.analysis_panel = analysis_panel
 
         workspace.set_start_child(project_panel)
         workspace.set_end_child(right_pane)
@@ -430,19 +432,41 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
     """
     def set_theme(self, theme_id: str) -> None:
         self.theme_manager.apply(theme_id)
-        self.set_opacity(self._theme_window_opacity())
+        self._apply_theme_transparency()
         if hasattr(self, "view_menu"):
             self.view_menu._update_state()
 
     def set_transparency_percent(self, percentage: int) -> None:
         self.theme_manager.set_transparency_percent(percentage)
-        if self.theme_manager.current_theme == TRANSPARENT_THEME_ID:
-            self.set_opacity(self._theme_window_opacity())
+        self._apply_theme_transparency()
 
-    def _theme_window_opacity(self) -> float:
+    def _apply_theme_transparency(self) -> None:
+        display = Gdk.Display.get_default()
+        if display is None:
+            return
+
+        provider = getattr(self, "_transparency_provider", None)
+        if provider is not None:
+            Gtk.StyleContext.remove_provider_for_display(display, provider)
         if self.theme_manager.current_theme != TRANSPARENT_THEME_ID:
-            return 1.0
-        return 1.0 - self.theme_manager.transparency_percent / 100
+            self._transparency_provider = None
+            return
+
+        provider = Gtk.CssProvider()
+        opacity = 1 - self.theme_manager.transparency_percent / 100
+        provider.load_from_data(
+            (
+                "window#codevision-window { "
+                f"background-color: alpha(@bg, {opacity:.2f}); "
+                "}"
+            ).encode("utf-8")
+        )
+        Gtk.StyleContext.add_provider_for_display(
+            display,
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 2,
+        )
+        self._transparency_provider = provider
     """All the functions with 'toggle :
     Switches the editor between visible and hidden states, 
     toggles the project explorer and analysis panel visibility, 

@@ -6,7 +6,7 @@ from gi.repository import Gtk
 
 from codevision.ui.analysis_panel import SECTIONS, AnalysisPanel
 from codevision.ui.ast_view import ASTView
-from codevision.ui.graphs import CallGraphView, FlowchartView
+from codevision.ui.graphs import CallGraphView, DependencyView, FlowchartView
 
 
 def test_analysis_panel_has_all_sections_in_order() -> None:
@@ -19,11 +19,12 @@ def test_analysis_panel_has_all_sections_in_order() -> None:
         "Call Graph",
         "Var Flow",
         "Complexity",
+        "Dependency",
         "Warnings",
         "Export",
     )
     assert tuple(panel.section_buttons) == panel.sections
-    assert len(panel.section_buttons) == 8
+    assert len(panel.section_buttons) == 9
     assert panel.get_size_request()[0] > 0
 
 
@@ -46,6 +47,9 @@ def test_analysis_section_selects_its_placeholder(section: str) -> None:
     elif section == "Call Graph":
         assert isinstance(placeholder, CallGraphView)
         assert isinstance(placeholder.canvas, Gtk.DrawingArea)
+    elif section == "Dependency":
+        assert isinstance(placeholder, DependencyView)
+        assert placeholder.title.get_text() == section
     else:
         assert placeholder.get_first_child().get_text() == section
 
