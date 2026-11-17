@@ -22,7 +22,6 @@ SECTIONS = (
     "Var Flow",
     "Complexity",
     "Dependency",
-    "Warnings",
     "Export",
 )
 
