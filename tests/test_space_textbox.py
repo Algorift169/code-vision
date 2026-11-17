@@ -126,6 +126,29 @@ def test_textbox_can_move_and_box_size_scales_its_text() -> None:
     assert text_box.font_scale > initial_font_scale
 
 
+def test_textbox_drag_keeps_fractional_position_at_zoom() -> None:
+    zoom = SpaceZoom(lambda: None)
+    zoom.scale = 1.25
+    board = Gtk.Fixed()
+    text_box = TextBox(
+        board,
+        DrawingColor(),
+        zoom,
+        (20.0, 30.0),
+        lambda _text_box: None,
+        lambda _text_box: None,
+        lambda _text_box: None,
+    )
+
+    text_box._on_move_begin(None, 0.0, 0.0)
+    text_box._on_move_update(None, 2.5, 1.5)
+
+    transform = board.get_child_transform(text_box)
+    assert transform is not None
+    _, _, _, _, x, y = transform.to_2d()
+    assert (x, y) == (27.5, 39.0)
+
+
 def test_space_color_selection_recolors_text_and_applies_to_new_input() -> None:
     panel = AnalysisPanel()
     space = panel._section_placeholders["Space"]

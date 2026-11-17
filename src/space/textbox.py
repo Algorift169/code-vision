@@ -110,7 +110,7 @@ class TextBox(Gtk.Overlay):
         move_gesture.connect("drag-begin", self._on_move_begin)
         move_gesture.connect("drag-update", self._on_move_update)
         move_gesture.connect("drag-end", self._on_move_end)
-        self.move_handle.add_controller(move_gesture)
+        self.board.add_controller(move_gesture)
         self.add_overlay(self.move_handle)
 
         focus = Gtk.EventControllerFocus.new()
@@ -151,8 +151,8 @@ class TextBox(Gtk.Overlay):
         )
         self.board.move(
             self,
-            self.zoom.to_pixels(round(self.x)),
-            self.zoom.to_pixels(round(self.y)),
+            self.x * self.zoom.scale,
+            self.y * self.zoom.scale,
         )
         for tag in self._tags.values():
             tag.set_property("scale", self.zoom.scale * self.font_scale)
@@ -214,8 +214,16 @@ class TextBox(Gtk.Overlay):
         self.move_handle.set_visible(visible)
 
     def _on_move_begin(
-        self, _gesture: Gtk.GestureDrag, _x: float, _y: float
+        self, gesture: Gtk.GestureDrag, x: float, y: float
     ) -> None:
+        if gesture is not None:
+            picked = self.board.pick(x, y, Gtk.PickFlags.DEFAULT)
+            while picked is not None and picked is not self.move_handle:
+                picked = picked.get_parent()
+            if picked is not self.move_handle:
+                gesture.set_state(Gtk.EventSequenceState.DENIED)
+                return
+            gesture.set_state(Gtk.EventSequenceState.CLAIMED)
         self._moving = True
         self._move_origin = (self.x, self.y)
         self.set_highlighted(True)
@@ -231,7 +239,11 @@ class TextBox(Gtk.Overlay):
             return
         self.x = max(0.0, self._move_origin[0] + offset_x / self.zoom.scale)
         self.y = max(0.0, self._move_origin[1] + offset_y / self.zoom.scale)
-        self._apply_zoom()
+        self.board.move(
+            self,
+            self.x * self.zoom.scale,
+            self.y * self.zoom.scale,
+        )
         self.on_geometry_changed(self)
 
     def _on_move_end(
