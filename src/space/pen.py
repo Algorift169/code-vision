@@ -11,6 +11,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from .color import Color, DrawingColor
+from .zoom import SpaceZoom
 
 
 Point = tuple[float, float]
@@ -41,9 +42,11 @@ class Pen:
         canvas: Gtk.DrawingArea,
         on_history_changed: Callable[[], None] | None = None,
         drawing_color: DrawingColor | None = None,
+        zoom: SpaceZoom | None = None,
     ) -> None:
         self.canvas = canvas
         self.drawing_color = drawing_color or DrawingColor()
+        self.zoom = zoom or SpaceZoom(lambda: None)
         self.strokes: list[Stroke] = []
         self.stroke_colors: list[Color] = []
         self._undo_stack: list[_DrawAction | _EraseAction] = []
@@ -91,7 +94,7 @@ class Pen:
         if not self.enabled:
             return
         self._drag_origin = (x, y)
-        self._active_stroke = [(x, y)]
+        self._active_stroke = [self.zoom.to_board(x, y)]
         self._active_stroke_index = len(self.strokes)
         self._active_color = self.color
         self.strokes.append(self._active_stroke)
@@ -103,12 +106,16 @@ class Pen:
     ) -> None:
         if not self.enabled or self._active_stroke is None:
             return
-        x = self._drag_origin[0] + offset_x
-        y = self._drag_origin[1] + offset_y
+        x, y = self.zoom.to_board(
+            self._drag_origin[0] + offset_x,
+            self._drag_origin[1] + offset_y,
+        )
         width = max(self.canvas.get_width(), self.canvas.get_content_width())
         height = max(self.canvas.get_height(), self.canvas.get_content_height())
+        width /= self.zoom.scale
+        height /= self.zoom.scale
         if not (0 <= x <= width and 0 <= y <= height):
-            self._active_stroke = None
+            self._finish_active_stroke()
             return
         if self._active_stroke[-1] != (x, y):
             self._active_stroke.append((x, y))
@@ -211,6 +218,8 @@ class Pen:
     def _draw(
         self, _canvas: Gtk.DrawingArea, context, _width: int, _height: int
     ) -> None:
+        context.save()
+        self.zoom.scale_context(context)
         context.set_source_rgb(*self.color)
         context.set_line_width(self.line_width)
         context.set_line_cap(cairo.LINE_CAP_ROUND)
@@ -236,3 +245,4 @@ class Pen:
             context.set_source_rgb(0.25, 0.25, 0.25)
             context.set_line_width(1.0)
             context.stroke()
+        context.restore()

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -10,6 +12,7 @@ from .eraser import Eraser
 from .pen import Pen
 from .rendo import Redo
 from .undo import Undo
+from .zoom import SpaceZoom
 
 
 _SPACE_TOOLS = (
@@ -41,6 +44,7 @@ class SpaceView(Gtk.Box):
         self.set_margin_bottom(4)
         self.drawing_color = DrawingColor()
         self.color_preview: Gtk.DrawingArea | None = None
+        self.zoom = SpaceZoom(self._apply_space_zoom)
 
         self.toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         self.toolbar.add_css_class("space-toolbar")
@@ -87,8 +91,9 @@ class SpaceView(Gtk.Box):
             self.canvas,
             self._update_history_buttons,
             self.drawing_color,
+            self.zoom,
         )
-        self.eraser = Eraser(self.pen)
+        self.eraser = Eraser(self.pen, self.zoom)
         self.undo_action = Undo(self.pen)
         self.redo_action = Redo(self.pen)
         self.tool_buttons["Undo"].connect(
@@ -96,6 +101,12 @@ class SpaceView(Gtk.Box):
         )
         self.tool_buttons["Redo"].connect(
             "clicked", lambda _button: self.redo_action.execute()
+        )
+        self.tool_buttons["Zoom In"].connect(
+            "clicked", lambda _button: self.zoom_in()
+        )
+        self.tool_buttons["Zoom Out"].connect(
+            "clicked", lambda _button: self.zoom_out()
         )
         pen_button = self.tool_buttons["Pen"]
         pen_button.connect("toggled", self._on_pen_toggled)
@@ -114,6 +125,19 @@ class SpaceView(Gtk.Box):
         if button.get_active() and self.tool_buttons["Eraser"].get_active():
             self.tool_buttons["Eraser"].set_active(False)
         self.pen.set_enabled(button.get_active())
+
+    def zoom_in(self) -> None:
+        self.zoom.zoom_in()
+
+    def zoom_out(self) -> None:
+        self.zoom.zoom_out()
+
+    def _apply_space_zoom(self) -> None:
+        self._extending_canvas = True
+        self.canvas.set_content_width(self.zoom.to_pixels(self._canvas_width))
+        self.canvas.set_content_height(self.zoom.to_pixels(self._canvas_height))
+        self._extending_canvas = False
+        self.canvas.queue_draw()
 
     def _build_color_button_content(self) -> Gtk.Box:
         content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
@@ -176,24 +200,26 @@ class SpaceView(Gtk.Box):
         if page_size <= 0:
             return
         extent = self._canvas_width if dimension == "width" else self._canvas_height
+        page_extent = math.ceil(page_size / self.zoom.scale)
         if extent == 0 or adjustment.get_upper() - adjustment.get_value() <= (
             page_size * 1.25
         ):
-            self._set_canvas_extent(dimension, extent + page_size)
+            self._set_canvas_extent(dimension, extent + page_extent)
 
     def _extend_canvas_to_page(
         self, adjustment: Gtk.Adjustment, dimension: str
     ) -> None:
         page_size = int(adjustment.get_page_size())
         if page_size > 0:
-            self._set_canvas_extent(dimension, page_size * 2)
+            page_extent = math.ceil(page_size / self.zoom.scale)
+            self._set_canvas_extent(dimension, page_extent * 2)
 
     def _set_canvas_extent(self, dimension: str, extent: int) -> None:
         self._extending_canvas = True
         if dimension == "width":
             self._canvas_width = extent
-            self.canvas.set_content_width(extent)
+            self.canvas.set_content_width(self.zoom.to_pixels(extent))
         else:
             self._canvas_height = extent
-            self.canvas.set_content_height(extent)
+            self.canvas.set_content_height(self.zoom.to_pixels(extent))
         self._extending_canvas = False

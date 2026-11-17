@@ -9,6 +9,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk
 
 from .pen import BoardSnapshot, Pen, Point, Stroke
+from .zoom import SpaceZoom
 
 
 class Eraser:
@@ -16,9 +17,10 @@ class Eraser:
 
     size = 12.0
 
-    def __init__(self, pen: Pen) -> None:
+    def __init__(self, pen: Pen, zoom: SpaceZoom | None = None) -> None:
         self.pen = pen
         self.canvas = pen.canvas
+        self.zoom = zoom or pen.zoom
         self.enabled = False
         self._dragging = False
         self._drag_origin: Point = (0.0, 0.0)
@@ -55,7 +57,7 @@ class Eraser:
     ) -> None:
         if not self.enabled:
             return
-        self._begin_erasing(x, y)
+        self._begin_erasing(*self.zoom.to_board(x, y))
 
     def _on_released(
         self, _gesture: Gtk.GestureClick, _count: int, _x: float, _y: float
@@ -69,15 +71,17 @@ class Eraser:
             return
         self._drag_origin = (x, y)
         if not self._dragging:
-            self._begin_erasing(x, y)
+            self._begin_erasing(*self.zoom.to_board(x, y))
 
     def _on_drag_update(
         self, _gesture: Gtk.GestureDrag, offset_x: float, offset_y: float
     ) -> None:
         if not self.enabled or not self._dragging:
             return
-        x = self._drag_origin[0] + offset_x
-        y = self._drag_origin[1] + offset_y
+        x, y = self.zoom.to_board(
+            self._drag_origin[0] + offset_x,
+            self._drag_origin[1] + offset_y,
+        )
         self._erase_sweep(x, y)
         self.pen.set_eraser_cursor((x, y), self.size)
 
@@ -91,7 +95,7 @@ class Eraser:
         self, _controller: Gtk.EventControllerMotion, x: float, y: float
     ) -> None:
         if self.enabled and not self._dragging:
-            self.pen.set_eraser_cursor((x, y), self.size)
+            self.pen.set_eraser_cursor(self.zoom.to_board(x, y), self.size)
 
     def _on_pointer_leave(
         self, _controller: Gtk.EventControllerMotion
