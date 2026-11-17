@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+import math
 
 import cairo
 import gi
@@ -9,40 +10,47 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
+from .color import Color, DrawingColor
+
 
 Point = tuple[float, float]
 Stroke = list[Point]
+BoardSnapshot = tuple[list[Stroke], list[Color]]
 
 
 @dataclass
 class _DrawAction:
     index: int
     stroke: Stroke
+    color: Color
 
 
 @dataclass
 class _EraseAction:
-    before: list[Stroke]
-    after: list[Stroke]
+    before: BoardSnapshot
+    after: BoardSnapshot
 
 
 class Pen:
-    """Draw white freehand strokes on a GTK drawing area."""
+    """Draw freehand strokes using the shared Space color."""
 
-    color = (1.0, 1.0, 1.0)
     line_width = 3.0
 
     def __init__(
         self,
         canvas: Gtk.DrawingArea,
         on_history_changed: Callable[[], None] | None = None,
+        drawing_color: DrawingColor | None = None,
     ) -> None:
         self.canvas = canvas
+        self.drawing_color = drawing_color or DrawingColor()
         self.strokes: list[Stroke] = []
+        self.stroke_colors: list[Color] = []
         self._undo_stack: list[_DrawAction | _EraseAction] = []
         self._redo_stack: list[_DrawAction | _EraseAction] = []
         self._active_stroke: Stroke | None = None
         self._active_stroke_index: int | None = None
+        self._active_color: Color | None = None
         self._drag_origin = (0.0, 0.0)
         self.enabled = False
         self._on_history_changed = on_history_changed
@@ -68,6 +76,10 @@ class Pen:
     def can_redo(self) -> bool:
         return bool(self._redo_stack)
 
+    @property
+    def color(self) -> Color:
+        return self.drawing_color.current
+
     def set_enabled(self, enabled: bool) -> None:
         if self.enabled and not enabled:
             self._finish_active_stroke()
@@ -81,7 +93,9 @@ class Pen:
         self._drag_origin = (x, y)
         self._active_stroke = [(x, y)]
         self._active_stroke_index = len(self.strokes)
+        self._active_color = self.color
         self.strokes.append(self._active_stroke)
+        self.stroke_colors.append(self._active_color)
         self.canvas.queue_draw()
 
     def _on_drag_update(
@@ -119,8 +133,9 @@ class Pen:
         if isinstance(action, _DrawAction):
             if action.index < len(self.strokes):
                 del self.strokes[action.index]
+                del self.stroke_colors[action.index]
         else:
-            self.strokes[:] = self._copy_strokes(action.before)
+            self._restore_snapshot(action.before)
         self._redo_stack.append(action)
         self.canvas.queue_draw()
         self._notify_history_changed()
@@ -131,20 +146,20 @@ class Pen:
             return
         action = self._redo_stack.pop()
         if isinstance(action, _DrawAction):
-            self.strokes.insert(
-                min(action.index, len(self.strokes)), action.stroke.copy()
-            )
+            index = min(action.index, len(self.strokes))
+            self.strokes.insert(index, action.stroke.copy())
+            self.stroke_colors.insert(index, action.color)
         else:
-            self.strokes[:] = self._copy_strokes(action.after)
+            self._restore_snapshot(action.after)
         self._undo_stack.append(action)
         self.canvas.queue_draw()
         self._notify_history_changed()
 
-    def snapshot_strokes(self) -> list[Stroke]:
-        return self._copy_strokes(self.strokes)
+    def snapshot(self) -> BoardSnapshot:
+        return self._copy_snapshot(self.strokes, self.stroke_colors)
 
-    def record_erasure(self, before: list[Stroke]) -> None:
-        after = self.snapshot_strokes()
+    def record_erasure(self, before: BoardSnapshot) -> None:
+        after = self.snapshot()
         if before == after:
             return
         self._record_action(_EraseAction(before, after))
@@ -159,10 +174,15 @@ class Pen:
         if self._active_stroke is None or self._active_stroke_index is None:
             return
         self._record_action(
-            _DrawAction(self._active_stroke_index, self._active_stroke.copy())
+            _DrawAction(
+                self._active_stroke_index,
+                self._active_stroke.copy(),
+                self._active_color or self.color,
+            )
         )
         self._active_stroke = None
         self._active_stroke_index = None
+        self._active_color = None
 
     def _record_action(self, action: _DrawAction | _EraseAction) -> None:
         self._undo_stack.append(action)
@@ -172,6 +192,17 @@ class Pen:
     @staticmethod
     def _copy_strokes(strokes: list[Stroke]) -> list[Stroke]:
         return [stroke.copy() for stroke in strokes]
+
+    @classmethod
+    def _copy_snapshot(
+        cls, strokes: list[Stroke], colors: list[Color]
+    ) -> BoardSnapshot:
+        return cls._copy_strokes(strokes), colors.copy()
+
+    def _restore_snapshot(self, snapshot: BoardSnapshot) -> None:
+        strokes, colors = snapshot
+        self.strokes[:] = self._copy_strokes(strokes)
+        self.stroke_colors[:] = colors
 
     def _notify_history_changed(self) -> None:
         if self._on_history_changed is not None:
@@ -185,10 +216,11 @@ class Pen:
         context.set_line_cap(cairo.LINE_CAP_ROUND)
         context.set_line_join(cairo.LINE_JOIN_ROUND)
 
-        for stroke in self.strokes:
+        for stroke, color in zip(self.strokes, self.stroke_colors):
+            context.set_source_rgb(*color)
             if len(stroke) == 1:
                 x, y = stroke[0]
-                context.arc(x, y, self.line_width / 2, 0, 2 * 3.141592653589793)
+                context.arc(x, y, self.line_width / 2, 0, 2 * math.pi)
                 context.fill()
                 continue
             context.move_to(*stroke[0])

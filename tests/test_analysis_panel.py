@@ -70,7 +70,6 @@ def test_space_menu_has_all_requested_toolbar_buttons() -> None:
         "Undo",
         "Redo",
         "Eraser",
-        "Box",
         "Color",
         "Text Box",
         "Import",
@@ -83,6 +82,7 @@ def test_space_menu_has_all_requested_toolbar_buttons() -> None:
     assert space.canvas.get_content_width() == 0
     assert space.canvas.get_content_height() == 0
     assert isinstance(space.tool_buttons["Pen"], Gtk.ToggleButton)
+    assert isinstance(space.tool_buttons["Color"], Gtk.MenuButton)
     assert not space.tool_buttons["Pen"].get_active()
     assert not space.tool_buttons["Undo"].get_sensitive()
     assert not space.tool_buttons["Redo"].get_sensitive()

@@ -8,7 +8,7 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk
 
-from .pen import Pen, Point, Stroke
+from .pen import BoardSnapshot, Pen, Point, Stroke
 
 
 class Eraser:
@@ -23,7 +23,7 @@ class Eraser:
         self._dragging = False
         self._drag_origin: Point = (0.0, 0.0)
         self._last_position: Point | None = None
-        self._before: list[Stroke] | None = None
+        self._before: BoardSnapshot | None = None
 
         click = Gtk.GestureClick.new()
         click.set_button(Gdk.BUTTON_PRIMARY)
@@ -102,7 +102,7 @@ class Eraser:
     def _begin_erasing(self, x: float, y: float) -> None:
         if self._dragging:
             return
-        self._before = self.pen.snapshot_strokes()
+        self._before = self.pen.snapshot()
         self._dragging = True
         self._last_position = (x, y)
         self._erase_at(x, y)
@@ -139,10 +139,17 @@ class Eraser:
             y + half_size,
         )
         remaining: list[Stroke] = []
-        for stroke in self.pen.strokes:
-            remaining.extend(self._erase_stroke(stroke, bounds))
-        if remaining != self.pen.strokes:
+        remaining_colors = []
+        for stroke, color in zip(self.pen.strokes, self.pen.stroke_colors):
+            erased_strokes = self._erase_stroke(stroke, bounds)
+            remaining.extend(erased_strokes)
+            remaining_colors.extend([color] * len(erased_strokes))
+        if (
+            remaining != self.pen.strokes
+            or remaining_colors != self.pen.stroke_colors
+        ):
             self.pen.strokes[:] = remaining
+            self.pen.stroke_colors[:] = remaining_colors
             self.canvas.queue_draw()
 
     @classmethod

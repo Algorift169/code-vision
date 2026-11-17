@@ -5,6 +5,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
+from .color import Color, ColorPalette, DrawingColor
 from .eraser import Eraser
 from .pen import Pen
 from .rendo import Redo
@@ -16,7 +17,6 @@ _SPACE_TOOLS = (
     ("Undo", "Undo the last board action"),
     ("Redo", "Redo the last undone board action"),
     ("Eraser", "Erase small portions of strokes"),
-    ("Box", "Add a box"),
     ("Color", "Choose a drawing color"),
     ("Text Box", "Add a text box"),
     ("Import", "Import content"),
@@ -39,14 +39,21 @@ class SpaceView(Gtk.Box):
         self.set_margin_end(4)
         self.set_margin_top(4)
         self.set_margin_bottom(4)
+        self.drawing_color = DrawingColor()
+        self.color_preview: Gtk.DrawingArea | None = None
 
         self.toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         self.toolbar.add_css_class("space-toolbar")
 
-        self.tool_buttons: dict[str, Gtk.Button] = {}
+        self.tool_buttons: dict[str, Gtk.Widget] = {}
         for label, tooltip in _SPACE_TOOLS:
             if label in ("Pen", "Eraser"):
                 button = Gtk.ToggleButton(label=label)
+            elif label == "Color":
+                button = Gtk.MenuButton()
+                button.set_tooltip_text(tooltip)
+                button.set_child(self._build_color_button_content())
+                button.set_popover(ColorPalette(self.drawing_color))
             else:
                 button = Gtk.Button(label=label)
             button.set_tooltip_text(tooltip)
@@ -54,6 +61,7 @@ class SpaceView(Gtk.Box):
             button.add_css_class("space-tool-button")
             self.toolbar.append(button)
             self.tool_buttons[label] = button
+        self.drawing_color.subscribe(self._update_color_preview)
 
         self.toolbar_scroller = Gtk.ScrolledWindow()
         self.toolbar_scroller.set_policy(
@@ -75,7 +83,11 @@ class SpaceView(Gtk.Box):
         self.canvas.set_hexpand(True)
         self.canvas.set_vexpand(True)
         self.canvas.add_css_class("space-canvas")
-        self.pen = Pen(self.canvas, self._update_history_buttons)
+        self.pen = Pen(
+            self.canvas,
+            self._update_history_buttons,
+            self.drawing_color,
+        )
         self.eraser = Eraser(self.pen)
         self.undo_action = Undo(self.pen)
         self.redo_action = Redo(self.pen)
@@ -102,6 +114,35 @@ class SpaceView(Gtk.Box):
         if button.get_active() and self.tool_buttons["Eraser"].get_active():
             self.tool_buttons["Eraser"].set_active(False)
         self.pen.set_enabled(button.get_active())
+
+    def _build_color_button_content(self) -> Gtk.Box:
+        content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        content.append(Gtk.Label(label="Color"))
+        self.color_preview = Gtk.DrawingArea()
+        self.color_preview.set_content_width(14)
+        self.color_preview.set_content_height(14)
+        self.color_preview.set_draw_func(self._draw_color_preview)
+        content.append(self.color_preview)
+        return content
+
+    def _draw_color_preview(
+        self,
+        _area: Gtk.DrawingArea,
+        context,
+        width: int,
+        height: int,
+    ) -> None:
+        color = self.drawing_color.current
+        context.rectangle(1, 1, width - 2, height - 2)
+        context.set_source_rgb(*color)
+        context.fill_preserve()
+        context.set_source_rgb(0.35, 0.35, 0.35)
+        context.set_line_width(1)
+        context.stroke()
+
+    def _update_color_preview(self, _color: Color) -> None:
+        if self.color_preview is not None:
+            self.color_preview.queue_draw()
 
     def _on_eraser_toggled(self, button: Gtk.ToggleButton) -> None:
         if button.get_active() and self.tool_buttons["Pen"].get_active():

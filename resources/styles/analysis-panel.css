@@ -99,3 +99,21 @@
     border: 1px solid @line;
     border-radius: 6px;
 }
+
+#analysis-panel .space-color-popover,
+#analysis-panel .space-color-popover contents
+{
+    background-color: @surface;
+    color: @text;
+    border: 1px solid @line;
+}
+
+#analysis-panel .space-color-swatch
+{
+    min-width: 24px;
+    min-height: 24px;
+    padding: 1px;
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
+}
