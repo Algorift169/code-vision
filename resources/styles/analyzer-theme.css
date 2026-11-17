@@ -176,6 +176,17 @@
     border-radius: 4px;
 }
 
+#analysis-panel .space-text-box,
+#analysis-panel .space-text-box scrolledwindow,
+#analysis-panel .space-text-box viewport,
+#analysis-panel .space-text-box textview,
+#analysis-panel .space-text-box textview.view,
+#analysis-panel .space-text-box textview text
+{
+    background-color: transparent;
+    background-image: none;
+}
+
 #analysis-panel .var-flow-canvas-panel,
 #analysis-panel .var-flow-canvas-panel > scrolledwindow
 {

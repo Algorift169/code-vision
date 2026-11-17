@@ -45,8 +45,6 @@ class DrawingColor:
     def set(self, color: Color) -> None:
         if len(color) != 3 or any(not 0.0 <= component <= 1.0 for component in color):
             raise ValueError("Drawing colors must contain three RGB values from 0 to 1.")
-        if color == self.current:
-            return
         self.current = color
         for listener in tuple(self._listeners):
             listener(color)

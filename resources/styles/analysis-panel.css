@@ -117,3 +117,33 @@
     background-color: transparent;
     box-shadow: none;
 }
+
+#analysis-panel .space-text-box
+{
+    background-color: transparent;
+    border: 1px solid transparent;
+}
+
+#analysis-panel .space-text-box.editing
+{
+    border: 1px solid @accent-2;
+}
+
+#analysis-panel .space-text-box textview,
+#analysis-panel .space-text-box textview text
+{
+    background-color: transparent;
+    color: @text;
+}
+
+#analysis-panel .space-text-box-handle
+{
+    background-color: @accent-2;
+    border: 1px solid @surface;
+}
+
+#analysis-panel .space-text-box-move-handle
+{
+    background-color: @accent-2;
+    border-radius: 999px;
+}
