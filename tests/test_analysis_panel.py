@@ -7,6 +7,7 @@ from gi.repository import Gtk
 from codevision.ui.analysis_panel import SECTIONS, AnalysisPanel
 from codevision.ui.ast_view import ASTView
 from codevision.ui.graphs import CallGraphView, DependencyView, FlowchartView
+from space.space_view import SpaceView
 
 
 def test_analysis_panel_has_all_sections_in_order() -> None:
@@ -20,10 +21,11 @@ def test_analysis_panel_has_all_sections_in_order() -> None:
         "Var Flow",
         "Complexity",
         "Dependency",
+        "Space",
         "Export",
     )
     assert tuple(panel.section_buttons) == panel.sections
-    assert len(panel.section_buttons) == 8
+    assert len(panel.section_buttons) == 9
     assert panel.get_size_request()[0] > 0
 
 
@@ -49,11 +51,118 @@ def test_analysis_section_selects_its_placeholder(section: str) -> None:
     elif section == "Dependency":
         assert isinstance(placeholder, DependencyView)
         assert placeholder.title.get_text() == section
+    elif section == "Space":
+        assert isinstance(placeholder, SpaceView)
     else:
         assert placeholder.get_first_child().get_text() == section
 
     for other_section, other_button in panel.section_buttons.items():
         assert other_button.get_active() is (other_section == section)
+
+
+def test_space_menu_has_all_requested_toolbar_buttons() -> None:
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+
+    assert isinstance(space, SpaceView)
+    assert tuple(space.tool_buttons) == (
+        "Pen",
+        "Undo",
+        "Redo",
+        "Eraser",
+        "Box",
+        "Color",
+        "Text Box",
+        "Import",
+        "Shapes",
+        "Zoom In",
+        "Zoom Out",
+        "Export",
+    )
+    assert space.canvas.get_name() == "space-canvas"
+    assert space.canvas.get_content_width() == 0
+    assert space.canvas.get_content_height() == 0
+    assert isinstance(space.tool_buttons["Pen"], Gtk.ToggleButton)
+    assert not space.tool_buttons["Pen"].get_active()
+    assert not space.tool_buttons["Undo"].get_sensitive()
+    assert not space.tool_buttons["Redo"].get_sensitive()
+    assert space.toolbar.get_orientation() == Gtk.Orientation.HORIZONTAL
+    assert space.toolbar_scroller.get_policy() == (
+        Gtk.PolicyType.AUTOMATIC,
+        Gtk.PolicyType.NEVER,
+    )
+    assert space.canvas_scroller.get_policy() == (
+        Gtk.PolicyType.AUTOMATIC,
+        Gtk.PolicyType.AUTOMATIC,
+    )
+
+    pen_button = space.tool_buttons["Pen"]
+    pen_button.set_active(True)
+    assert space.pen.enabled
+    assert not space.tool_buttons["Eraser"].get_active()
+    pen_button.set_active(False)
+    assert not space.pen.enabled
+
+
+def test_space_pen_and_eraser_are_persistent_exclusive_tools() -> None:
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+    pen_button = space.tool_buttons["Pen"]
+    eraser_button = space.tool_buttons["Eraser"]
+
+    assert isinstance(eraser_button, Gtk.ToggleButton)
+    eraser_button.set_active(True)
+    assert eraser_button.get_active()
+    assert space.eraser.enabled
+    assert not pen_button.get_active()
+
+    eraser_button.set_active(False)
+    assert not eraser_button.get_active()
+    assert not space.eraser.enabled
+
+    eraser_button.set_active(True)
+    pen_button.set_active(True)
+    assert pen_button.get_active()
+    assert space.pen.enabled
+    assert not eraser_button.get_active()
+    assert not space.eraser.enabled
+
+    pen_button.set_active(False)
+    assert not space.pen.enabled
+
+
+def test_space_undo_redo_buttons_follow_stroke_history() -> None:
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+    space.canvas.set_content_width(100)
+    space.canvas.set_content_height(100)
+    space.pen.set_enabled(True)
+    space.pen._on_drag_begin(None, 10.0, 12.0)
+    space.pen._on_drag_end(None, 5.0, 7.0)
+
+    assert space.tool_buttons["Undo"].get_sensitive()
+    space.tool_buttons["Undo"].emit("clicked")
+    assert not space.pen.can_undo
+    assert not space.tool_buttons["Undo"].get_sensitive()
+    assert space.tool_buttons["Redo"].get_sensitive()
+
+    space.tool_buttons["Redo"].emit("clicked")
+    assert space.pen.can_undo
+    assert space.tool_buttons["Undo"].get_sensitive()
+    assert not space.tool_buttons["Redo"].get_sensitive()
+
+
+def test_space_board_extends_when_scrolling_reaches_its_edge() -> None:
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+    adjustment = Gtk.Adjustment.new(250, 0, 500, 10, 250, 250)
+
+    space._extend_canvas_for_scroll(adjustment, "height")
+
+    assert space.canvas.get_content_height() == 250
+    adjustment.set_value(250)
+    space._extend_canvas_for_scroll(adjustment, "height")
+    assert space.canvas.get_content_height() == 500
 
 
 def test_analysis_zoom_controls_stay_visible_outside_scrolling_views() -> None:

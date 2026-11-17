@@ -167,6 +167,15 @@
     border: none;
 }
 
+#analysis-panel .space-tool-button:checked
+{
+    background-color: @select;
+    background-image: none;
+    color: @text;
+    border: 1px solid @line;
+    border-radius: 4px;
+}
+
 #analysis-panel .var-flow-canvas-panel,
 #analysis-panel .var-flow-canvas-panel > scrolledwindow
 {

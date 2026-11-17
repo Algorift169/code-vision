@@ -87,3 +87,15 @@
 {
     font-size: 12px;
 }
+
+.space-toolbar
+{
+    padding: 0;
+}
+
+.space-canvas
+{
+    background-color: @surface;
+    border: 1px solid @line;
+    border-radius: 6px;
+}

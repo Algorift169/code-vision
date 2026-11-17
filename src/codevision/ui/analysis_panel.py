@@ -13,6 +13,7 @@ from .analyzer_theme import AnalyzerTheme
 from .ast_view import ASTView
 from .complexity_view import ComplexityView
 from .graphs import CallGraphView, DependencyView, FlowchartView, VariableFlowView
+from space.space_view import SpaceView
 
 SECTIONS = (
     "Overview",
@@ -22,6 +23,7 @@ SECTIONS = (
     "Var Flow",
     "Complexity",
     "Dependency",
+    "Space",
     "Export",
 )
 
@@ -135,6 +137,11 @@ class AnalysisPanel(Gtk.Box):
                 continue
             if section == "Dependency":
                 placeholder = DependencyView(on_file_navigate=on_file_navigate)
+                self.views.add_named(placeholder, f"section-{index}")
+                self._section_placeholders[section] = placeholder
+                continue
+            if section == "Space":
+                placeholder = SpaceView()
                 self.views.add_named(placeholder, f"section-{index}")
                 self._section_placeholders[section] = placeholder
                 continue
