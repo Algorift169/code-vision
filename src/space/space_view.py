@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 import gi
 
 gi.require_version("Gdk", "4.0")
+gi.require_version("Gio", "2.0")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gdk, Gtk
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 from .color import Color, ColorPalette, DrawingColor
 from .eraser import Eraser
+from .import_item import ImportItem
+from .importer import ImportedFile, describe_file
 from .pen import Pen
 from .rendo import Redo
 from .textbox import TextBox
@@ -47,8 +51,12 @@ class SpaceView(Gtk.Box):
         self.drawing_color = DrawingColor()
         self.color_preview: Gtk.DrawingArea | None = None
         self.text_boxes: list[TextBox] = []
+        self.import_items: list[ImportItem] = []
         self._active_text_box: TextBox | None = None
         self._highlighted_text_box: TextBox | None = None
+        self._import_dialog: Gtk.FileChooserDialog | None = None
+        self._dragged_import_item: ImportItem | None = None
+        self._import_drag_origin = (0.0, 0.0)
         self.zoom = SpaceZoom(self._apply_space_zoom)
 
         self.toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
@@ -73,6 +81,8 @@ class SpaceView(Gtk.Box):
         for label, button in self.tool_buttons.items():
             if label == "Color":
                 button.connect("notify::active", self._on_color_menu_active)
+            elif label == "Import":
+                button.connect("clicked", self._on_import_clicked)
             else:
                 button.connect("clicked", self._on_toolbar_button_clicked)
         self.drawing_color.subscribe(self._on_drawing_color_changed)
@@ -84,6 +94,13 @@ class SpaceView(Gtk.Box):
         self.toolbar_scroller.set_hexpand(True)
         self.toolbar_scroller.set_child(self.toolbar)
         self.append(self.toolbar_scroller)
+
+        self.import_status = Gtk.Label()
+        self.import_status.set_xalign(0)
+        self.import_status.set_wrap(True)
+        self.import_status.add_css_class("space-import-status")
+        self.import_status.set_visible(False)
+        self.append(self.import_status)
 
         self.canvas_scroller = Gtk.ScrolledWindow()
         self.canvas_scroller.set_policy(
@@ -102,6 +119,16 @@ class SpaceView(Gtk.Box):
         self.board.set_vexpand(True)
         self.board.set_focusable(True)
         self.board.put(self.canvas, 0, 0)
+        import_drag = Gtk.GestureDrag.new()
+        import_drag.set_button(Gdk.BUTTON_PRIMARY)
+        import_drag.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        import_drag.connect("drag-begin", self._on_import_drag_begin)
+        import_drag.connect("drag-update", self._on_import_drag_update)
+        import_drag.connect("drag-end", self._on_import_drag_end)
+        self.board.add_controller(import_drag)
+        file_drop = Gtk.DropTarget.new(Gdk.FileList.__gtype__, Gdk.DragAction.COPY)
+        file_drop.connect("drop", self._on_files_dropped)
+        self.board.add_controller(file_drop)
         self._canvas_width = 0
         self._canvas_height = 0
         self._extending_canvas = False
@@ -165,8 +192,176 @@ class SpaceView(Gtk.Box):
         )
         for text_box in self.text_boxes:
             text_box.apply_zoom()
+        for item in self.import_items:
+            item.apply_zoom()
         self._extending_canvas = False
         self.canvas.queue_draw()
+
+    def _on_import_clicked(self, _button: Gtk.Button) -> None:
+        self._clear_text_box_highlight()
+        root = self.get_root()
+        if not isinstance(root, Gtk.Window):
+            self._show_import_status("Open Space in a window to import files.")
+            return
+        dialog = Gtk.FileChooserDialog(
+            title="Import files to Space",
+            transient_for=root,
+            action=Gtk.FileChooserAction.OPEN,
+            modal=True,
+        )
+        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("_Import", Gtk.ResponseType.ACCEPT)
+        dialog.set_default_response(Gtk.ResponseType.ACCEPT)
+        dialog.add_css_class("space-file-chooser")
+        dialog.set_select_multiple(True)
+        dialog.connect("response", self._on_import_response)
+        self._import_dialog = dialog
+        dialog.present()
+
+    def _on_import_response(
+        self, dialog: Gtk.FileChooserDialog, response: int
+    ) -> None:
+        if response == Gtk.ResponseType.ACCEPT:
+            files = dialog.get_files()
+            paths = [
+                files.get_item(index).get_path()
+                for index in range(files.get_n_items())
+            ]
+            has_non_local_files = any(path is None for path in paths)
+            self.import_files([Path(path) for path in paths if path is not None])
+            if has_non_local_files:
+                self._show_import_status("Only local files can be imported.")
+        dialog.destroy()
+        self._import_dialog = None
+
+    def _on_files_dropped(
+        self,
+        _target: Gtk.DropTarget,
+        value: Gdk.FileList,
+        x: float,
+        y: float,
+    ) -> bool:
+        files = value.get_files()
+        paths = [file.get_path() for file in files]
+        has_non_local_files = any(path is None for path in paths)
+        local_paths = [Path(path) for path in paths if path is not None]
+        if not local_paths:
+            if has_non_local_files:
+                self._show_import_status("Only local files can be imported.")
+            return False
+        added = self.import_files(local_paths, self.zoom.to_board(x, y))
+        if has_non_local_files:
+            self._show_import_status("Only local files can be imported.")
+        return bool(added)
+
+    def import_files(
+        self,
+        paths: list[Path],
+        position: tuple[float, float] | None = None,
+    ) -> list[ImportItem]:
+        added: list[ImportItem] = []
+        errors: list[str] = []
+        origin_x, origin_y = position or (
+            24.0 + (len(self.import_items) % 4) * 24.0,
+            24.0 + (len(self.import_items) // 4) * 24.0,
+        )
+        for index, path in enumerate(paths):
+            try:
+                details = describe_file(path)
+                item_position = (
+                    max(0.0, origin_x + (index % 4) * 24.0),
+                    max(0.0, origin_y + (index // 4) * 24.0),
+                )
+                item = self._create_import_item(details, item_position)
+            except (OSError, ValueError, GLib.Error) as error:
+                errors.append(str(error))
+                continue
+            added.append(item)
+
+        if errors:
+            self._show_import_status("; ".join(errors))
+        elif added:
+            self.import_status.set_visible(False)
+        return added
+
+    def _create_import_item(
+        self,
+        details: ImportedFile,
+        position: tuple[float, float],
+    ) -> ImportItem:
+        item = ImportItem(
+            details.path,
+            details.content_type,
+            details.mime_type,
+            self.zoom,
+            position,
+        )
+        self.board.put(
+            item,
+            item.x * self.zoom.scale,
+            item.y * self.zoom.scale,
+        )
+        self.import_items.append(item)
+        self._ensure_import_extent(item)
+        return item
+
+    def _show_import_status(self, message: str) -> None:
+        self.import_status.set_text(message)
+        self.import_status.set_visible(True)
+
+    def _on_import_drag_begin(
+        self, gesture: Gtk.GestureDrag, x: float, y: float
+    ) -> None:
+        picked = self.board.pick(x, y, Gtk.PickFlags.DEFAULT)
+        while picked is not None and not isinstance(picked, ImportItem):
+            picked = picked.get_parent()
+        if not isinstance(picked, ImportItem):
+            self._dragged_import_item = None
+            gesture.set_state(Gtk.EventSequenceState.DENIED)
+            return
+        self._dragged_import_item = picked
+        self._import_drag_origin = (picked.x, picked.y)
+        gesture.set_state(Gtk.EventSequenceState.CLAIMED)
+        self._clear_text_box_highlight()
+        self.board.grab_focus()
+
+    def _on_import_drag_update(
+        self,
+        _gesture: Gtk.GestureDrag,
+        offset_x: float,
+        offset_y: float,
+    ) -> None:
+        item = self._dragged_import_item
+        if item is None:
+            return
+        item.x = max(
+            0.0, self._import_drag_origin[0] + offset_x / self.zoom.scale
+        )
+        item.y = max(
+            0.0, self._import_drag_origin[1] + offset_y / self.zoom.scale
+        )
+        self.board.move(
+            item,
+            item.x * self.zoom.scale,
+            item.y * self.zoom.scale,
+        )
+        self._ensure_import_extent(item)
+
+    def _on_import_drag_end(
+        self,
+        _gesture: Gtk.GestureDrag,
+        _offset_x: float,
+        _offset_y: float,
+    ) -> None:
+        self._dragged_import_item = None
+
+    def _ensure_import_extent(self, item: ImportItem) -> None:
+        right = math.ceil(item.x + item.WIDTH)
+        bottom = math.ceil(item.y + item.HEIGHT)
+        if right > self._canvas_width:
+            self._set_canvas_extent("width", right)
+        if bottom > self._canvas_height:
+            self._set_canvas_extent("height", bottom)
 
     def _build_color_button_content(self) -> Gtk.Box:
         content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)

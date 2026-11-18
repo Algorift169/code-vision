@@ -187,6 +187,80 @@
     background-image: none;
 }
 
+.space-file-chooser placessidebar,
+.space-file-chooser placessidebar viewport,
+.space-file-chooser placessidebar list,
+.space-file-chooser placessidebar row,
+.space-file-chooser placessidebar row.sidebar-row,
+.space-file-chooser placessidebar row.sidebar-row revealer,
+.space-file-chooser columnview,
+.space-file-chooser columnview header,
+.space-file-chooser columnview header button,
+.space-file-chooser columnview listview,
+.space-file-chooser columnview listview row,
+.space-file-chooser pathbarbox,
+.space-file-chooser pathbarbox button,
+.space-file-chooser pathbar,
+.space-file-chooser pathbar button,
+.space-file-chooser .path-bar button,
+.space-file-chooser .view,
+.space-file-chooser .sidebar,
+.space-file-chooser .navigation-sidebar,
+.space-file-chooser .sidebar-row,
+.space-file-chooser .sidebar-revealer
+{
+    background-color: @surface;
+    background-image: none;
+    border-color: @line;
+}
+
+.space-file-chooser placessidebar row.sidebar-row label.sidebar-label,
+.space-file-chooser columnview header button label,
+.space-file-chooser columnview listview row label,
+.space-file-chooser pathbarbox button label,
+.space-file-chooser pathbarbox label,
+.space-file-chooser pathbar button label,
+.space-file-chooser pathbar label,
+.space-file-chooser .path-bar button label,
+.space-file-chooser .path-bar label,
+.space-file-chooser .view label,
+.space-file-chooser sidebar label,
+.space-file-chooser .navigation-sidebar row label
+{
+    color: @text;
+}
+
+.space-file-chooser pathbarbox button,
+.space-file-chooser pathbar button,
+.space-file-chooser .path-bar button
+{
+    background-color: transparent;
+    background-image: none;
+    border-color: @line;
+    box-shadow: none;
+}
+
+.space-file-chooser pathbarbox button:hover,
+.space-file-chooser pathbar button:hover,
+.space-file-chooser .path-bar button:hover
+{
+    background-color: @hover;
+    color: @accent-2;
+}
+
+.space-file-chooser placessidebar row.sidebar-row:selected,
+.space-file-chooser columnview listview row:selected
+{
+    background-color: @select;
+    color: @text;
+}
+
+.space-file-chooser placessidebar row.sidebar-row:hover,
+.space-file-chooser columnview listview row:hover
+{
+    background-color: @hover;
+}
+
 #analysis-panel .var-flow-canvas-panel,
 #analysis-panel .var-flow-canvas-panel > scrolledwindow
 {

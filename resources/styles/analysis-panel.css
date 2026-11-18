@@ -100,6 +100,59 @@
     border-radius: 6px;
 }
 
+#analysis-panel .space-import-item
+{
+    padding: 2px;
+    background-color: @surface;
+    border: none;
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+#analysis-panel .space-import-item label
+{
+    color: @text;
+}
+
+#analysis-panel .space-import-status
+{
+    color: @text;
+    font-size: 11px;
+}
+
+.space-file-chooser,
+.space-file-chooser contents,
+.space-file-chooser .view,
+.space-file-chooser listview,
+.space-file-chooser gridview,
+.space-file-chooser sidebar
+{
+    background-color: @surface;
+    color: @text;
+}
+
+.space-file-chooser headerbar,
+.space-file-chooser toolbar
+{
+    background-color: @surface;
+    color: @text;
+    border-color: @line;
+}
+
+.space-file-chooser entry,
+.space-file-chooser searchentry
+{
+    background-color: @raised;
+    color: @text;
+    border-color: @line;
+}
+
+.space-file-chooser button:hover
+{
+    background-color: @hover;
+    color: @text;
+}
+
 #analysis-panel .space-color-popover,
 #analysis-panel .space-color-popover contents
 {
