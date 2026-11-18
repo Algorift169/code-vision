@@ -380,7 +380,13 @@ class VariableFlowView(Gtk.Box):
             y = node.y * self._zoom
             w = node.width * self._zoom
             h = node.height * self._zoom
-            if self._all_nodes_selected or node.node_id == self._selected_node_id:
+            if (
+                self._all_nodes_selected
+                or node.node_id == self._selected_node_id
+                or node.node_id in getattr(self, "_multi_select_node_ids", set())
+                or node.node_id
+                == getattr(self, "_multi_select_hover_node_id", None)
+            ):
                 context.set_source_rgb(0.20, 0.66, 0.89)
             else:
                 colors = {

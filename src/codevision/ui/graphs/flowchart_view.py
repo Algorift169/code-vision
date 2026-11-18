@@ -584,7 +584,12 @@ class FlowchartView(Gtk.Box):
         else:
             context.rectangle(x, y, width, height)
         context.fill_preserve()
-        if self._all_nodes_selected or node.node_id == self._selected_node_id:
+        if (
+            self._all_nodes_selected
+            or node.node_id == self._selected_node_id
+            or node.node_id in getattr(self, "_multi_select_node_ids", set())
+            or node.node_id == getattr(self, "_multi_select_hover_node_id", None)
+        ):
             context.set_source_rgba(1.0, 0.88, 0.28, 1.0)
             context.set_line_width(3.2)
         else:

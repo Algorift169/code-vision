@@ -10,12 +10,19 @@ from . import (
     remove,
     rename_box,
     select_all,
+    select_multiple,
     show_complexity,
 )
 
 ANALYSIS_PANEL_ACTIONS = (
     ("panel-copy", "Copy", "edit-copy-symbolic", copy),
     ("panel-select-all", "Select All", "edit-select-all-symbolic", select_all),
+    (
+        "panel-select-multiple",
+        "Select Multiple",
+        "edit-select-all-symbolic",
+        select_multiple,
+    ),
     ("forward-to-space", "Forward to Space", "go-next-symbolic", forward_to_space),
     (
         "forward-full-graph",

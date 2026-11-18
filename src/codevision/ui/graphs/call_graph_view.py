@@ -484,7 +484,12 @@ class CallGraphView(Gtk.Box):
                     context.show_text(label)
 
         for node in graph.nodes:
-            selected = self._all_nodes_selected
+            selected = (
+                self._all_nodes_selected
+                or node.node_id in getattr(self, "_multi_select_node_ids", set())
+                or node.node_id
+                == getattr(self, "_multi_select_hover_node_id", None)
+            )
             context.set_source_rgba(
                 0.97 if selected else 0.16,
                 0.78 if selected else 0.48,

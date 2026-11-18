@@ -176,6 +176,12 @@ def graph_snapshot_for(context: MenuContext) -> GraphSnapshot | None:
                         12,
                         50,
                     ),
+                    GraphTextLine(
+                        view._connection_summary(graph, node.node_id),
+                        12,
+                        65,
+                        10,
+                    ),
                 ),
             )
             for node in graph.nodes

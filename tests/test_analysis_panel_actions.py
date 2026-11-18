@@ -1,7 +1,8 @@
 import gi
 
+gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from gi.repository import Gdk, Gtk
 
 from codevision.actions import (
     change_color,
@@ -12,6 +13,7 @@ from codevision.actions import (
     remove,
     rename_box,
     select_all,
+    select_multiple,
     show_complexity,
 )
 from codevision.app.main_window import CodeVisionWindow
@@ -73,6 +75,7 @@ def test_analysis_panel_actions_are_scoped_to_analysis_context() -> None:
     assert not remove.is_enabled(panel_context)
     assert not select_all.is_enabled(panel_context)
     assert not forward_full_graph.is_enabled(panel_context)
+    assert select_multiple.is_enabled(panel_context)
 
 
 def test_space_actions_enable_for_board_items_only_in_space() -> None:
@@ -86,6 +89,7 @@ def test_space_actions_enable_for_board_items_only_in_space() -> None:
     )
 
     panel.select_section("Space")
+    assert not select_multiple.is_enabled(context)
     assert clear_screen.is_enabled(context)
     assert duplicate_box.is_enabled(context)
     assert change_color.is_enabled(context)
@@ -327,6 +331,66 @@ def test_select_all_selects_every_node_in_the_current_graph() -> None:
     select_all.run(context)
 
     assert view._all_nodes_selected
+
+
+def test_select_multiple_forwards_selected_nodes_when_enter_is_pressed() -> None:
+    from pathlib import Path
+
+    panel = AnalysisPanel()
+    panel.set_source(
+        "int main() { int value = 2; if (value) value++; return value; }",
+        Path("main.c"),
+        "c",
+    )
+    panel.select_section("Flowchart")
+    view = panel._section_placeholders["Flowchart"]
+    status_messages = []
+    context = MenuContext(
+        widget=view.canvas,
+        kind="analysis-panel",
+        analysis_panel=panel,
+        set_status=status_messages.append,
+    )
+
+    assert select_multiple.is_enabled(context)
+    select_multiple.run(context)
+    session = panel._multi_select_session
+    snapshot = graph_snapshot_for(context)
+    assert snapshot is not None
+    selected_nodes = snapshot.nodes[:2]
+    for node in selected_nodes:
+        selection = select_multiple._Selection(
+            ("Flowchart", f"node:{node.node_id}"),
+            node,
+            None,
+            None,
+        )
+        session.selected[selection.key] = selection
+    text_selection = select_multiple._Selection(
+        ("Flowchart", "widget:test-text"),
+        None,
+        "A selected text item",
+        None,
+    )
+    session.selected[text_selection.key] = text_selection
+    session._refresh_highlights()
+
+    assert view._multi_select_node_ids == {
+        node.node_id for node in selected_nodes
+    }
+    assert session._on_key_pressed(
+        None, Gdk.KEY_Return, 0, Gdk.ModifierType(0)
+    )
+
+    space = panel._section_placeholders["Space"]
+    assert panel.current_section == "Space"
+    assert [item.node for item in space.graph_items] == list(selected_nodes)
+    assert space.text_boxes[0].buffer.get_text(
+        space.text_boxes[0].buffer.get_start_iter(),
+        space.text_boxes[0].buffer.get_end_iter(),
+        True,
+    ) == "A selected text item"
+    assert len(status_messages) == 2
 
 
 def test_full_graph_forward_supports_call_variable_and_complexity_views() -> None:

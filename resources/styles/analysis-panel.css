@@ -88,6 +88,13 @@
     font-size: 12px;
 }
 
+#analysis-panel .analysis-multi-select-hover,
+#analysis-panel .analysis-multi-select-selected
+{
+    outline: 2px solid @accent-2;
+    outline-offset: -2px;
+}
+
 .space-toolbar
 {
     padding: 0;

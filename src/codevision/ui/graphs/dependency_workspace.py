@@ -1014,12 +1014,20 @@ class DependencyView(Gtk.Box):
                 self._all_nodes_selected
                 or node.selected
                 or node.outgoing_target
+                or node.node_id in getattr(self, "_multi_select_node_ids", set())
+                or node.node_id
+                == getattr(self, "_multi_select_hover_node_id", None)
             )
             color = (
                 (0.97, 0.99, 1.0) if node.selected or node.outgoing_target
                 else self._kind_color(node.kind)
             )
-            if self._all_nodes_selected:
+            if (
+                self._all_nodes_selected
+                or node.node_id in getattr(self, "_multi_select_node_ids", set())
+                or node.node_id
+                == getattr(self, "_multi_select_hover_node_id", None)
+            ):
                 color = (0.97, 0.99, 1.0)
             alpha = 0.12 if node.dimmed else (0.28 if selected else 0.18)
             context.set_source_rgba(*color, alpha)
