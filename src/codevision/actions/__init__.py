@@ -1,0 +1,5 @@
+"""Analysis-panel actions."""
+
+from .action import ANALYSIS_PANEL_ACTIONS, ANALYSIS_PANEL_ACTION_ORDER
+
+__all__ = ["ANALYSIS_PANEL_ACTIONS", "ANALYSIS_PANEL_ACTION_ORDER"]

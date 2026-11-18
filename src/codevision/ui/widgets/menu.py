@@ -8,6 +8,10 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk
 
+from ...actions.action import (
+    ANALYSIS_PANEL_ACTIONS,
+    ANALYSIS_PANEL_ACTION_ORDER,
+)
 from .menu_actions import (
     change_theme,
     copy,
@@ -50,6 +54,7 @@ class ContextMenu(Gtk.Box):
         ("select-all", "Select All", "edit-select-all-symbolic", select_all),
         ("kong-browser", "Kong Browser", "network-transmit-symbolic", open_kong_browser),
         ("kill-terminal", "Kill Terminal", "process-stop-symbolic", kill_terminal),
+        *ANALYSIS_PANEL_ACTIONS,
     )
     _TREE_ACTION_ORDER = (
         "open",
@@ -226,12 +231,15 @@ class ContextMenu(Gtk.Box):
         if self._context is None:
             return
         tree_context = self._context.kind == "explorer" and self._context.path is not None
-        self._compose_menu(tree_context)
+        analysis_panel_context = self._context.kind == "analysis-panel"
+        self._compose_menu(tree_context, analysis_panel_context)
         for button, action in self._items.values():
             if button.get_visible():
                 button.set_sensitive(action.is_enabled(self._context))
 
-    def _compose_menu(self, tree_context: bool) -> None:
+    def _compose_menu(
+        self, tree_context: bool, analysis_panel_context: bool = False
+    ) -> None:
         for button, _action in self._items.values():
             button.set_visible(False)
 
@@ -241,7 +249,14 @@ class ContextMenu(Gtk.Box):
             self.remove(child)
             child = following
 
-        order = self._TREE_ACTION_ORDER if tree_context else self._GENERAL_ACTION_ORDER
+        if analysis_panel_context:
+            order = ANALYSIS_PANEL_ACTION_ORDER
+        else:
+            order = (
+                self._TREE_ACTION_ORDER
+                if tree_context
+                else self._GENERAL_ACTION_ORDER
+            )
         for action_id in order:
             if not tree_context and action_id in {"copy", "select"}:
                 self.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))

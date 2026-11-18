@@ -1165,6 +1165,11 @@ layout after exiting focus mode. The view menu is updated after
             return self._generic_menu_context()
 
         target = root.pick(x, y, Gtk.PickFlags.DEFAULT)
+        if target is not None and self._is_within(target, self.analysis_panel):
+            context = self._generic_menu_context(target)
+            context.kind = "analysis-panel"
+            return context
+
         tree = self.project_explorer.tree
         if target is not None and self._is_within(target, tree):
             translated = root.translate_coordinates(tree, x, y)
