@@ -10,6 +10,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from ...analysis.variable_flow import VariableFlowAnalysis
+from ...graphs.variable_flow import VariableFlowNode
 from ...graphs.variable_flow_builder import VariableFlowBuilder
 from ...model import ASTNode
 from ...parser import SourceParser
@@ -30,6 +31,7 @@ class VariableFlowView(Gtk.Box):
         self._file_path: Path | None = None
         self._language: str | None = None
         self._zoom = 1.0
+        self._all_nodes_selected = False
         self._selected_fact = None
         self._selected_node_id: str | None = None
         self._graph = None
@@ -155,6 +157,7 @@ class VariableFlowView(Gtk.Box):
         self._raw_message = self._empty_state
 
     def set_source(self, source: str | None, file_path: Path | None, language: str | None = None) -> None:
+        self._all_nodes_selected = False
         self._source = source
         self._file_path = file_path
         self._language = language
@@ -291,6 +294,7 @@ class VariableFlowView(Gtk.Box):
         self._update_selected_graph()
 
     def _update_selected_graph(self) -> None:
+        self._all_nodes_selected = False
         if self._selected_fact is None:
             self._graph = None
             self._selected_node_id = None
@@ -376,7 +380,7 @@ class VariableFlowView(Gtk.Box):
             y = node.y * self._zoom
             w = node.width * self._zoom
             h = node.height * self._zoom
-            if node.node_id == self._selected_node_id:
+            if self._all_nodes_selected or node.node_id == self._selected_node_id:
                 context.set_source_rgb(0.20, 0.66, 0.89)
             else:
                 colors = {
@@ -404,24 +408,33 @@ class VariableFlowView(Gtk.Box):
             context.show_text(f"Line {node.metadata.get('source_line', '?')}")
 
     def _on_canvas_pressed(self, _gesture: Gtk.GestureClick, _n_press: int, x: float, y: float) -> None:
-        if self._graph is None:
-            return
-        x /= self._zoom
-        y /= self._zoom
-        node = next(
-            (
-                item for item in reversed(self._graph.nodes)
-                if item.x <= x <= item.x + item.width and item.y <= y <= item.y + item.height
-            ),
-            None,
-        )
+        node = self.node_at(x, y)
         if node is None:
             return
+        self._all_nodes_selected = False
         self._selected_node_id = node.node_id
         self._populate_inspector_from_selection()
         if self._on_source_navigate is not None and node.source_node is not None and node.source_node.location.has_range:
             if _n_press >= 2:
                 self._on_source_navigate(node.source_node)
+
+    def node_at(self, x: float, y: float) -> VariableFlowNode | None:
+        if self._graph is None:
+            return None
+        graph_x = x / self._zoom
+        graph_y = y / self._zoom
+        return next(
+            (
+                item for item in reversed(self._graph.nodes)
+                if item.x <= graph_x <= item.x + item.width
+                and item.y <= graph_y <= item.y + item.height
+            ),
+            None,
+        )
+
+    def select_all_nodes(self) -> None:
+        self._all_nodes_selected = bool(self._graph and self._graph.nodes)
+        self.canvas.queue_draw()
 
     def _populate_inspector_from_selection(self) -> None:
         if self._graph is None:

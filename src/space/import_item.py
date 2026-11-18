@@ -33,6 +33,7 @@ class ImportItem(Gtk.Frame):
         self.mime_type = mime_type
         self.zoom = zoom
         self.x, self.y = position
+        self.display_name = path.name
         self.set_name("space-import-item")
         self.add_css_class("space-import-item")
         self.set_tooltip_text(str(path))
@@ -53,7 +54,7 @@ class ImportItem(Gtk.Frame):
             self.preview = preview
         content.append(preview)
 
-        self.filename_label = Gtk.Label(label=path.name)
+        self.filename_label = Gtk.Label(label=self.display_name)
         self.filename_label.set_xalign(0.5)
         self.filename_label.set_wrap(True)
         self.filename_label.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
@@ -61,6 +62,13 @@ class ImportItem(Gtk.Frame):
         content.append(self.filename_label)
         self.set_child(content)
         self.apply_zoom()
+
+    def set_display_name(self, name: str) -> None:
+        display_name = name.strip()
+        if not display_name:
+            raise ValueError("Imported file names cannot be empty.")
+        self.display_name = display_name
+        self.filename_label.set_text(display_name)
 
     def apply_zoom(self) -> None:
         scale = self.zoom.scale

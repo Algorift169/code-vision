@@ -162,6 +162,28 @@ class Pen:
         self.canvas.queue_draw()
         self._notify_history_changed()
 
+    def clear(self) -> None:
+        self._finish_active_stroke()
+        before = self.snapshot()
+        if self.strokes:
+            self.strokes.clear()
+            self.stroke_colors.clear()
+            self.record_erasure(before)
+        self.eraser_cursor = None
+        self.canvas.queue_draw()
+
+    def add_strokes(self, strokes: list[Stroke], color: Color | None = None) -> None:
+        self._finish_active_stroke()
+        additions = [stroke.copy() for stroke in strokes if len(stroke) >= 2]
+        if not additions:
+            return
+        before = self.snapshot()
+        stroke_color = color or self.color
+        self.strokes.extend(additions)
+        self.stroke_colors.extend([stroke_color] * len(additions))
+        self.record_erasure(before)
+        self.canvas.queue_draw()
+
     def snapshot(self) -> BoardSnapshot:
         return self._copy_snapshot(self.strokes, self.stroke_colors)
 

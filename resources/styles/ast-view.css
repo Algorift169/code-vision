@@ -27,6 +27,11 @@
     font-size: 11px;
 }
 
+.ast-node-label.ast-node-selected
+{
+    background-color: @select;
+}
+
 .ast-tree row:selected .ast-node-label
 {
     background-color: @select;

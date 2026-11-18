@@ -12,6 +12,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from ...graphs import CallGraph, CallGraphBuilder
+from ...graphs.call_graph import CallGraphNode
 from ...model import ASTNode
 from ...parser import SourceParser
 
@@ -30,6 +31,7 @@ class CallGraphView(Gtk.Box):
         self._builder = CallGraphBuilder()
         self._on_source_navigate = on_source_navigate
         self._zoom = 1.0
+        self._all_nodes_selected = False
         self._pan_offset = (0.0, 0.0)
         self._drag_origin = (0.0, 0.0)
         self._routes: list[list[tuple[float, float]]] = []
@@ -78,6 +80,7 @@ class CallGraphView(Gtk.Box):
         file_path: Path | None,
         language: str | None = None,
     ) -> None:
+        self._all_nodes_selected = False
         if source is None or not source.strip():
             self.graph = None
             self._routes = []
@@ -269,21 +272,31 @@ class CallGraphView(Gtk.Box):
         x: float,
         y: float,
     ) -> None:
-        if self.graph is None or self._on_source_navigate is None:
+        node = self.node_at(x, y)
+        self._all_nodes_selected = False
+        self.canvas.queue_draw()
+        if node is None or self._on_source_navigate is None:
             return
+        self._on_source_navigate(node.source_node)
+
+    def node_at(self, x: float, y: float) -> CallGraphNode | None:
+        if self.graph is None:
+            return None
         origin_x, origin_y = self._graph_origin()
-        x = (x - self._pan_offset[0] - origin_x) / self._zoom
-        y = (y - self._pan_offset[1] - origin_y) / self._zoom
-        node = next(
+        graph_x = (x - self._pan_offset[0] - origin_x) / self._zoom
+        graph_y = (y - self._pan_offset[1] - origin_y) / self._zoom
+        return next(
             (
                 item for item in reversed(self.graph.nodes)
-                if item.x <= x <= item.x + item.width
-                and item.y <= y <= item.y + item.height
+                if item.x <= graph_x <= item.x + item.width
+                and item.y <= graph_y <= item.y + item.height
             ),
             None,
         )
-        if node is not None:
-            self._on_source_navigate(node.source_node)
+
+    def select_all_nodes(self) -> None:
+        self._all_nodes_selected = bool(self.graph and self.graph.nodes)
+        self.canvas.queue_draw()
 
     @staticmethod
     def _connection_summary(graph: CallGraph, node_id: str) -> str:
@@ -471,10 +484,21 @@ class CallGraphView(Gtk.Box):
                     context.show_text(label)
 
         for node in graph.nodes:
-            context.set_source_rgba(0.16, 0.48, 0.42, 0.20)
+            selected = self._all_nodes_selected
+            context.set_source_rgba(
+                0.97 if selected else 0.16,
+                0.78 if selected else 0.48,
+                0.22 if selected else 0.42,
+                0.38 if selected else 0.20,
+            )
             context.rectangle(node.x, node.y, node.width, node.height)
             context.fill_preserve()
-            context.set_source_rgba(0.16, 0.48, 0.42, 1.0)
+            context.set_source_rgba(
+                0.97 if selected else 0.16,
+                0.78 if selected else 0.48,
+                0.22 if selected else 0.42,
+                1.0,
+            )
             context.set_line_width(1.8)
             context.stroke()
             context.set_source_rgba(

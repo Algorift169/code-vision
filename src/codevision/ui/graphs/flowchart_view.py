@@ -13,6 +13,7 @@ from gi.repository import Gtk
 from ...graphs import (
     FlowchartBuilder,
     FlowchartGraph,
+    FlowchartNode,
     FlowchartNodeKind,
     GraphExporter,
     GraphLayout,
@@ -61,6 +62,7 @@ class FlowchartView(Gtk.Box):
         self._file_path: Path | None = None
         self._language: str | None = None
         self._selected_node_id: str | None = None
+        self._all_nodes_selected = False
         self._zoom = 1.0
         self._pan_offset = (0.0, 0.0)
         self._drag_origin = (0.0, 0.0)
@@ -148,6 +150,7 @@ class FlowchartView(Gtk.Box):
         self._file_path = file_path
         self._language = language
         self._selected_node_id = None
+        self._all_nodes_selected = False
         if source is None or not source.strip():
             self._file_label.set_text("No source")
             self._empty_label.set_text(
@@ -199,6 +202,7 @@ class FlowchartView(Gtk.Box):
             return
         self.graph = self._graphs[index]
         self._selected_node_id = None
+        self._all_nodes_selected = False
         self._pan_offset = (0.0, 0.0)
         self._render_graph()
 
@@ -343,21 +347,10 @@ class FlowchartView(Gtk.Box):
         x: float,
         y: float,
     ) -> None:
-        graph = self.graph
-        if graph is None:
+        selected = self.node_at(x, y)
+        if self.graph is None:
             return
-        scale, origin_x, origin_y = self._graph_origin()
-        graph_x = (x - self._pan_offset[0] - origin_x) / scale
-        graph_y = (y - self._pan_offset[1] - origin_y) / scale
-        selected = next(
-            (
-                node
-                for node in reversed(graph.nodes)
-                if node.x <= graph_x <= node.x + node.width
-                and node.y <= graph_y <= node.y + node.height
-            ),
-            None,
-        )
+        self._all_nodes_selected = False
         self._selected_node_id = selected.node_id if selected else None
         self.canvas.queue_draw()
         if (
@@ -385,6 +378,27 @@ class FlowchartView(Gtk.Box):
         )
         if source_node is not None:
             self._on_source_navigate(source_node)
+
+    def node_at(self, x: float, y: float) -> FlowchartNode | None:
+        graph = self.graph
+        if graph is None:
+            return None
+        scale, origin_x, origin_y = self._graph_origin()
+        graph_x = (x - self._pan_offset[0] - origin_x) / scale
+        graph_y = (y - self._pan_offset[1] - origin_y) / scale
+        return next(
+            (
+                node
+                for node in reversed(graph.nodes)
+                if node.x <= graph_x <= node.x + node.width
+                and node.y <= graph_y <= node.y + node.height
+            ),
+            None,
+        )
+
+    def select_all_nodes(self) -> None:
+        self._all_nodes_selected = bool(self.graph and self.graph.nodes)
+        self.canvas.queue_draw()
 
     def _draw_graph(
         self,
@@ -570,7 +584,7 @@ class FlowchartView(Gtk.Box):
         else:
             context.rectangle(x, y, width, height)
         context.fill_preserve()
-        if node.node_id == self._selected_node_id:
+        if self._all_nodes_selected or node.node_id == self._selected_node_id:
             context.set_source_rgba(1.0, 0.88, 0.28, 1.0)
             context.set_line_width(3.2)
         else:

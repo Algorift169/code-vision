@@ -12,6 +12,8 @@ from gi.repository import Gdk, Gio, GLib, Gtk
 
 from .color import Color, ColorPalette, DrawingColor
 from .eraser import Eraser
+from .graph_data import GraphNodeData, GraphSnapshot
+from .graph_item import GraphNodeItem
 from .import_item import ImportItem
 from .importer import ImportedFile, describe_file
 from .pen import Pen
@@ -52,10 +54,11 @@ class SpaceView(Gtk.Box):
         self.color_preview: Gtk.DrawingArea | None = None
         self.text_boxes: list[TextBox] = []
         self.import_items: list[ImportItem] = []
+        self.graph_items: list[GraphNodeItem] = []
         self._active_text_box: TextBox | None = None
         self._highlighted_text_box: TextBox | None = None
         self._import_dialog: Gtk.FileChooserDialog | None = None
-        self._dragged_import_item: ImportItem | None = None
+        self._dragged_import_item: ImportItem | GraphNodeItem | None = None
         self._import_drag_origin = (0.0, 0.0)
         self.zoom = SpaceZoom(self._apply_space_zoom)
 
@@ -192,6 +195,13 @@ class SpaceView(Gtk.Box):
         )
         for text_box in self.text_boxes:
             text_box.apply_zoom()
+        for graph_item in self.graph_items:
+            graph_item.apply_zoom()
+            self.board.move(
+                graph_item,
+                graph_item.x * self.zoom.scale,
+                graph_item.y * self.zoom.scale,
+            )
         for item in self.import_items:
             item.apply_zoom()
         self._extending_canvas = False
@@ -313,9 +323,11 @@ class SpaceView(Gtk.Box):
         self, gesture: Gtk.GestureDrag, x: float, y: float
     ) -> None:
         picked = self.board.pick(x, y, Gtk.PickFlags.DEFAULT)
-        while picked is not None and not isinstance(picked, ImportItem):
+        while picked is not None and not isinstance(
+            picked, (ImportItem, GraphNodeItem)
+        ):
             picked = picked.get_parent()
-        if not isinstance(picked, ImportItem):
+        if not isinstance(picked, (ImportItem, GraphNodeItem)):
             self._dragged_import_item = None
             gesture.set_state(Gtk.EventSequenceState.DENIED)
             return
@@ -345,7 +357,10 @@ class SpaceView(Gtk.Box):
             item.x * self.zoom.scale,
             item.y * self.zoom.scale,
         )
-        self._ensure_import_extent(item)
+        if isinstance(item, ImportItem):
+            self._ensure_import_extent(item)
+        else:
+            self._ensure_graph_item_extent(item)
 
     def _on_import_drag_end(
         self,
@@ -358,6 +373,14 @@ class SpaceView(Gtk.Box):
     def _ensure_import_extent(self, item: ImportItem) -> None:
         right = math.ceil(item.x + item.WIDTH)
         bottom = math.ceil(item.y + item.HEIGHT)
+        if right > self._canvas_width:
+            self._set_canvas_extent("width", right)
+        if bottom > self._canvas_height:
+            self._set_canvas_extent("height", bottom)
+
+    def _ensure_graph_item_extent(self, item: GraphNodeItem) -> None:
+        right = math.ceil(item.x + item.width)
+        bottom = math.ceil(item.y + item.height)
         if right > self._canvas_width:
             self._set_canvas_extent("width", right)
         if bottom > self._canvas_height:
@@ -421,6 +444,19 @@ class SpaceView(Gtk.Box):
         if not self.tool_buttons["Text Box"].get_active():
             return
         position = self.zoom.to_board(x, y)
+        self.add_text_box(position=position)
+        self.tool_buttons["Text Box"].set_active(False)
+
+    def add_text_box(
+        self,
+        text: str = "",
+        position: tuple[float, float] | None = None,
+    ) -> TextBox:
+        if position is None:
+            position = (
+                24.0 + (len(self.text_boxes) % 4) * 24.0,
+                24.0 + (len(self.text_boxes) // 4) * 24.0,
+            )
         text_box = TextBox(
             self.board,
             self.drawing_color,
@@ -432,8 +468,187 @@ class SpaceView(Gtk.Box):
         )
         self.text_boxes.append(text_box)
         self._set_active_text_box(text_box)
+        if text:
+            text_box.buffer.insert(text_box.buffer.get_start_iter(), text)
         self._ensure_text_box_extent(text_box)
-        self.tool_buttons["Text Box"].set_active(False)
+        return text_box
+
+    def add_graph(self, graph: GraphSnapshot) -> list[GraphNodeItem]:
+        if not graph.nodes:
+            return []
+
+        left = min(node.x for node in graph.nodes)
+        top = min(node.y for node in graph.nodes)
+        right = max(node.x + node.width for node in graph.nodes)
+        bottom = max(node.y + node.height for node in graph.nodes)
+        span_x = max(1.0, right - left)
+        span_y = max(1.0, bottom - top)
+        scale = min(1.0, 1100.0 / span_x, 850.0 / span_y)
+        base_x = 24.0 + (len(self.graph_items) % 4) * 24.0
+        base_y = 24.0 + (len(self.graph_items) // 4) * 24.0
+        node_boxes: dict[str, GraphNodeItem] = {}
+
+        for node in graph.nodes:
+            position = (
+                base_x + (node.x - left) * scale,
+                base_y + 48.0 + (node.y - top) * scale,
+            )
+            graph_item = self.add_graph_node(node, position, scale)
+            node_boxes[node.node_id] = graph_item
+
+        strokes: list[list[tuple[float, float]]] = []
+        for edge in graph.edges:
+            source = node_boxes.get(edge.source_id)
+            target = node_boxes.get(edge.target_id)
+            if source is None or target is None:
+                continue
+            start = (source.x + source.width / 2, source.y + source.height)
+            end = (target.x + target.width / 2, target.y)
+            middle_y = (start[1] + end[1]) / 2
+            strokes.append([start, (start[0], middle_y), (end[0], middle_y), end])
+            previous = (end[0], middle_y)
+            delta_x = end[0] - previous[0]
+            delta_y = end[1] - previous[1]
+            length = max(1.0, math.hypot(delta_x, delta_y))
+            unit_x, unit_y = delta_x / length, delta_y / length
+            base = (end[0] - 7.0 * unit_x, end[1] - 7.0 * unit_y)
+            strokes.append(
+                [
+                    end,
+                    (base[0] - 4.0 * unit_y, base[1] + 4.0 * unit_x),
+                    (base[0] + 4.0 * unit_y, base[1] - 4.0 * unit_x),
+                    end,
+                ]
+            )
+            if edge.label:
+                edge_label = self.add_text_box(
+                    edge.label,
+                    (
+                        (start[0] + end[0]) / 2 - 40.0,
+                        middle_y - 15.0,
+                    ),
+                )
+                edge_label.width = max(80.0, min(140.0, len(edge.label) * 8.0))
+                edge_label.height = 30.0
+                edge_label.apply_zoom()
+                self._ensure_text_box_extent(edge_label)
+        self.pen.add_strokes(strokes)
+        title_box = self.add_text_box(graph.title, (base_x, base_y))
+        title_box.width = 260.0
+        title_box.height = 36.0
+        title_box.apply_zoom()
+        self._ensure_text_box_extent(title_box)
+        return list(node_boxes.values())
+
+    def add_graph_node(
+        self,
+        node: GraphNodeData,
+        position: tuple[float, float] | None = None,
+        scale: float = 1.0,
+    ) -> GraphNodeItem:
+        item_position = position or (
+            24.0 + (len(self.graph_items) % 4) * 24.0,
+            24.0 + (len(self.graph_items) // 4) * 24.0,
+        )
+        item = GraphNodeItem(node, self.zoom, item_position, scale)
+        self.board.put(
+            item,
+            item.x * self.zoom.scale,
+            item.y * self.zoom.scale,
+        )
+        self.graph_items.append(item)
+        self._ensure_graph_item_extent(item)
+        return item
+
+    def open_color_palette_for(self, text_box: TextBox) -> None:
+        if text_box not in self.text_boxes:
+            return
+        self._set_active_text_box(text_box)
+        if (
+            text_box.buffer.get_char_count()
+            and not text_box.buffer.get_selection_bounds()
+        ):
+            text_box.buffer.select_range(
+                text_box.buffer.get_start_iter(),
+                text_box.buffer.get_end_iter(),
+            )
+        color_button = self.tool_buttons["Color"]
+        if not isinstance(color_button, Gtk.MenuButton):
+            raise RuntimeError("The Space color menu is unavailable.")
+        if color_button.get_popover() is None:
+            raise RuntimeError("The Space color palette is unavailable.")
+        color_button.set_active(True)
+
+    def remove_board_item(
+        self, item: TextBox | ImportItem | GraphNodeItem
+    ) -> bool:
+        if isinstance(item, TextBox):
+            if item not in self.text_boxes:
+                return False
+            item.set_highlighted(False)
+            self.text_boxes.remove(item)
+            if self._active_text_box is item:
+                self._active_text_box = None
+            if self._highlighted_text_box is item:
+                self._highlighted_text_box = None
+        elif isinstance(item, ImportItem):
+            if item not in self.import_items:
+                return False
+            self.import_items.remove(item)
+        elif isinstance(item, GraphNodeItem):
+            if item not in self.graph_items:
+                return False
+            self.graph_items.remove(item)
+        else:
+            return False
+        self.board.remove(item)
+        return True
+
+    def duplicate_board_item(
+        self, item: TextBox | ImportItem | GraphNodeItem
+    ) -> TextBox | ImportItem | GraphNodeItem | None:
+        position = (item.x + 20.0, item.y + 20.0)
+        if isinstance(item, TextBox) and item in self.text_boxes:
+            duplicate = self.add_text_box(position=position)
+            duplicate.copy_content_from(item)
+            self._ensure_text_box_extent(duplicate)
+            return duplicate
+        if isinstance(item, ImportItem) and item in self.import_items:
+            duplicate = ImportItem(
+                item.path,
+                item.content_type,
+                item.mime_type,
+                self.zoom,
+                position,
+            )
+            duplicate.set_display_name(item.display_name)
+            self.board.put(
+                duplicate,
+                duplicate.x * self.zoom.scale,
+                duplicate.y * self.zoom.scale,
+            )
+            self.import_items.append(duplicate)
+            self._ensure_import_extent(duplicate)
+            return duplicate
+        if isinstance(item, GraphNodeItem) and item in self.graph_items:
+            return self.add_graph_node(
+                item.node,
+                position,
+                item.scale,
+            )
+        return None
+
+    def clear_board(self) -> None:
+        for tool in ("Pen", "Eraser", "Text Box"):
+            self.tool_buttons[tool].set_active(False)
+        self.pen.clear()
+        for item in tuple(self.text_boxes):
+            self.remove_board_item(item)
+        for item in tuple(self.import_items):
+            self.remove_board_item(item)
+        for item in tuple(self.graph_items):
+            self.remove_board_item(item)
+        self.import_status.set_visible(False)
 
     def _set_active_text_box(self, text_box: TextBox) -> None:
         if (

@@ -50,6 +50,7 @@ class TextBox(Gtk.Overlay):
         self.x, self.y = position
         self.width = self.DEFAULT_WIDTH
         self.height = self.DEFAULT_HEIGHT
+        self.title = ""
         self._tags: dict[Color, Gtk.TextTag] = {}
         self._inserting_colored_text = False
         self._highlighted = False
@@ -78,6 +79,16 @@ class TextBox(Gtk.Overlay):
         self.scroller.set_vexpand(True)
         self.scroller.set_child(self.text_view)
         self.set_child(self.scroller)
+
+        self.title_label = Gtk.Label()
+        self.title_label.set_halign(Gtk.Align.START)
+        self.title_label.set_valign(Gtk.Align.START)
+        self.title_label.set_margin_start(5)
+        self.title_label.set_margin_top(1)
+        self.title_label.add_css_class("space-text-box-title")
+        self.title_label.set_can_target(False)
+        self.title_label.set_visible(False)
+        self.add_overlay(self.title_label)
 
         self.handles: dict[str, Gtk.DrawingArea] = {}
         for corner, (horizontal, vertical, cursor) in self._CORNERS.items():
@@ -143,6 +154,46 @@ class TextBox(Gtk.Overlay):
         for existing_tag in self._tags.values():
             self.buffer.remove_tag(existing_tag, start, end)
         self.buffer.apply_tag(tag, start, end)
+
+    def set_title(self, title: str) -> None:
+        self.title = title.strip()
+        self.title_label.set_text(self.title)
+        self.title_label.set_visible(bool(self.title))
+        self.text_view.set_top_margin(30 if self.title else 13)
+
+    def copy_content_from(self, source: TextBox) -> None:
+        self.width = source.width
+        self.height = source.height
+        self.set_title(source.title)
+        source_buffer = source.buffer
+        text = source_buffer.get_text(
+            source_buffer.get_start_iter(), source_buffer.get_end_iter(), True
+        )
+        self.buffer.set_text(text)
+        start = self.buffer.get_start_iter()
+        end = self.buffer.get_end_iter()
+        for existing_tag in self._tags.values():
+            self.buffer.remove_tag(existing_tag, start, end)
+
+        char_count = source_buffer.get_char_count()
+        for color, source_tag in source._tags.items():
+            run_start: int | None = None
+            for offset in range(char_count + 1):
+                has_tag = (
+                    offset < char_count
+                    and source_tag
+                    in source_buffer.get_iter_at_offset(offset).get_tags()
+                )
+                if has_tag and run_start is None:
+                    run_start = offset
+                elif not has_tag and run_start is not None:
+                    self.buffer.apply_tag(
+                        self._tag_for_color(color),
+                        self.buffer.get_iter_at_offset(run_start),
+                        self.buffer.get_iter_at_offset(offset),
+                    )
+                    run_start = None
+        self._apply_zoom()
 
     def _apply_zoom(self) -> None:
         self.set_size_request(

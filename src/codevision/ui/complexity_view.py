@@ -106,7 +106,7 @@ class ComplexityView(Gtk.Box):
 
         self.list_box = Gtk.ListBox()
         self.list_box.add_css_class("complexity-function-list")
-        self.list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self.list_box.set_selection_mode(Gtk.SelectionMode.MULTIPLE)
         self.list_box.set_hexpand(True)
         self.list_box.set_vexpand(True)
         self.list_box.connect("row-selected", self._on_table_row_selected)
@@ -464,6 +464,9 @@ class ComplexityView(Gtk.Box):
         if item is not None:
             self._selected_function = item
             self._render_details(item)
+
+    def select_all_nodes(self) -> None:
+        self.list_box.select_all()
 
     def _render_details(self, item) -> None:
         self._clear_details()

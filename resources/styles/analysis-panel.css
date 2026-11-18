@@ -200,3 +200,10 @@
     background-color: @accent-2;
     border-radius: 999px;
 }
+
+#analysis-panel .space-text-box-title
+{
+    color: @text;
+    font-size: 10px;
+    font-weight: 700;
+}

@@ -72,6 +72,7 @@ class DependencyView(Gtk.Box):
         self._mode = "overview"
         self._grouping = "directory"
         self._selected_node: str | None = None
+        self._all_nodes_selected = False
         self._selected_sources: set[str] = set()
         self._expanded_groups: set[str] = set()
         self._expanded_bundles: set[str] = set()
@@ -284,6 +285,7 @@ class DependencyView(Gtk.Box):
             self._show_empty(f"Dependency graph unavailable: {error}")
             return
         self._selected_node = None
+        self._all_nodes_selected = False
         self._picked_item = None
         self._selected_directory = None
         self._pre_pick_mode = None
@@ -1008,16 +1010,25 @@ class DependencyView(Gtk.Box):
         foreground = self.canvas.get_style_context().get_color()
         for index in self._visible_indices(self._node_grid, viewport):
             node = self._nodes[index]
+            selected = (
+                self._all_nodes_selected
+                or node.selected
+                or node.outgoing_target
+            )
             color = (
                 (0.97, 0.99, 1.0) if node.selected or node.outgoing_target
                 else self._kind_color(node.kind)
             )
-            alpha = 0.12 if node.dimmed else (0.28 if node.selected else 0.18)
+            if self._all_nodes_selected:
+                color = (0.97, 0.99, 1.0)
+            alpha = 0.12 if node.dimmed else (0.28 if selected else 0.18)
             context.set_source_rgba(*color, alpha)
             context.rectangle(node.x, node.y, self.NODE_WIDTH, self.NODE_HEIGHT)
             context.fill_preserve()
             context.set_source_rgba(*color, 0.32 if node.dimmed else 0.95)
-            context.set_line_width(2.8 if node.selected else (2.2 if node.outgoing_target else 1.6))
+            context.set_line_width(
+                2.8 if selected else (2.2 if node.outgoing_target else 1.6)
+            )
             context.stroke()
             text_alpha = 0.35 if node.dimmed else 1.0
             context.set_source_rgba(foreground.red, foreground.green, foreground.blue, foreground.alpha * text_alpha)
@@ -1063,6 +1074,7 @@ class DependencyView(Gtk.Box):
         context.fill()
 
     def _on_click(self, _gesture: Gtk.GestureClick, _count: int, x: float, y: float) -> None:
+        self._all_nodes_selected = False
         gx, gy = self._graph_point(x, y)
         cell = (math.floor(gx / 320), math.floor(gy / 320))
         for index in reversed(self._node_grid.get(cell, ())):
@@ -1142,6 +1154,22 @@ class DependencyView(Gtk.Box):
     def _graph_point(self, x: float, y: float) -> tuple[float, float]:
         ox, oy = self._origin()
         return (x - self._pan[0] - ox) / self._zoom, (y - self._pan[1] - oy) / self._zoom
+
+    def node_at(self, x: float, y: float) -> _Node | None:
+        gx, gy = self._graph_point(x, y)
+        cell = (math.floor(gx / 320), math.floor(gy / 320))
+        for index in reversed(self._node_grid.get(cell, ())):
+            node = self._nodes[index]
+            if (
+                node.x <= gx <= node.x + self.NODE_WIDTH
+                and node.y <= gy <= node.y + self.NODE_HEIGHT
+            ):
+                return node
+        return None
+
+    def select_all_nodes(self) -> None:
+        self._all_nodes_selected = bool(self._nodes)
+        self.canvas.queue_draw()
 
     def _hit_edge(self, x: float, y: float, tolerance: float = 9) -> int | None:
         cell = (math.floor(x / 320), math.floor(y / 320))

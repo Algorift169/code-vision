@@ -49,6 +49,7 @@ class ASTView(Gtk.Box):
         self._result: ASTResult | None = None
         self._statistics: ASTStatistics | None = None
         self._selected_node_id: str | None = None
+        self._all_nodes_selected = False
         self._node_by_id: dict[str, ASTNode] = {}
         self._results_cache: dict[
             str, tuple[ASTResult, ASTStatistics, dict[str, ASTNode]]
@@ -388,6 +389,10 @@ class ASTView(Gtk.Box):
             return
         expander.set_list_row(row)
         label.set_text(item.node.display_name)
+        if self._all_nodes_selected:
+            label.add_css_class("ast-node-selected")
+        else:
+            label.remove_css_class("ast-node-selected")
         label.remove_css_class("ast-error-node")
         kind_classes = (
             "ast-node-function",
@@ -416,6 +421,9 @@ class ASTView(Gtk.Box):
     def _on_selection_changed(
         self, selection: Gtk.SingleSelection, _property: GObject.ParamSpec
     ) -> None:
+        if self._all_nodes_selected:
+            self._all_nodes_selected = False
+            self._update_ast_selection_style()
         row = selection.get_selected_item()
         if not isinstance(row, Gtk.TreeListRow):
             self._reset_details()
@@ -438,6 +446,27 @@ class ASTView(Gtk.Box):
                 row.set_expanded(True)
             index += 1
 
+    def select_all_nodes(self) -> None:
+        if self._tree_model is None:
+            return
+        self._all_nodes_selected = True
+        self._expand_all(self._expand_button)
+        self._update_ast_selection_style()
+
+    def _update_ast_selection_style(self) -> None:
+        pending = [self.tree_scroller]
+        while pending:
+            widget = pending.pop()
+            if isinstance(widget, Gtk.Label) and "ast-node-label" in widget.get_css_classes():
+                if self._all_nodes_selected:
+                    widget.add_css_class("ast-node-selected")
+                else:
+                    widget.remove_css_class("ast-node-selected")
+            child = widget.get_first_child()
+            while child is not None:
+                pending.append(child)
+                child = child.get_next_sibling()
+
     def _collapse_all(self, _button: Gtk.Button) -> None:
         if self._tree_model is None or self._tree_model.get_n_items() == 0:
             return
@@ -446,6 +475,9 @@ class ASTView(Gtk.Box):
             root.set_expanded(False)
 
     def _show_details(self, node: ASTNode) -> None:
+        if self._all_nodes_selected:
+            self._all_nodes_selected = False
+            self._update_ast_selection_style()
         location = node.location
         self._detail_name.set_text(node.display_name)
         self._detail_type.set_text(f"Type: {node.node_type}")

@@ -3,8 +3,21 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
+from codevision.actions import (
+    change_color,
+    clear_screen,
+    duplicate_box,
+    forward_full_graph,
+    forward_to_space,
+    remove,
+    rename_box,
+    select_all,
+    show_complexity,
+)
 from codevision.app.main_window import CodeVisionWindow
 from codevision.actions.action import ANALYSIS_PANEL_ACTIONS
+from codevision.actions.helpers import graph_snapshot_for
+from codevision.ui.analysis_panel import AnalysisPanel
 from codevision.ui.widgets.menu import ContextMenu
 from codevision.ui.widgets.menu_context import MenuContext
 
@@ -37,12 +50,447 @@ def test_right_click_context_shows_analysis_panel_actions_only() -> None:
 
 
 def test_analysis_panel_actions_are_scoped_to_analysis_context() -> None:
-    panel_context = MenuContext(widget=Gtk.Box(), kind="analysis-panel")
-    window_context = MenuContext(widget=Gtk.Box(), kind="window")
+    panel = AnalysisPanel()
+    panel_context = MenuContext(
+        widget=Gtk.Label(label="overview"),
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+    window_context = MenuContext(
+        widget=Gtk.Label(label="overview"),
+        kind="window",
+        analysis_panel=panel,
+    )
 
     for _action_id, _label, _icon, action in ANALYSIS_PANEL_ACTIONS:
-        assert action.is_enabled(panel_context)
         assert not action.is_enabled(window_context)
+
+    assert show_complexity.is_enabled(panel_context)
+    assert not clear_screen.is_enabled(panel_context)
+    assert not duplicate_box.is_enabled(panel_context)
+    assert not change_color.is_enabled(panel_context)
+    assert not rename_box.is_enabled(panel_context)
+    assert not remove.is_enabled(panel_context)
+    assert not select_all.is_enabled(panel_context)
+    assert not forward_full_graph.is_enabled(panel_context)
+
+
+def test_space_actions_enable_for_board_items_only_in_space() -> None:
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+    text_box = space.add_text_box("notes")
+    context = MenuContext(
+        widget=text_box.text_view,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    panel.select_section("Space")
+    assert clear_screen.is_enabled(context)
+    assert duplicate_box.is_enabled(context)
+    assert change_color.is_enabled(context)
+    assert rename_box.is_enabled(context)
+    assert remove.is_enabled(context)
+
+    panel.select_section("Overview")
+    assert not clear_screen.is_enabled(context)
+    assert not duplicate_box.is_enabled(context)
+    assert not change_color.is_enabled(context)
+    assert not rename_box.is_enabled(context)
+    assert not remove.is_enabled(context)
+
+
+def test_duplicate_box_copies_text_and_imported_file_metadata(tmp_path) -> None:
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+    panel.select_section("Space")
+    text_box = space.add_text_box("copy me", (10.0, 20.0))
+    text_context = MenuContext(
+        widget=text_box.text_view,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    duplicate_box.run(text_context)
+
+    duplicate_text = space.text_boxes[-1]
+    assert duplicate_text is not text_box
+    assert (duplicate_text.x, duplicate_text.y) == (30.0, 40.0)
+    assert duplicate_text.buffer.get_text(
+        duplicate_text.buffer.get_start_iter(),
+        duplicate_text.buffer.get_end_iter(),
+        True,
+    ) == "copy me"
+
+    file_path = tmp_path / "notes.docx"
+    file_path.write_bytes(b"document")
+    imported = space.import_files([file_path], (50.0, 60.0))[0]
+    imported.set_display_name("Renamed document")
+    file_context = MenuContext(
+        widget=imported,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    duplicate_box.run(file_context)
+    duplicate_import = space.import_items[-1]
+    assert duplicate_import.path == imported.path
+    assert duplicate_import.display_name == "Renamed document"
+    assert (duplicate_import.x, duplicate_import.y) == (70.0, 80.0)
+
+
+def test_clear_screen_only_clears_space_board(tmp_path) -> None:
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+    text_box = space.add_text_box("keep until Space is active")
+    file_path = tmp_path / "notes.docx"
+    file_path.write_bytes(b"document")
+    space.import_files([file_path])
+    space.tool_buttons["Pen"].set_active(True)
+    space.pen._on_drag_begin(None, 10.0, 10.0)
+    space.pen._on_drag_end(None, 5.0, 5.0)
+    context = MenuContext(
+        widget=text_box.text_view,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    clear_screen.run(context)
+    assert space.text_boxes == [text_box]
+    assert len(space.import_items) == 1
+    assert space.pen.strokes
+
+    panel.select_section("Space")
+    clear_screen.run(context)
+    assert space.text_boxes == []
+    assert space.import_items == []
+    assert space.pen.strokes == []
+    assert space.pen.can_undo
+    space.pen.undo()
+    assert space.pen.strokes
+
+
+def test_change_color_opens_palette_for_the_target_text_box(monkeypatch) -> None:
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+    panel.select_section("Space")
+    text_box = space.add_text_box("recolor")
+    context = MenuContext(
+        widget=text_box.text_view,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+    opened_for = []
+    monkeypatch.setattr(space, "open_color_palette_for", opened_for.append)
+
+    change_color.run(context)
+
+    assert opened_for == [text_box]
+
+
+def test_remove_deletes_only_the_clicked_space_item() -> None:
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+    panel.select_section("Space")
+    target = space.add_text_box("remove")
+    remaining = space.add_text_box("keep")
+    context = MenuContext(
+        widget=target.text_view,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    remove.run(context)
+
+    assert target not in space.text_boxes
+    assert remaining in space.text_boxes
+
+
+def test_forward_to_space_adds_analyzed_source_and_complexity_navigates() -> None:
+    from pathlib import Path
+
+    panel = AnalysisPanel()
+    panel.set_source("int main() { return 0; }", Path("main.c"), "c")
+    context = MenuContext(
+        widget=panel,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    forward_to_space.run(context)
+    assert panel.current_section == "Space"
+    space = panel._section_placeholders["Space"]
+    assert len(space.text_boxes) == 1
+    assert space.text_boxes[0].buffer.get_char_count() == len(panel.source_text)
+
+    show_complexity.run(context)
+    assert panel.current_section == "Complexity"
+
+
+def test_forward_to_space_uses_the_right_clicked_flowchart_node() -> None:
+    from pathlib import Path
+
+    panel = AnalysisPanel()
+    panel.set_source(
+        "int main() { int value = 2; if (value) value++; return value; }",
+        Path("main.c"),
+        "c",
+    )
+    panel.select_section("Flowchart")
+    view = panel._section_placeholders["Flowchart"]
+    node = next(item for item in view.graph.nodes if item.kind.value == "decision")
+    scale, origin_x, origin_y = view._graph_origin()
+    position = (
+        (node.x + node.width / 2) * scale + origin_x,
+        (node.y + node.height / 2) * scale + origin_y,
+    )
+    context = MenuContext(
+        widget=view.canvas,
+        kind="analysis-panel",
+        analysis_panel=panel,
+        analysis_position=position,
+    )
+
+    assert forward_to_space.is_enabled(context)
+    forward_to_space.run(context)
+
+    space = panel._section_placeholders["Space"]
+    assert len(space.graph_items) == 1
+    forwarded = space.graph_items[0]
+    assert forwarded.title == node.label
+    assert forwarded.node.detail == (
+        node.source_text.strip()
+        or f"{node.kind.value} · Line {node.line or '?'}"
+    )
+    assert forwarded.node.shape == "diamond"
+    color = view._NODE_COLORS[node.kind.value]
+    assert forwarded.node.fill_color == (*color, 0.20)
+    selected = (
+        view._all_nodes_selected or node.node_id == view._selected_node_id
+    )
+    assert forwarded.node.stroke_color == (
+        (1.0, 0.88, 0.28, 1.0) if selected else (*color, 1.0)
+    )
+    assert forwarded.node.text_lines
+
+    space._dragged_import_item = forwarded
+    space._import_drag_origin = (forwarded.x, forwarded.y)
+    space._on_import_drag_update(None, 20.0, 10.0)
+    assert (forwarded.x, forwarded.y) == (44.0, 34.0)
+
+
+def test_forward_full_flowchart_to_space_creates_nodes_and_edges() -> None:
+    from pathlib import Path
+
+    panel = AnalysisPanel()
+    panel.set_source(
+        "int main() { int value = 2; if (value) value++; return value; }",
+        Path("main.c"),
+        "c",
+    )
+    panel.select_section("Flowchart")
+    view = panel._section_placeholders["Flowchart"]
+    context = MenuContext(
+        widget=view.canvas,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    assert forward_full_graph.is_enabled(context)
+    forward_full_graph.run(context)
+
+    space = panel._section_placeholders["Space"]
+    assert len(space.graph_items) == len(view.graph.nodes)
+    assert space.text_boxes
+    assert space.text_boxes[-1].buffer.get_text(
+        space.text_boxes[-1].buffer.get_start_iter(),
+        space.text_boxes[-1].buffer.get_end_iter(),
+        True,
+    ) == "main"
+    assert len(space.pen.strokes) >= len(view.graph.edges)
+
+
+def test_select_all_selects_every_node_in_the_current_graph() -> None:
+    from pathlib import Path
+
+    panel = AnalysisPanel()
+    panel.set_source("int main() { return 0; }", Path("main.c"), "c")
+    panel.select_section("Flowchart")
+    view = panel._section_placeholders["Flowchart"]
+    context = MenuContext(
+        widget=view.canvas,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    assert select_all.is_enabled(context)
+    select_all.run(context)
+
+    assert view._all_nodes_selected
+
+
+def test_full_graph_forward_supports_call_variable_and_complexity_views() -> None:
+    from pathlib import Path
+
+    panel = AnalysisPanel()
+    panel.set_source(
+        "int leaf() { return 1; } "
+        "int main() { int value = leaf(); return value; }",
+        Path("main.c"),
+        "c",
+    )
+    for section in ("Call Graph", "Var Flow", "Complexity"):
+        panel.select_section(section)
+        view = panel._section_placeholders[section]
+        context = MenuContext(
+            widget=view,
+            kind="analysis-panel",
+            analysis_panel=panel,
+        )
+        snapshot = graph_snapshot_for(context)
+
+        assert snapshot is not None
+        assert snapshot.nodes
+        assert forward_full_graph.is_enabled(context)
+        forward_full_graph.run(context)
+        assert panel.current_section == "Space"
+
+
+def test_dependency_graph_node_and_full_graph_forward_to_space(tmp_path) -> None:
+    source_dir = tmp_path / "src"
+    source_dir.mkdir()
+    (source_dir / "main.py").write_text("from .helper import value\n", encoding="utf-8")
+    (source_dir / "helper.py").write_text("value = 1\n", encoding="utf-8")
+    panel = AnalysisPanel()
+    panel.set_project_root(tmp_path)
+    panel.select_section("Dependency")
+    view = panel._section_placeholders["Dependency"]
+    snapshot_context = MenuContext(
+        widget=view.canvas,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+    snapshot = graph_snapshot_for(snapshot_context)
+
+    assert snapshot is not None
+    assert snapshot.nodes
+    node = view._nodes[0]
+    origin_x, origin_y = view._origin()
+    position = (
+        node.x * view._zoom + origin_x + view._pan[0]
+        + view.NODE_WIDTH / 2 * view._zoom,
+        node.y * view._zoom + origin_y + view._pan[1]
+        + view.NODE_HEIGHT / 2 * view._zoom,
+    )
+    node_context = MenuContext(
+        widget=view.canvas,
+        kind="analysis-panel",
+        analysis_panel=panel,
+        analysis_position=position,
+    )
+    forward_to_space.run(node_context)
+    assert panel._section_placeholders["Space"].graph_items[0].title == node.label
+
+    panel.select_section("Dependency")
+    forward_full_graph.run(snapshot_context)
+    assert len(panel._section_placeholders["Space"].graph_items) == (
+        len(snapshot.nodes) + 1
+    )
+
+
+def test_ast_select_all_and_full_graph_forward(tmp_path) -> None:
+    from codevision.parser import SourceParser
+
+    panel = AnalysisPanel()
+    view = panel._section_placeholders["AST"]
+    result = SourceParser().parse("int main() { return 0; }", language="c")
+    view._apply_result(view._generation, "test-source", result)
+    panel.select_section("AST")
+    root_row = view._tree_model.get_item(0)
+    expander = Gtk.TreeExpander()
+    expander.set_list_row(root_row)
+    clicked_context = MenuContext(
+        widget=expander,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+    forward_to_space.run(clicked_context)
+    assert panel._section_placeholders["Space"].graph_items[0].title == (
+        result.root.display_name
+    )
+
+    panel.select_section("AST")
+    context = MenuContext(
+        widget=view,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    snapshot = graph_snapshot_for(context)
+    assert snapshot is not None
+    assert snapshot.nodes
+    assert select_all.is_enabled(context)
+    select_all.run(context)
+    assert view._all_nodes_selected
+
+    existing_graph_items = len(panel._section_placeholders["Space"].graph_items)
+    forward_full_graph.run(context)
+    assert len(panel._section_placeholders["Space"].graph_items) == (
+        existing_graph_items + len(snapshot.nodes)
+    )
+
+
+def test_select_all_selects_all_complexity_rows(tmp_path) -> None:
+    panel = AnalysisPanel()
+    panel.set_source(
+        "int first() { return 1; } int second() { return 2; }",
+        tmp_path / "main.c",
+        "c",
+    )
+    panel.select_section("Complexity")
+    view = panel._section_placeholders["Complexity"]
+    context = MenuContext(
+        widget=view.list_box,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    assert select_all.is_enabled(context)
+    select_all.run(context)
+
+    assert len(view.list_box.get_selected_rows()) == len(view._filtered_functions)
+
+
+def test_forward_to_space_hits_a_node_in_the_call_graph() -> None:
+    from pathlib import Path
+
+    panel = AnalysisPanel()
+    panel.set_source(
+        "int leaf() { return 1; } int main() { return leaf(); }",
+        Path("main.c"),
+        "c",
+    )
+    panel.select_section("Call Graph")
+    view = panel._section_placeholders["Call Graph"]
+    node = next(item for item in view.graph.nodes if item.name == "main")
+    origin_x, origin_y = view._graph_origin()
+    position = (
+        node.x * view._zoom + origin_x + view._pan_offset[0]
+        + node.width * view._zoom / 2,
+        node.y * view._zoom + origin_y + view._pan_offset[1]
+        + node.height * view._zoom / 2,
+    )
+    context = MenuContext(
+        widget=view.canvas,
+        kind="analysis-panel",
+        analysis_panel=panel,
+        analysis_position=position,
+    )
+
+    forward_to_space.run(context)
+
+    space = panel._section_placeholders["Space"]
+    assert space.graph_items[0].title == (node.qualified_name or node.name)
 
 
 def test_main_window_classifies_panel_descendant_as_analysis_context() -> None:
@@ -53,6 +501,12 @@ def test_main_window_classifies_panel_descendant_as_analysis_context() -> None:
     class ContextRoot:
         def pick(self, _x: float, _y: float, _flags: Gtk.PickFlags) -> Gtk.Widget:
             return target
+
+        @staticmethod
+        def translate_coordinates(
+            _target: Gtk.Widget, x: float, y: float
+        ) -> tuple[float, float]:
+            return x - 5.0, y - 7.0
 
     class DummyWindow:
         _is_within = staticmethod(CodeVisionWindow._is_within)
@@ -70,3 +524,4 @@ def test_main_window_classifies_panel_descendant_as_analysis_context() -> None:
 
     assert context.kind == "analysis-panel"
     assert context.widget is target
+    assert context.analysis_position == (-5.0, -7.0)

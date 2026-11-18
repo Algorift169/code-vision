@@ -46,6 +46,8 @@ class AnalysisPanel(Gtk.Box):
         self.set_margin_top(0)
         self.set_margin_bottom(0)
         self.current_section = SECTIONS[0]
+        self.source_text: str | None = None
+        self.source_file_path: Path | None = None
         self._section_buttons: dict[str, Gtk.ToggleButton] = {}
         self._project_root: Path | None = None
 
@@ -214,6 +216,8 @@ class AnalysisPanel(Gtk.Box):
         file_path: Path | None,
         language: str | None = None,
     ) -> None:
+        self.source_text = source
+        self.source_file_path = file_path
         ast_view = self._section_placeholders["AST"]
         if isinstance(ast_view, ASTView):
             ast_view.set_source(source, file_path, language)

@@ -1168,6 +1168,11 @@ layout after exiting focus mode. The view menu is updated after
         if target is not None and self._is_within(target, self.analysis_panel):
             context = self._generic_menu_context(target)
             context.kind = "analysis-panel"
+            context.analysis_panel = self.analysis_panel
+            if hasattr(root, "translate_coordinates"):
+                context.analysis_position = root.translate_coordinates(
+                    target, x, y
+                )
             return context
 
         tree = self.project_explorer.tree

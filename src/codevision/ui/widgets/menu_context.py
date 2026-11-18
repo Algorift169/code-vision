@@ -43,6 +43,8 @@ class MenuContext:
     on_path_renamed: Callable[[Path, Path], None] | None = None
     select_target: Callable[[], None] | None = None
     set_status: Callable[[str], None] | None = None
+    analysis_panel: Gtk.Widget | None = None
+    analysis_position: tuple[float, float] | None = None
 
     @property
     def directory(self) -> Path:
