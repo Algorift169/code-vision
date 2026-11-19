@@ -17,7 +17,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "codevision"
 version = "0.1.0"
-description = "CodeVision - C/C++ analysis and visualization tool"
+description = "CodeVision - code analysis and visualization tool"
 license = { file = "LICENSE" }
 
 requires-python = ">=3.10"

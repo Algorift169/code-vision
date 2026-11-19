@@ -43,6 +43,7 @@ STYLESHEETS = (
     "project-explorer.css",
     "context-menu.css",
     "folder-picker.css",
+    "folder-picker-theme.css",
     "editor.css",
     "editor-tabs.css",
     "analysis-panel.css",

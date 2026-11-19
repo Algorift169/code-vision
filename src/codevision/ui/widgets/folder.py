@@ -167,6 +167,7 @@ class FolderPickerOverlay(Gtk.Box):
 
         # Save filename entry row (for save mode)
         self.save_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self.save_row.add_css_class("folder-picker-save-row")
         self.save_row.set_margin_start(12)
         self.save_row.set_margin_end(12)
         self.save_row.set_margin_top(6)
@@ -174,10 +175,12 @@ class FolderPickerOverlay(Gtk.Box):
         self.save_row.set_visible(False)
 
         save_label = Gtk.Label(label="File name:")
+        save_label.add_css_class("folder-picker-save-label")
         save_label.set_halign(Gtk.Align.START)
         self.save_row.append(save_label)
 
         self.filename_entry = Gtk.Entry()
+        self.filename_entry.add_css_class("folder-picker-save-entry")
         self.filename_entry.set_hexpand(True)
         self.filename_entry.set_activates_default(True)
         self.filename_entry.connect(
@@ -188,6 +191,7 @@ class FolderPickerOverlay(Gtk.Box):
 
         # Footer
         footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        footer.add_css_class("folder-picker-footer")
         footer.set_margin_top(10)
         footer.set_margin_bottom(12)
         footer.set_margin_start(12)
@@ -203,11 +207,15 @@ class FolderPickerOverlay(Gtk.Box):
         footer.append(spacer)
 
         cancel_button = Gtk.Button(label="Cancel")
+        cancel_button.set_name("folder-picker-cancel-button")
+        cancel_button.add_css_class("folder-picker-cancel-button")
         cancel_button.connect("clicked", lambda *_args: self.close())
+        self._cancel_button = cancel_button
         footer.append(cancel_button)
 
         self.action_button = Gtk.Button(label="Open Folder")
-        self.action_button.add_css_class("suggested-action")
+        self.action_button.set_name("folder-picker-action-button")
+        self.action_button.add_css_class("folder-picker-action-button")
         self.action_button.connect(
             "clicked", lambda *_args: self._on_action_confirmed()
         )

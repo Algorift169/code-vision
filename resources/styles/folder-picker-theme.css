@@ -116,10 +116,11 @@ window#folder-picker-window button:not(.suggested-action):not(.folder-picker-ico
 #folder-picker-window button:not(.suggested-action):not(.folder-picker-icon-button),
 .folder-picker-dialog button:not(.suggested-action):not(.folder-picker-icon-button)
 {
-    background-color: @raised;
+    background-color: transparent;
     background-image: none;
     color: @text;
-    border: 1px solid @line;
+    border: none;
+    box-shadow: none;
 }
 
 window#folder-picker-window button:not(.suggested-action):not(.folder-picker-icon-button) label,
@@ -139,18 +140,176 @@ window#folder-picker-window button:not(.suggested-action):not(.folder-picker-ico
 
 window#folder-picker-window button.suggested-action,
 #folder-picker-window button.suggested-action,
+.folder-picker-dialog button.suggested-action,
+window#folder-picker-window .folder-picker-action-button,
+#folder-picker-window .folder-picker-action-button,
+.folder-picker-dialog .folder-picker-action-button
+{
+    background-color: @accent;
+    background-image: none;
+    color: @bg;
+    border: none;
+    box-shadow: none;
+}
+
+window#folder-picker-window .folder-picker-save-row,
+#folder-picker-window .folder-picker-save-row,
+.folder-picker-dialog .folder-picker-save-row
+{
+    background-color: transparent;
+}
+
+window#folder-picker-window .folder-picker-save-label,
+#folder-picker-window .folder-picker-save-label,
+.folder-picker-dialog .folder-picker-save-label
+{
+    color: @text;
+    min-width: 72px;
+}
+
+window#folder-picker-window .folder-picker-save-entry,
+#folder-picker-window .folder-picker-save-entry,
+.folder-picker-dialog .folder-picker-save-entry
+{
+    min-height: 36px;
+    background-color: @raised;
+    background-image: none;
+    color: @text;
+    border: 1px solid @line;
+    border-radius: 6px;
+    box-shadow: none;
+    padding: 6px 10px;
+}
+
+window#folder-picker-window .folder-picker-save-entry:focus,
+#folder-picker-window .folder-picker-save-entry:focus,
+.folder-picker-dialog .folder-picker-save-entry:focus
+{
+    border-color: @accent;
+    box-shadow: inset 0 0 0 1px @accent;
+}
+
+window#folder-picker-window .folder-picker-footer,
+#folder-picker-window .folder-picker-footer,
+.folder-picker-dialog .folder-picker-footer
+{
+    background-color: @surface;
+    border: none;
+}
+
+window#folder-picker-window .folder-picker-cancel-button,
+window#folder-picker-window .folder-picker-action-button,
+#folder-picker-window .folder-picker-cancel-button,
+#folder-picker-window .folder-picker-action-button,
+.folder-picker-dialog .folder-picker-cancel-button,
+.folder-picker-dialog .folder-picker-action-button
+{
+    min-height: 36px;
+    min-width: 88px;
+    border: none;
+    border-radius: 6px;
+    box-shadow: none;
+    background-image: none;
+    padding: 6px 14px;
+}
+
+window#folder-picker-window .folder-picker-cancel-button,
+#folder-picker-window .folder-picker-cancel-button,
+.folder-picker-dialog .folder-picker-cancel-button
+{
+    background-color: transparent;
+    color: @text;
+}
+
+window#folder-picker-window .folder-picker-cancel-button label,
+#folder-picker-window .folder-picker-cancel-button label,
+.folder-picker-dialog .folder-picker-cancel-button label
+{
+    color: @text;
+}
+
+window#folder-picker-window .folder-picker-cancel-button:hover,
+#folder-picker-window .folder-picker-cancel-button:hover,
+.folder-picker-dialog .folder-picker-cancel-button:hover
+{
+    background-color: @hover;
+    color: @accent-2;
+}
+
+window#folder-picker-window .folder-picker-action-button:hover,
+#folder-picker-window .folder-picker-action-button:hover,
+.folder-picker-dialog .folder-picker-action-button:hover,
+window#folder-picker-window button.suggested-action:hover,
+#folder-picker-window button.suggested-action:hover,
+.folder-picker-dialog button.suggested-action:hover
+{
+    background-color: @accent-2;
+    background-image: none;
+    color: @bg;
+    border: none;
+    box-shadow: none;
+}
+
+window#folder-picker-window button.suggested-action label,
+#folder-picker-window button.suggested-action label,
+.folder-picker-dialog button.suggested-action label,
+window#folder-picker-window .folder-picker-action-button label,
+#folder-picker-window .folder-picker-action-button label,
+.folder-picker-dialog .folder-picker-action-button label
+{
+    color: @bg;
+}
+
+window#folder-picker-window .folder-picker-cancel-button,
+window#folder-picker-window .folder-picker-action-button,
+#folder-picker-window .folder-picker-cancel-button,
+#folder-picker-window .folder-picker-action-button,
+.folder-picker-dialog .folder-picker-cancel-button,
+.folder-picker-dialog .folder-picker-action-button
+{
+    border: none;
+    border-width: 0;
+    border-image: none;
+    outline: none;
+    box-shadow: none;
+    text-shadow: none;
+    background-image: none;
+}
+
+window#folder-picker-window .folder-picker-action-button,
+#folder-picker-window .folder-picker-action-button,
+.folder-picker-dialog .folder-picker-action-button,
+window#folder-picker-window button.suggested-action,
+#folder-picker-window button.suggested-action,
 .folder-picker-dialog button.suggested-action
 {
     background-color: @accent;
     color: @bg;
-    border-color: @accent;
 }
 
+window#folder-picker-window .folder-picker-action-button label,
+#folder-picker-window .folder-picker-action-button label,
+.folder-picker-dialog .folder-picker-action-button label,
 window#folder-picker-window button.suggested-action label,
 #folder-picker-window button.suggested-action label,
 .folder-picker-dialog button.suggested-action label
 {
     color: @bg;
+}
+
+window#folder-picker-window .folder-picker-cancel-button,
+#folder-picker-window .folder-picker-cancel-button,
+.folder-picker-dialog .folder-picker-cancel-button
+{
+    background-color: transparent;
+    color: @text;
+}
+
+window#folder-picker-window .folder-picker-cancel-button label,
+#folder-picker-window .folder-picker-cancel-button label,
+.folder-picker-dialog .folder-picker-cancel-button label
+{
+    color: @text;
 }
 
 window#folder-picker-window .folder-picker-list,
@@ -198,4 +357,90 @@ window#folder-picker-window .folder-picker-row label,
 .folder-picker-dialog .folder-picker-row label
 {
     color: @text;
+}
+
+button#folder-picker-cancel-button,
+button.folder-picker-cancel-button,
+#folder-picker-cancel-button
+{
+    min-height: 36px;
+    min-width: 88px;
+    background-color: transparent;
+    background-image: none;
+    color: @text;
+    border: none;
+    border-width: 0;
+    border-image: none;
+    border-radius: 6px;
+    box-shadow: none;
+    outline: none;
+    text-shadow: none;
+    padding: 6px 14px;
+}
+
+button#folder-picker-cancel-button label,
+button.folder-picker-cancel-button label,
+#folder-picker-cancel-button label
+{
+    color: @text;
+}
+
+button#folder-picker-cancel-button:hover,
+button.folder-picker-cancel-button:hover,
+#folder-picker-cancel-button:hover,
+button#folder-picker-cancel-button:active,
+button.folder-picker-cancel-button:active,
+#folder-picker-cancel-button:active
+{
+    background-color: @hover;
+    background-image: none;
+    color: @accent-2;
+    border: none;
+    box-shadow: none;
+}
+
+button#folder-picker-action-button,
+button.folder-picker-action-button,
+#folder-picker-action-button
+{
+    min-height: 36px;
+    min-width: 88px;
+    background-color: @accent;
+    background-image: none;
+    color: @bg;
+    border: none;
+    border-width: 0;
+    border-image: none;
+    border-radius: 6px;
+    box-shadow: none;
+    outline: none;
+    text-shadow: none;
+    padding: 6px 14px;
+}
+
+button#folder-picker-action-button label,
+button.folder-picker-action-button label,
+#folder-picker-action-button label
+{
+    color: @bg;
+}
+
+button#folder-picker-action-button:hover,
+button.folder-picker-action-button:hover,
+#folder-picker-action-button:hover,
+button#folder-picker-action-button:active,
+button.folder-picker-action-button:active,
+#folder-picker-action-button:active,
+button#folder-picker-action-button:checked,
+button.folder-picker-action-button:checked,
+#folder-picker-action-button:checked,
+button#folder-picker-action-button:focus,
+button.folder-picker-action-button:focus,
+#folder-picker-action-button:focus
+{
+    background-color: @accent-2;
+    background-image: none;
+    color: @bg;
+    border: none;
+    box-shadow: none;
 }
