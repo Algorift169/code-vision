@@ -36,7 +36,7 @@ ANALYSIS_PANEL_ACTIONS = (
         "view-list-symbolic",
         show_complexity,
     ),
-    ("rename-box", "Rename Box", "edit-rename-symbolic", rename_box),
+    ("rename-box", "Rename", "edit-rename-symbolic", rename_box),
     ("clear-screen", "Clear Screen", "edit-clear-symbolic", clear_screen),
     ("panel-remove", "Remove", "edit-delete-symbolic", remove),
     ("change-color", "Change Color", "applications-graphics-symbolic", change_color),

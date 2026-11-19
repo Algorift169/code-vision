@@ -7,7 +7,8 @@ import cairo
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+gi.require_version("Pango", "1.0")
+from gi.repository import Gtk, Pango
 
 from codevision.shape.base import DiagramShape
 
@@ -57,6 +58,7 @@ class ShapeItem(Gtk.Overlay):
         self.x, self.y = position
         self.width = max(self.MIN_WIDTH, width)
         self.height = max(self.MIN_HEIGHT, height)
+        self.title = ""
         if direction not in ("up", "right", "down", "left"):
             raise ValueError(f"Unsupported shape direction: {direction}")
         if rotation is not None and not math.isfinite(rotation):
@@ -83,6 +85,17 @@ class ShapeItem(Gtk.Overlay):
         self.canvas.set_can_target(False)
         self.canvas.set_draw_func(self._draw_shape)
         self.set_child(self.canvas)
+
+        self.title_label = Gtk.Label()
+        self.title_label.set_halign(Gtk.Align.CENTER)
+        self.title_label.set_valign(Gtk.Align.CENTER)
+        self.title_label.set_ellipsize(Pango.EllipsizeMode.END)
+        self.title_label.set_wrap(True)
+        self.title_label.set_justify(Gtk.Justification.CENTER)
+        self.title_label.set_can_target(False)
+        self.title_label.add_css_class("space-shape-title")
+        self.title_label.set_visible(False)
+        self.add_overlay(self.title_label)
 
         self.handles: dict[str, Gtk.DrawingArea] = {}
         for corner, (horizontal, vertical, cursor) in self._CORNERS.items():
@@ -237,6 +250,14 @@ class ShapeItem(Gtk.Overlay):
         if direction not in ("up", "right", "down", "left"):
             raise ValueError(f"Unsupported arrow direction: {direction}")
         self.set_rotation(self._DIRECTION_ANGLES[direction])
+
+    def set_title(self, title: str) -> None:
+        normalized = title.strip()
+        if not normalized:
+            raise ValueError("Shape names cannot be empty.")
+        self.title = normalized
+        self.title_label.set_text(normalized)
+        self.title_label.set_visible(True)
 
     def set_rotation(self, rotation: float) -> None:
         if self.shape.shape_id != "arrow":

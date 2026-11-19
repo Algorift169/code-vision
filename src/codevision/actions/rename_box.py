@@ -25,25 +25,25 @@ def is_enabled(context: MenuContext) -> bool:
         and panel.current_section == "Space"
         and space_view_for(context) is not None
         and space_item_for(context) is not None
-        and not isinstance(space_item_for(context), ShapeItem)
     )
 
 
 def run(context: MenuContext) -> None:
     item = space_item_for(context)
-    if item is None or isinstance(item, ShapeItem):
+    if item is None:
         return
     root = context.widget.get_root()
     if not isinstance(root, Gtk.Window):
         raise RuntimeError("The box rename dialog cannot be opened.")
 
-    current_name = (
-        item.title
-        if isinstance(item, (TextBox, GraphNodeItem))
-        else item.display_name
-    )
+    if isinstance(item, (TextBox, GraphNodeItem, ShapeItem)):
+        current_name = item.title
+        if isinstance(item, ShapeItem) and not current_name:
+            current_name = item.shape.name
+    else:
+        current_name = item.display_name
     dialog = Gtk.Dialog(
-        title="Rename Box",
+        title="Rename Item",
         transient_for=root,
         modal=True,
     )
@@ -65,17 +65,26 @@ def run(context: MenuContext) -> None:
         if response == Gtk.ResponseType.ACCEPT:
             name = entry.get_text().strip()
             if name:
-                if isinstance(item, TextBox):
-                    item.set_title(name)
-                elif isinstance(item, GraphNodeItem):
-                    item.set_title(name)
-                elif isinstance(item, ImportItem):
-                    item.set_display_name(name)
+                _apply_item_name(item, name)
             elif context.set_status is not None:
-                context.set_status("Box name cannot be empty.")
+                context.set_status("Item name cannot be empty.")
         dialog.destroy()
 
     dialog.connect("response", on_response)
     dialog.present()
     entry.grab_focus()
     entry.select_region(0, -1)
+
+
+def _apply_item_name(
+    item: TextBox | GraphNodeItem | ShapeItem | ImportItem,
+    name: str,
+) -> None:
+    if isinstance(item, TextBox):
+        item.set_title(name)
+    elif isinstance(item, GraphNodeItem):
+        item.set_title(name)
+    elif isinstance(item, ShapeItem):
+        item.set_title(name)
+    elif isinstance(item, ImportItem):
+        item.set_display_name(name)

@@ -632,6 +632,7 @@ class SpaceView(Gtk.Box):
         height: float = ShapeItem.HEIGHT,
         direction: str = "right",
         rotation: float | None = None,
+        title: str = "",
     ) -> ShapeItem:
         for tool in ("Pen", "Eraser", "Text Box"):
             self.tool_buttons[tool].set_active(False)
@@ -652,6 +653,8 @@ class SpaceView(Gtk.Box):
             direction,
             rotation,
         )
+        if title:
+            item.set_title(title)
         self.board.put(
             item,
             item.x * self.zoom.scale,
@@ -752,6 +755,7 @@ class SpaceView(Gtk.Box):
                 item.height,
                 item.direction or "right",
                 item.rotation,
+                item.title,
             )
         return None
 

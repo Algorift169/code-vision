@@ -16,12 +16,15 @@ from codevision.actions import (
     select_multiple,
     show_complexity,
 )
+from codevision.actions.rename_box import _apply_item_name
 from codevision.app.main_window import CodeVisionWindow
 from codevision.actions.action import ANALYSIS_PANEL_ACTIONS
 from codevision.actions.helpers import graph_snapshot_for
 from codevision.ui.analysis_panel import AnalysisPanel
 from codevision.ui.widgets.menu import ContextMenu
 from codevision.ui.widgets.menu_context import MenuContext
+from space.shape_item import ShapeItem
+from codevision.shape import SHAPES
 
 
 def test_right_click_context_shows_analysis_panel_actions_only() -> None:
@@ -102,6 +105,43 @@ def test_space_actions_enable_for_board_items_only_in_space() -> None:
     assert not change_color.is_enabled(context)
     assert not rename_box.is_enabled(context)
     assert not remove.is_enabled(context)
+
+
+def test_rename_action_is_available_for_shapes() -> None:
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+    panel.select_section("Space")
+    item = space.add_shape(SHAPES[0])
+    context = MenuContext(
+        widget=item,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+
+    assert isinstance(item, ShapeItem)
+    assert rename_box.is_enabled(context)
+    item.set_title("Orders API")
+    assert item.title == "Orders API"
+    assert item.title_label.get_text() == "Orders API"
+    assert item.title_label.get_visible()
+
+
+def test_renaming_imported_item_only_changes_its_space_display_name(tmp_path) -> None:
+    file_path = tmp_path / "report.txt"
+    original_contents = "keep file unchanged"
+    file_path.write_text(original_contents, encoding="utf-8")
+
+    panel = AnalysisPanel()
+    space = panel._section_placeholders["Space"]
+    panel.select_section("Space")
+    imported = space.import_files([file_path])[0]
+
+    _apply_item_name(imported, "Project Report")
+
+    assert imported.display_name == "Project Report"
+    assert imported.path == file_path
+    assert file_path.name == "report.txt"
+    assert file_path.read_text(encoding="utf-8") == original_contents
 
 
 def test_duplicate_box_copies_text_and_imported_file_metadata(tmp_path) -> None:

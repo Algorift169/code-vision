@@ -482,7 +482,7 @@ def text_from_widget(widget: Gtk.Widget | None) -> str | None:
                 current.title or current.node.detail
             )
         if isinstance(current, ShapeItem):
-            return current.shape.name
+            return current.title or current.shape.name
         if isinstance(current, Gtk.TextView):
             buffer = current.get_buffer()
             selection = buffer.get_selection_bounds()
