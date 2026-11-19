@@ -122,6 +122,13 @@ class SpaceView(Gtk.Box):
         self.board.set_vexpand(True)
         self.board.set_focusable(True)
         self.board.put(self.canvas, 0, 0)
+        self.ink_canvas = Gtk.DrawingArea()
+        self.ink_canvas.set_name("space-ink-canvas")
+        self.ink_canvas.set_hexpand(True)
+        self.ink_canvas.set_vexpand(True)
+        self.ink_canvas.add_css_class("space-ink-canvas")
+        self.ink_canvas.set_can_target(False)
+        self.board.put(self.ink_canvas, 0, 0)
         import_drag = Gtk.GestureDrag.new()
         import_drag.set_button(Gdk.BUTTON_PRIMARY)
         import_drag.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
@@ -136,7 +143,7 @@ class SpaceView(Gtk.Box):
         self._canvas_height = 0
         self._extending_canvas = False
         self.pen = Pen(
-            self.canvas,
+            self.ink_canvas,
             self._update_history_buttons,
             self.drawing_color,
             self.zoom,
@@ -165,7 +172,7 @@ class SpaceView(Gtk.Box):
         create_text_box = Gtk.GestureClick.new()
         create_text_box.set_button(Gdk.BUTTON_PRIMARY)
         create_text_box.connect("pressed", self._on_canvas_pressed)
-        self.canvas.add_controller(create_text_box)
+        self.ink_canvas.add_controller(create_text_box)
         self._update_history_buttons()
         self.canvas_scroller.set_child(self.board)
         self.append(self.canvas_scroller)
@@ -178,6 +185,7 @@ class SpaceView(Gtk.Box):
         if button.get_active() and self.tool_buttons["Text Box"].get_active():
             self.tool_buttons["Text Box"].set_active(False)
         self.pen.set_enabled(button.get_active())
+        self._update_ink_canvas_target()
 
     def zoom_in(self) -> None:
         self.zoom.zoom_in()
@@ -189,6 +197,8 @@ class SpaceView(Gtk.Box):
         self._extending_canvas = True
         self.canvas.set_content_width(self.zoom.to_pixels(self._canvas_width))
         self.canvas.set_content_height(self.zoom.to_pixels(self._canvas_height))
+        self.ink_canvas.set_content_width(self.zoom.to_pixels(self._canvas_width))
+        self.ink_canvas.set_content_height(self.zoom.to_pixels(self._canvas_height))
         self.board.set_size_request(
             self.zoom.to_pixels(self._canvas_width),
             self.zoom.to_pixels(self._canvas_height),
@@ -206,6 +216,7 @@ class SpaceView(Gtk.Box):
             item.apply_zoom()
         self._extending_canvas = False
         self.canvas.queue_draw()
+        self.ink_canvas.queue_draw()
 
     def _on_import_clicked(self, _button: Gtk.Button) -> None:
         self._clear_text_box_highlight()
@@ -219,8 +230,11 @@ class SpaceView(Gtk.Box):
             action=Gtk.FileChooserAction.OPEN,
             modal=True,
         )
-        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("_Import", Gtk.ResponseType.ACCEPT)
+        cancel_button = dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
+        cancel_button.add_css_class("space-import-action")
+        import_button = dialog.add_button("_Import", Gtk.ResponseType.ACCEPT)
+        import_button.add_css_class("space-import-action")
+        import_button.add_css_class("suggested-action")
         dialog.set_default_response(Gtk.ResponseType.ACCEPT)
         dialog.add_css_class("space-file-chooser")
         dialog.set_select_multiple(True)
@@ -313,6 +327,7 @@ class SpaceView(Gtk.Box):
         )
         self.import_items.append(item)
         self._ensure_import_extent(item)
+        self._raise_ink_canvas()
         return item
 
     def _show_import_status(self, message: str) -> None:
@@ -378,6 +393,20 @@ class SpaceView(Gtk.Box):
         if bottom > self._canvas_height:
             self._set_canvas_extent("height", bottom)
 
+    def _update_ink_canvas_target(self) -> None:
+        self.ink_canvas.set_can_target(
+            any(
+                self.tool_buttons[tool].get_active()
+                for tool in ("Pen", "Eraser", "Text Box")
+            )
+        )
+
+    def _raise_ink_canvas(self) -> None:
+        if self.board.get_last_child() is self.ink_canvas:
+            return
+        self.board.remove(self.ink_canvas)
+        self.board.put(self.ink_canvas, 0, 0)
+
     def _ensure_graph_item_extent(self, item: GraphNodeItem) -> None:
         right = math.ceil(item.x + item.width)
         bottom = math.ceil(item.y + item.height)
@@ -423,12 +452,14 @@ class SpaceView(Gtk.Box):
         if button.get_active() and self.tool_buttons["Text Box"].get_active():
             self.tool_buttons["Text Box"].set_active(False)
         self.eraser.set_enabled(button.get_active())
+        self._update_ink_canvas_target()
 
     def _on_text_box_toggled(self, button: Gtk.ToggleButton) -> None:
         if button.get_active() and self.tool_buttons["Pen"].get_active():
             self.tool_buttons["Pen"].set_active(False)
         if button.get_active() and self.tool_buttons["Eraser"].get_active():
             self.tool_buttons["Eraser"].set_active(False)
+        self._update_ink_canvas_target()
 
     def _on_canvas_pressed(
         self,
@@ -468,6 +499,7 @@ class SpaceView(Gtk.Box):
         )
         self.text_boxes.append(text_box)
         self._set_active_text_box(text_box)
+        self._raise_ink_canvas()
         if text:
             text_box.buffer.insert(text_box.buffer.get_start_iter(), text)
         self._ensure_text_box_extent(text_box)
@@ -558,6 +590,7 @@ class SpaceView(Gtk.Box):
         )
         self.graph_items.append(item)
         self._ensure_graph_item_extent(item)
+        self._raise_ink_canvas()
         return item
 
     def open_color_palette_for(self, text_box: TextBox) -> None:
@@ -629,6 +662,7 @@ class SpaceView(Gtk.Box):
             )
             self.import_items.append(duplicate)
             self._ensure_import_extent(duplicate)
+            self._raise_ink_canvas()
             return duplicate
         if isinstance(item, GraphNodeItem) and item in self.graph_items:
             return self.add_graph_node(
@@ -735,9 +769,11 @@ class SpaceView(Gtk.Box):
         if dimension == "width":
             self._canvas_width = extent
             self.canvas.set_content_width(self.zoom.to_pixels(extent))
+            self.ink_canvas.set_content_width(self.zoom.to_pixels(extent))
         else:
             self._canvas_height = extent
             self.canvas.set_content_height(self.zoom.to_pixels(extent))
+            self.ink_canvas.set_content_height(self.zoom.to_pixels(extent))
         self.board.set_size_request(
             self.zoom.to_pixels(self._canvas_width),
             self.zoom.to_pixels(self._canvas_height),

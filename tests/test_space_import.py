@@ -6,7 +6,8 @@ import pytest
 gi.require_version("Gdk", "4.0")
 gi.require_version("Gio", "2.0")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gdk, Gio, Gtk
+gi.require_version("Pango", "1.0")
+from gi.repository import Gdk, Gio, Gtk, Pango
 
 from codevision.ui.analysis_panel import AnalysisPanel
 from space.importer import describe_file
@@ -70,6 +71,41 @@ def test_imported_file_cards_move_smoothly_at_zoom(tmp_path: Path) -> None:
     assert (x, y) == (27.5, 39.0)
 
 
+def test_imported_files_do_not_block_space_drawing_or_text(tmp_path: Path) -> None:
+    document = tmp_path / "long-imported-filename-document.docx"
+    document.write_bytes(b"document")
+    space = AnalysisPanel()._section_placeholders["Space"]
+    space._set_canvas_extent("width", 500)
+    space._set_canvas_extent("height", 500)
+    item = space.import_files([document], (20.0, 30.0))[0]
+
+    assert space.board.get_last_child() is space.ink_canvas
+    assert space.pen.canvas is space.ink_canvas
+    requested_width, requested_height = item.get_size_request()
+    assert requested_width < 184
+    assert requested_height < 132
+    attributes = item.filename_label.get_attributes()
+    assert attributes is not None
+    assert f"size {8 * Pango.SCALE}" in attributes.to_string()
+    assert item.preview.get_pixel_size() == 32
+
+    space.duplicate_board_item(item)
+    assert space.board.get_last_child() is space.ink_canvas
+
+    space.tool_buttons["Pen"].set_active(True)
+    assert space.ink_canvas.get_can_target()
+    space.pen._on_drag_begin(None, 30.0, 40.0)
+    space.pen._on_drag_end(None, 20.0, 0.0)
+    assert space.pen.strokes
+
+    space.tool_buttons["Pen"].set_active(False)
+    space.tool_buttons["Text Box"].set_active(True)
+    assert space.ink_canvas.get_can_target()
+    space._on_canvas_pressed(None, 1, 25.0, 35.0)
+    assert (space.text_boxes[-1].x, space.text_boxes[-1].y) == (25.0, 35.0)
+    assert not space.ink_canvas.get_can_target()
+
+
 def test_space_accepts_file_manager_drops_at_drop_position(
     tmp_path: Path,
 ) -> None:
@@ -96,6 +132,23 @@ def test_import_picker_uses_the_app_themed_gtk_dialog() -> None:
     assert isinstance(dialog, Gtk.FileChooserDialog)
     assert "space-file-chooser" in dialog.get_css_classes()
     assert dialog.get_select_multiple()
+    action_buttons = []
+    pending = [dialog]
+    while pending:
+        widget = pending.pop()
+        if isinstance(widget, Gtk.Button) and (
+            "space-import-action" in widget.get_css_classes()
+        ):
+            action_buttons.append(widget)
+        child = widget.get_first_child()
+        while child is not None:
+            pending.append(child)
+            child = child.get_next_sibling()
+    assert len(action_buttons) == 2
+    assert any(
+        "suggested-action" in button.get_css_classes()
+        for button in action_buttons
+    )
 
     dialog.destroy()
     window.destroy()

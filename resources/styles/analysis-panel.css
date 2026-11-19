@@ -154,10 +154,56 @@
     border-color: @line;
 }
 
+.space-file-chooser button,
+.space-file-chooser button label
+{
+    color: @text;
+}
+
+.space-file-chooser button
+{
+    padding: 5px 9px;
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    border-radius: 6px;
+    box-shadow: none;
+    outline: none;
+}
+
+.space-file-chooser button.space-import-action
+{
+    padding: 7px 16px;
+    background-color: @raised;
+    color: @text;
+}
+
+.space-file-chooser button.space-import-action.suggested-action
+{
+    background-color: @accent;
+    color: @bg;
+}
+
+.space-file-chooser button.space-import-action.suggested-action label
+{
+    color: @bg;
+}
+
 .space-file-chooser button:hover
 {
     background-color: @hover;
-    color: @text;
+    color: @accent-2;
+}
+
+.space-file-chooser button.space-import-action.suggested-action:hover
+{
+    background-color: @accent-2;
+    color: @bg;
+}
+
+.space-file-chooser button:active
+{
+    background-color: @select;
 }
 
 #analysis-panel .space-color-popover,

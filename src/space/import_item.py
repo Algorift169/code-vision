@@ -16,8 +16,8 @@ from .zoom import SpaceZoom
 class ImportItem(Gtk.Frame):
     """A draggable file card placed on the Space board."""
 
-    WIDTH = 184
-    HEIGHT = 132
+    WIDTH = 152
+    HEIGHT = 104
 
     def __init__(
         self,
@@ -38,11 +38,11 @@ class ImportItem(Gtk.Frame):
         self.add_css_class("space-import-item")
         self.set_tooltip_text(str(path))
 
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        content.set_margin_top(8)
-        content.set_margin_bottom(8)
-        content.set_margin_start(8)
-        content.set_margin_end(8)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        content.set_margin_top(4)
+        content.set_margin_bottom(4)
+        content.set_margin_start(4)
+        content.set_margin_end(4)
         if mime_type.startswith("image/"):
             preview = Gtk.Picture.new_for_filename(str(path))
             preview.set_can_shrink(True)
@@ -59,6 +59,7 @@ class ImportItem(Gtk.Frame):
         self.filename_label.set_wrap(True)
         self.filename_label.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
         self.filename_label.set_lines(2)
+        self.filename_label.set_ellipsize(Pango.EllipsizeMode.END)
         content.append(self.filename_label)
         self.set_child(content)
         self.apply_zoom()
@@ -77,11 +78,11 @@ class ImportItem(Gtk.Frame):
             math.ceil(self.HEIGHT * scale),
         )
         self.preview.set_size_request(
-            math.ceil(160 * scale),
-            math.ceil(84 * scale),
+            math.ceil(136 * scale),
+            math.ceil(56 * scale),
         )
         if isinstance(self.preview, Gtk.Image):
-            self.preview.set_pixel_size(math.ceil(48 * scale))
+            self.preview.set_pixel_size(math.ceil(32 * scale))
         attributes = Pango.AttrList()
-        attributes.insert(Pango.attr_size_new(round(10 * scale * Pango.SCALE)))
+        attributes.insert(Pango.attr_size_new(round(8 * scale * Pango.SCALE)))
         self.filename_label.set_attributes(attributes)
