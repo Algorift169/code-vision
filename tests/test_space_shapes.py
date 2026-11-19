@@ -1,3 +1,5 @@
+import math
+
 import cairo
 import gi
 import pytest
@@ -140,6 +142,14 @@ def test_arrow_direction_is_adjustable_and_copied_per_item() -> None:
     rotated_surface.flush()
     assert bytes(rotated_surface.get_data()) != right_direction_image
     arrow._on_rotation_end(None, 39.0, 0.0)
+
+    arrow.set_direction("right")
+    assert arrow._on_rotation_scroll(None, 0.0, 1.0)
+    assert arrow.rotation == pytest.approx(math.radians(15))
+    assert arrow.direction is None
+    assert arrow._on_rotation_scroll(None, 0.0, -1.0)
+    assert arrow.rotation == pytest.approx(0.0)
+    assert not arrow._on_rotation_scroll(None, 0.0, 0.0)
 
     duplicate = space.duplicate_board_item(arrow)
     assert isinstance(duplicate, ShapeItem)

@@ -169,7 +169,9 @@ class ShapeItem(Gtk.Overlay):
         handle.set_valign(Gtk.Align.START)
         handle.set_margin_top(2)
         handle.set_cursor_from_name("crosshair")
-        handle.set_tooltip_text("Drag to rotate arrow freely")
+        handle.set_tooltip_text(
+            "Scroll to rotate clockwise or counterclockwise; drag to rotate freely"
+        )
         handle.add_css_class("space-arrow-rotation-handle")
         handle.set_draw_func(self._draw_rotation_handle)
         handle.set_visible(False)
@@ -178,6 +180,11 @@ class ShapeItem(Gtk.Overlay):
         drag.connect("drag-update", self._on_rotation_update)
         drag.connect("drag-end", self._on_rotation_end)
         handle.add_controller(drag)
+        scroll = Gtk.EventControllerScroll.new(
+            Gtk.EventControllerScrollFlags.VERTICAL
+        )
+        scroll.connect("scroll", self._on_rotation_scroll)
+        handle.add_controller(scroll)
         self.add_overlay(handle)
         self.rotation_handle = handle
 
@@ -267,7 +274,7 @@ class ShapeItem(Gtk.Overlay):
         self.rotation = rotation % math.tau
         self.direction = self._direction_for_rotation(self.rotation)
         self._update_direction_buttons()
-        self.queue_draw()
+        self.canvas.queue_draw()
 
     def _update_direction_buttons(self) -> None:
         for direction, button in self.direction_buttons.items():
@@ -315,6 +322,17 @@ class ShapeItem(Gtk.Overlay):
     ) -> None:
         self._rotating = False
         self._set_handles_visible(False)
+
+    def _on_rotation_scroll(
+        self,
+        _controller: Gtk.EventControllerScroll,
+        _delta_x: float,
+        delta_y: float,
+    ) -> bool:
+        if delta_y == 0:
+            return False
+        self.set_rotation(self.rotation + delta_y * math.radians(15))
+        return True
 
     def _draw_rotation_handle(
         self,
