@@ -515,7 +515,7 @@ layout after exiting focus mode. The view menu is updated after
             self.analysis_panel.set_visible(True)
             self._analysis_placeholder.set_visible(False)
             self.right_pane.set_end_child(self.analysis_panel)
-            self.right_pane.set_position(max(self.right_pane.get_position(), 360))
+            self.right_pane.set_position(0)
         else:
             self.analysis_panel.set_visible(False)
             self._analysis_placeholder.set_visible(False)
@@ -530,7 +530,7 @@ layout after exiting focus mode. The view menu is updated after
         self.analysis_panel.set_visible(True)
         self._analysis_placeholder.set_visible(False)
         self.right_pane.set_end_child(self.analysis_panel)
-        self.right_pane.set_position(max(self.right_pane.get_position(), 360))
+        self.right_pane.set_position(0)
 
         if hasattr(self, "view_menu"):
             self.view_menu._update_state()
@@ -557,7 +557,7 @@ layout after exiting focus mode. The view menu is updated after
                 self.analysis_panel.set_visible(True)
                 self._analysis_placeholder.set_visible(False)
                 self.right_pane.set_end_child(self.analysis_panel)
-                self.right_pane.set_position(max(self.right_pane.get_position(), 360))
+                self.right_pane.set_position(0)
             else:
                 self.analysis_panel.set_visible(False)
                 self._analysis_placeholder.set_visible(False)

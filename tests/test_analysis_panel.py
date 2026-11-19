@@ -279,6 +279,7 @@ def test_analysis_panel_can_shrink_to_edge_and_be_reopened() -> None:
     window.show_analysis_panel()
     assert window.analysis_panel_visible()
     assert window.right_pane.get_end_child() is window.analysis_panel
+    assert window.right_pane.get_position() == 0
 
     window.toggle_analysis_panel()
     assert not window.analysis_panel_visible()
