@@ -15,7 +15,6 @@ from ...graphs import (
     FlowchartGraph,
     FlowchartNode,
     FlowchartNodeKind,
-    GraphExporter,
     GraphLayout,
 )
 from ...model import ASTNode, ASTResult
@@ -54,7 +53,6 @@ class FlowchartView(Gtk.Box):
         self.set_vexpand(True)
         self._parser = SourceParser()
         self._builder = FlowchartBuilder()
-        self._exporter = GraphExporter()
         self._on_source_navigate = on_source_navigate
         self._result: ASTResult | None = None
         self._graphs: list[FlowchartGraph] = []
@@ -90,20 +88,6 @@ class FlowchartView(Gtk.Box):
         self.fit_button.set_tooltip_text("Fit graph")
         self.fit_button.connect("clicked", self._fit_graph)
         header.append(self.fit_button)
-        self.export_button = Gtk.MenuButton()
-        self.export_button.add_css_class("theme-toolbar-button")
-        self.export_button.set_child(Gtk.Image.new_from_icon_name("document-save-symbolic"))
-        self.export_button.set_tooltip_text("Export flowchart")
-        export_popover = Gtk.Popover()
-        export_actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        for file_type in ("svg", "png", "pdf"):
-            button = Gtk.Button(label=f"Export {file_type.upper()}")
-            button.add_css_class("theme-toolbar-button")
-            button.connect("clicked", self._on_export_clicked, file_type)
-            export_actions.append(button)
-        export_popover.set_child(export_actions)
-        self.export_button.set_popover(export_popover)
-        header.append(self.export_button)
         self._status_label = Gtk.Label(label="")
         self._status_label.set_halign(Gtk.Align.END)
         header.append(self._status_label)
@@ -302,43 +286,6 @@ class FlowchartView(Gtk.Box):
             min(max_y, max(min_y, self._drag_origin[1] + offset_y)),
         )
         self.canvas.queue_draw()
-
-    def _on_export_clicked(self, _button: Gtk.Button, file_type: str) -> None:
-        self.export_button.get_popover().popdown()
-        root = self.get_root()
-        if self.graph is None or not isinstance(root, Gtk.Window):
-            return
-        dialog = Gtk.FileChooserNative.new(
-            f"Export Flowchart as {file_type.upper()}",
-            root,
-            Gtk.FileChooserAction.SAVE,
-            "_Save",
-            "_Cancel",
-        )
-        name = self.graph.function_name or "flowchart"
-        dialog.set_current_name(f"{name}.{file_type}")
-        dialog.connect("response", self._on_export_response, file_type)
-        self._export_dialog = dialog
-        dialog.show()
-
-    def _on_export_response(
-        self,
-        dialog: Gtk.FileChooserNative,
-        response: int,
-        file_type: str,
-    ) -> None:
-        if response == Gtk.ResponseType.ACCEPT:
-            selected = dialog.get_file()
-            path = selected.get_path() if selected is not None else None
-            if path is not None and self.graph is not None:
-                try:
-                    export = getattr(self._exporter, f"export_{file_type}")
-                    export(self.graph, path)
-                    self._status_label.set_text(f"Exported {Path(path).name}")
-                except (OSError, RuntimeError, ValueError) as error:
-                    self._status_label.set_text(f"Export failed: {error}")
-        dialog.destroy()
-        self._export_dialog = None
 
     def _on_canvas_pressed(
         self,

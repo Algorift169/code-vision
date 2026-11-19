@@ -476,6 +476,17 @@ class SpaceView(Gtk.Box):
         if self._active_text_box is not None:
             self._active_text_box.apply_color_to_selection(color)
 
+    def _export_png(self, path: Path) -> None:
+        from .space_export import SpaceExporter
+
+        try:
+            if path.suffix.lower() != ".png":
+                path = path.with_suffix(".png")
+            SpaceExporter().export_png(self, path)
+            self._show_import_status(f"Exported board as PNG: {path.name}")
+        except (OSError, RuntimeError, TypeError, ValueError) as error:
+            self._show_import_status(f"PNG export failed: {error}")
+
     def _on_eraser_toggled(self, button: Gtk.ToggleButton) -> None:
         if button.get_active() and self.tool_buttons["Pen"].get_active():
             self.tool_buttons["Pen"].set_active(False)
@@ -798,8 +809,20 @@ class SpaceView(Gtk.Box):
         self.board.grab_focus()
         if getattr(button, "get_label", lambda: None)() == "Export":
             root = self.get_root()
-            if isinstance(root, Gtk.Window) and hasattr(root, "open_export_dialog"):
-                root.open_export_dialog("Space")
+            if not isinstance(root, Gtk.Window):
+                self._show_import_status("Open Space in a window to export it.")
+                return
+            picker = getattr(root, "file_picker", None)
+            if picker is None:
+                self._show_import_status("Folder browser is unavailable.")
+                return
+            initial_directory = getattr(root.project_explorer, "root_path", None) or Path.home()
+            picker.show_save_file(
+                title="Export Space Board as PNG",
+                initial_directory=initial_directory,
+                initial_filename="codevision-space.png",
+                on_file_saved=self._export_png,
+            )
 
     def _on_color_menu_active(
         self, _button: Gtk.MenuButton, _property: object

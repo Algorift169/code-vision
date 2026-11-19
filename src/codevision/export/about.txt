@@ -1,7 +1,0 @@
-CodeVision export system.
-
-The package collects existing analysis results, converts them into an
-GTK-independent report model, renders all requested document formats, and
-creates ZIP packages with manifests. ExportManager coordinates exporters and
-records partial failures explicitly. AnalysisCollector reuses cached panel and
-project results instead of rerunning analysis engines.

@@ -22,7 +22,6 @@ from ..ui.border import WindowBorder
 from ..ui.project_explorer import ProjectExplorer
 from ..ui.search import WorkspaceSearch
 from ..ui.theme import TRANSPARENT_THEME_ID, ThemeManager
-from ..ui.export.export_dialog import ExportDialog
 from ..ui.widgets.context_action_menu import ContextActionMenu
 from ..ui.widgets.edit_menu import EditMenuButton
 from ..ui.widgets.file_menu import FileMenuButton
@@ -243,7 +242,6 @@ class CodeVisionWindow(Gtk.ApplicationWindow):
         analysis_panel = AnalysisPanel(
             on_source_navigate=self._navigate_to_ast_node,
             on_file_navigate=self._open_file,
-            on_export_request=self.open_export_dialog,
         )
         analysis_panel.set_name("analysis-panel")
         self.analysis_panel = analysis_panel
@@ -536,16 +534,6 @@ layout after exiting focus mode. The view menu is updated after
 
         if hasattr(self, "view_menu"):
             self.view_menu._update_state()
-
-    def open_export_dialog(self, section: str | None = None) -> None:
-        """Open the analysis export dialog for the complete report or active section."""
-        dialog = ExportDialog(
-            self,
-            self.analysis_panel,
-            getattr(self.project_explorer, "root_path", None),
-            initial_section=section,
-        )
-        dialog.present()
 
     """Enables a simpler workspace and restores the layout when disabled.
     On entry it remembers each side panel's visibility before hiding them; on

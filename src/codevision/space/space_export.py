@@ -15,7 +15,7 @@ from .graph_data import GraphTextLine
 
 
 class SpaceExporter:
-    """Render every live Space board item to PNG or PDF at board coordinates."""
+    """Render every live Space board item to a PNG at board coordinates."""
 
     def export_png(self, space, output_path: str | Path) -> Path:
         path = Path(output_path)
@@ -25,16 +25,6 @@ class SpaceExporter:
         context = cairo.Context(surface)
         self._draw_board(context, space, width, height)
         surface.write_to_png(str(path))
-        return path
-
-    def export_pdf(self, space, output_path: str | Path) -> Path:
-        path = Path(output_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        width, height = self._board_size(space)
-        surface = cairo.PDFSurface(str(path), width, height)
-        context = cairo.Context(surface)
-        self._draw_board(context, space, width, height)
-        surface.finish()
         return path
 
     @staticmethod
