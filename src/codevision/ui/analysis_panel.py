@@ -13,7 +13,7 @@ from .analyzer_theme import AnalyzerTheme
 from .ast_view import ASTView
 from .complexity_view import ComplexityView
 from .graphs import CallGraphView, DependencyView, FlowchartView, VariableFlowView
-from space.space_view import SpaceView
+from codevision.space.space_view import SpaceView
 
 SECTIONS = (
     "Overview",

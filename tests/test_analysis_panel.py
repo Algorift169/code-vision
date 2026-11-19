@@ -7,7 +7,7 @@ from gi.repository import Gtk
 from codevision.ui.analysis_panel import SECTIONS, AnalysisPanel
 from codevision.ui.ast_view import ASTView
 from codevision.ui.graphs import CallGraphView, DependencyView, FlowchartView
-from space.space_view import SpaceView
+from codevision.space.space_view import SpaceView
 
 
 def test_analysis_panel_has_all_sections_in_order() -> None:

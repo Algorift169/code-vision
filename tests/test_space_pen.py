@@ -3,7 +3,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
-from space.pen import Pen
+from codevision.space.pen import Pen
 
 
 def test_pen_draws_white_strokes_and_stops_when_pointer_leaves() -> None:
@@ -39,8 +39,8 @@ def test_pen_draws_white_strokes_and_stops_when_pointer_leaves() -> None:
 
 
 def test_undo_and_redo_restore_strokes_and_new_strokes_clear_redo() -> None:
-    from space.rendo import Redo
-    from space.undo import Undo
+    from codevision.space.rendo import Redo
+    from codevision.space.undo import Undo
 
     canvas = Gtk.DrawingArea()
     canvas.set_content_width(100)

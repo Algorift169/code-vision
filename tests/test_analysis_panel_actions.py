@@ -23,7 +23,7 @@ from codevision.actions.helpers import graph_snapshot_for
 from codevision.ui.analysis_panel import AnalysisPanel
 from codevision.ui.widgets.menu import ContextMenu
 from codevision.ui.widgets.menu_context import MenuContext
-from space.shape_item import ShapeItem
+from codevision.space.shape_item import ShapeItem
 from codevision.shape import SHAPES
 
 

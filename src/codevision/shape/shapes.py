@@ -14,7 +14,7 @@ from . import SHAPES
 from .base import DiagramShape
 
 if TYPE_CHECKING:
-    from space.color import DrawingColor
+    from codevision.space.color import DrawingColor
 
 
 class ShapeMenu(Gtk.Popover):

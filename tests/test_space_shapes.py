@@ -8,9 +8,9 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from codevision.shape import SHAPES
-from space.color import COLOR_PALETTE
-from space.shape_item import ShapeItem
-from space.space_view import SpaceView
+from codevision.space.color import COLOR_PALETTE
+from codevision.space.shape_item import ShapeItem
+from codevision.space.space_view import SpaceView
 
 
 def test_shape_picker_inserts_selected_shape_with_active_color() -> None:

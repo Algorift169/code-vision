@@ -10,8 +10,8 @@ gi.require_version("Pango", "1.0")
 from gi.repository import Gdk, Gio, Gtk, Pango
 
 from codevision.ui.analysis_panel import AnalysisPanel
-from space.importer import describe_file
-from space.space_view import SpaceView
+from codevision.space.importer import describe_file
+from codevision.space.space_view import SpaceView
 
 
 def test_importer_accepts_documents_and_unknown_file_types(tmp_path: Path) -> None:

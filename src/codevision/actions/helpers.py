@@ -7,17 +7,17 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
-from space.graph_data import (
+from codevision.space.graph_data import (
     GraphEdgeData,
     GraphNodeData,
     GraphSnapshot,
     GraphTextLine,
 )
-from space.graph_item import GraphNodeItem
-from space.import_item import ImportItem
-from space.shape_item import ShapeItem
-from space.space_view import SpaceView
-from space.textbox import TextBox
+from codevision.space.graph_item import GraphNodeItem
+from codevision.space.import_item import ImportItem
+from codevision.space.shape_item import ShapeItem
+from codevision.space.space_view import SpaceView
+from codevision.space.textbox import TextBox
 
 from ..ui.analysis_panel import AnalysisPanel
 

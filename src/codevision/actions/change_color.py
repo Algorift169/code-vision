@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .helpers import analysis_panel_for, space_item_for, space_view_for
-from space.textbox import TextBox
+from codevision.space.textbox import TextBox
 
 if TYPE_CHECKING:
     from ..ui.widgets.menu_context import MenuContext

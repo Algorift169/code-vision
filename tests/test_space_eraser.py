@@ -3,8 +3,8 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
-from space.eraser import Eraser
-from space.pen import Pen
+from codevision.space.eraser import Eraser
+from codevision.space.pen import Pen
 
 
 def test_eraser_removes_only_the_touched_part_and_supports_undo_redo() -> None:

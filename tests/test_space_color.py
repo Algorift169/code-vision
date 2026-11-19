@@ -3,9 +3,14 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
-from space.color import COLOR_HEXES, COLOR_PALETTE, DEFAULT_COLOR, DrawingColor
-from space.pen import Pen
-from space.space_view import SpaceView
+from codevision.space.color import (
+    COLOR_HEXES,
+    COLOR_PALETTE,
+    DEFAULT_COLOR,
+    DrawingColor,
+)
+from codevision.space.pen import Pen
+from codevision.space.space_view import SpaceView
 
 
 def test_color_palette_has_36_unique_colors_and_defaults_to_white() -> None:

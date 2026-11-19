@@ -8,7 +8,7 @@ gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk
 
 from .helpers import space_item_for, text_from_widget
-from space.import_item import ImportItem
+from codevision.space.import_item import ImportItem
 
 if TYPE_CHECKING:
     from ..ui.widgets.menu_context import MenuContext

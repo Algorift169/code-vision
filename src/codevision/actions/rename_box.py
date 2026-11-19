@@ -8,10 +8,10 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from .helpers import analysis_panel_for, space_item_for, space_view_for
-from space.graph_item import GraphNodeItem
-from space.import_item import ImportItem
-from space.shape_item import ShapeItem
-from space.textbox import TextBox
+from codevision.space.graph_item import GraphNodeItem
+from codevision.space.import_item import ImportItem
+from codevision.space.shape_item import ShapeItem
+from codevision.space.textbox import TextBox
 
 if TYPE_CHECKING:
     from ..ui.widgets.menu_context import MenuContext

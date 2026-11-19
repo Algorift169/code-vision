@@ -4,9 +4,9 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
 from codevision.ui.analysis_panel import AnalysisPanel
-from space.color import DrawingColor
-from space.textbox import TextBox
-from space.zoom import SpaceZoom
+from codevision.space.color import DrawingColor
+from codevision.space.textbox import TextBox
+from codevision.space.zoom import SpaceZoom
 
 
 def _tag_names_at(text_box: TextBox, offset: int) -> set[str]:
