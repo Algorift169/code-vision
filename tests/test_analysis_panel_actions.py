@@ -54,6 +54,59 @@ def test_right_click_context_shows_analysis_panel_actions_only() -> None:
     assert menu.get_visible()
 
 
+def test_select_all_works_after_context_menu_dismissal_and_reopen() -> None:
+    class TestWindow(Gtk.Window):
+        click_inside_menu = True
+
+        def is_click_inside_open_menu(self, _box, _x, _y):
+            return self.click_inside_menu
+
+        def is_click_on_active_menu_button(self, _box, _x, _y):
+            return False
+
+        def close_all_menus(self, except_menu=None):
+            return False
+
+    panel = AnalysisPanel()
+    panel.select_section("Space")
+    space = panel._section_placeholders["Space"]
+    text_box = space.add_text_box("select every word")
+    overlay = Gtk.Overlay()
+    content = Gtk.Box()
+    content.append(panel)
+    overlay.set_child(content)
+    window = TestWindow()
+    window.set_child(overlay)
+    context = MenuContext(
+        widget=text_box.text_view,
+        kind="analysis-panel",
+        analysis_panel=panel,
+    )
+    menu = ContextMenu(overlay, content, lambda _x, _y: context)
+    select_all_button = menu._items["panel-select-all"][0]
+
+    menu._on_pressed(None, 1, 10.0, 10.0)
+    menu._on_dismiss_pressed(None, 1, 10.0, 10.0)
+    assert menu.get_visible()
+    select_all_button.emit("clicked")
+    buffer = text_box.buffer
+    bounds = buffer.get_selection_bounds()
+    assert bounds
+    assert buffer.get_text(bounds[0], bounds[1], True) == "select every word"
+
+    window.click_inside_menu = False
+    menu._on_pressed(None, 1, 10.0, 10.0)
+    menu._on_dismiss_pressed(None, 1, 300.0, 300.0)
+    assert not menu.get_visible()
+    buffer.place_cursor(buffer.get_start_iter())
+
+    menu._on_pressed(None, 1, 10.0, 10.0)
+    select_all_button.emit("clicked")
+    bounds = buffer.get_selection_bounds()
+    assert bounds
+    assert buffer.get_text(bounds[0], bounds[1], True) == "select every word"
+
+
 def test_analysis_panel_actions_are_scoped_to_analysis_context() -> None:
     panel = AnalysisPanel()
     panel_context = MenuContext(

@@ -178,22 +178,26 @@ class ContextMenu(Gtk.Box):
         self,
         gesture: Gtk.GestureClick,
         _press_count: int,
-        _x: float,
-        _y: float,
+        x: float,
+        y: float,
     ) -> None:
-        if self.get_visible():
-            self.set_visible(False)
         root = self._event_parent.get_root() if hasattr(self, "_event_parent") else None
         click_inside_menu = (
             root is not None
             and hasattr(root, "is_click_inside_open_menu")
-            and root.is_click_inside_open_menu(self._event_parent, _x, _y)
+            and root.is_click_inside_open_menu(self._event_parent, x, y)
         )
         click_on_menu_button = (
             root is not None
             and hasattr(root, "is_click_on_active_menu_button")
-            and root.is_click_on_active_menu_button(self._event_parent, _x, _y)
+            and root.is_click_on_active_menu_button(self._event_parent, x, y)
         )
+        if click_inside_menu:
+            if gesture is not None:
+                gesture.set_state(Gtk.EventSequenceState.DENIED)
+            return
+        if self.get_visible():
+            self.set_visible(False)
         if (
             root is not None
             and hasattr(root, "close_all_menus")
