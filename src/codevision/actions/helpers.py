@@ -15,6 +15,7 @@ from space.graph_data import (
 )
 from space.graph_item import GraphNodeItem
 from space.import_item import ImportItem
+from space.shape_item import ShapeItem
 from space.space_view import SpaceView
 from space.textbox import TextBox
 
@@ -46,18 +47,23 @@ def analysis_view_for(context: MenuContext) -> Gtk.Widget | None:
 
 def space_item_for(
     context: MenuContext,
-) -> TextBox | ImportItem | GraphNodeItem | None:
+) -> TextBox | ImportItem | GraphNodeItem | ShapeItem | None:
     space = space_view_for(context)
     if space is None:
         return None
 
     widget: Gtk.Widget | None = context.widget
     while widget is not None:
-        if isinstance(widget, (TextBox, ImportItem, GraphNodeItem)):
+        if isinstance(widget, (TextBox, ImportItem, GraphNodeItem, ShapeItem)):
             return (
                 widget
                 if widget
-                in (*space.text_boxes, *space.import_items, *space.graph_items)
+                in (
+                    *space.text_boxes,
+                    *space.import_items,
+                    *space.graph_items,
+                    *space.shape_items,
+                )
                 else None
             )
         widget = widget.get_parent()
@@ -475,6 +481,8 @@ def text_from_widget(widget: Gtk.Widget | None) -> str | None:
             return "\n".join(line.text for line in current.node.text_lines) or (
                 current.title or current.node.detail
             )
+        if isinstance(current, ShapeItem):
+            return current.shape.name
         if isinstance(current, Gtk.TextView):
             buffer = current.get_buffer()
             selection = buffer.get_selection_bounds()

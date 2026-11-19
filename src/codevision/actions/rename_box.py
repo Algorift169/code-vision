@@ -10,6 +10,7 @@ from gi.repository import Gtk
 from .helpers import analysis_panel_for, space_item_for, space_view_for
 from space.graph_item import GraphNodeItem
 from space.import_item import ImportItem
+from space.shape_item import ShapeItem
 from space.textbox import TextBox
 
 if TYPE_CHECKING:
@@ -24,12 +25,13 @@ def is_enabled(context: MenuContext) -> bool:
         and panel.current_section == "Space"
         and space_view_for(context) is not None
         and space_item_for(context) is not None
+        and not isinstance(space_item_for(context), ShapeItem)
     )
 
 
 def run(context: MenuContext) -> None:
     item = space_item_for(context)
-    if item is None:
+    if item is None or isinstance(item, ShapeItem):
         return
     root = context.widget.get_root()
     if not isinstance(root, Gtk.Window):

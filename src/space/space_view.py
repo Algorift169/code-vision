@@ -10,6 +10,9 @@ gi.require_version("Gio", "2.0")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gio, GLib, Gtk
 
+from codevision.shape.base import DiagramShape
+from codevision.shape.shapes import ShapeMenu
+
 from .color import Color, ColorPalette, DrawingColor
 from .eraser import Eraser
 from .graph_data import GraphNodeData, GraphSnapshot
@@ -18,6 +21,7 @@ from .import_item import ImportItem
 from .importer import ImportedFile, describe_file
 from .pen import Pen
 from .rendo import Redo
+from .shape_item import ShapeItem
 from .textbox import TextBox
 from .undo import Undo
 from .zoom import SpaceZoom
@@ -55,10 +59,11 @@ class SpaceView(Gtk.Box):
         self.text_boxes: list[TextBox] = []
         self.import_items: list[ImportItem] = []
         self.graph_items: list[GraphNodeItem] = []
+        self.shape_items: list[ShapeItem] = []
         self._active_text_box: TextBox | None = None
         self._highlighted_text_box: TextBox | None = None
         self._import_dialog: Gtk.FileChooserDialog | None = None
-        self._dragged_import_item: ImportItem | GraphNodeItem | None = None
+        self._dragged_import_item: ImportItem | GraphNodeItem | ShapeItem | None = None
         self._import_drag_origin = (0.0, 0.0)
         self.zoom = SpaceZoom(self._apply_space_zoom)
 
@@ -74,6 +79,12 @@ class SpaceView(Gtk.Box):
                 button.set_tooltip_text(tooltip)
                 button.set_child(self._build_color_button_content())
                 button.set_popover(ColorPalette(self.drawing_color))
+            elif label == "Shapes":
+                button = Gtk.MenuButton()
+                button.set_child(Gtk.Label(label=label))
+                button.set_popover(
+                    ShapeMenu(self.drawing_color, self.add_shape)
+                )
             else:
                 button = Gtk.Button(label=label)
             button.set_tooltip_text(tooltip)
@@ -82,7 +93,7 @@ class SpaceView(Gtk.Box):
             self.toolbar.append(button)
             self.tool_buttons[label] = button
         for label, button in self.tool_buttons.items():
-            if label == "Color":
+            if label in ("Color", "Shapes"):
                 button.connect("notify::active", self._on_color_menu_active)
             elif label == "Import":
                 button.connect("clicked", self._on_import_clicked)
@@ -214,6 +225,13 @@ class SpaceView(Gtk.Box):
             )
         for item in self.import_items:
             item.apply_zoom()
+        for item in self.shape_items:
+            item.apply_zoom()
+            self.board.move(
+                item,
+                item.x * self.zoom.scale,
+                item.y * self.zoom.scale,
+            )
         self._extending_canvas = False
         self.canvas.queue_draw()
         self.ink_canvas.queue_draw()
@@ -338,11 +356,21 @@ class SpaceView(Gtk.Box):
         self, gesture: Gtk.GestureDrag, x: float, y: float
     ) -> None:
         picked = self.board.pick(x, y, Gtk.PickFlags.DEFAULT)
+        current = picked
+        while current is not None:
+            classes = current.get_css_classes()
+            if (
+                "space-shape-resize-handle" in classes
+                or "space-arrow-direction-control" in classes
+            ):
+                gesture.set_state(Gtk.EventSequenceState.DENIED)
+                return
+            current = current.get_parent()
         while picked is not None and not isinstance(
-            picked, (ImportItem, GraphNodeItem)
+            picked, (ImportItem, GraphNodeItem, ShapeItem)
         ):
             picked = picked.get_parent()
-        if not isinstance(picked, (ImportItem, GraphNodeItem)):
+        if not isinstance(picked, (ImportItem, GraphNodeItem, ShapeItem)):
             self._dragged_import_item = None
             gesture.set_state(Gtk.EventSequenceState.DENIED)
             return
@@ -374,8 +402,10 @@ class SpaceView(Gtk.Box):
         )
         if isinstance(item, ImportItem):
             self._ensure_import_extent(item)
-        else:
+        elif isinstance(item, GraphNodeItem):
             self._ensure_graph_item_extent(item)
+        else:
+            self._ensure_shape_item_extent(item)
 
     def _on_import_drag_end(
         self,
@@ -593,6 +623,45 @@ class SpaceView(Gtk.Box):
         self._raise_ink_canvas()
         return item
 
+    def add_shape(
+        self,
+        shape: DiagramShape,
+        position: tuple[float, float] | None = None,
+        color: Color | None = None,
+        width: float = ShapeItem.WIDTH,
+        height: float = ShapeItem.HEIGHT,
+        direction: str = "right",
+        rotation: float | None = None,
+    ) -> ShapeItem:
+        for tool in ("Pen", "Eraser", "Text Box"):
+            self.tool_buttons[tool].set_active(False)
+        self._clear_text_box_highlight()
+
+        item_position = position or (
+            24.0 + (len(self.shape_items) % 4) * 24.0,
+            24.0 + (len(self.shape_items) // 4) * 24.0,
+        )
+        item = ShapeItem(
+            shape,
+            color if color is not None else self.drawing_color.current,
+            self.zoom,
+            item_position,
+            self._on_shape_geometry_changed,
+            width,
+            height,
+            direction,
+            rotation,
+        )
+        self.board.put(
+            item,
+            item.x * self.zoom.scale,
+            item.y * self.zoom.scale,
+        )
+        self.shape_items.append(item)
+        self._ensure_shape_item_extent(item)
+        self._raise_ink_canvas()
+        return item
+
     def open_color_palette_for(self, text_box: TextBox) -> None:
         if text_box not in self.text_boxes:
             return
@@ -613,7 +682,7 @@ class SpaceView(Gtk.Box):
         color_button.set_active(True)
 
     def remove_board_item(
-        self, item: TextBox | ImportItem | GraphNodeItem
+        self, item: TextBox | ImportItem | GraphNodeItem | ShapeItem
     ) -> bool:
         if isinstance(item, TextBox):
             if item not in self.text_boxes:
@@ -632,14 +701,18 @@ class SpaceView(Gtk.Box):
             if item not in self.graph_items:
                 return False
             self.graph_items.remove(item)
+        elif isinstance(item, ShapeItem):
+            if item not in self.shape_items:
+                return False
+            self.shape_items.remove(item)
         else:
             return False
         self.board.remove(item)
         return True
 
     def duplicate_board_item(
-        self, item: TextBox | ImportItem | GraphNodeItem
-    ) -> TextBox | ImportItem | GraphNodeItem | None:
+        self, item: TextBox | ImportItem | GraphNodeItem | ShapeItem
+    ) -> TextBox | ImportItem | GraphNodeItem | ShapeItem | None:
         position = (item.x + 20.0, item.y + 20.0)
         if isinstance(item, TextBox) and item in self.text_boxes:
             duplicate = self.add_text_box(position=position)
@@ -670,6 +743,16 @@ class SpaceView(Gtk.Box):
                 position,
                 item.scale,
             )
+        if isinstance(item, ShapeItem) and item in self.shape_items:
+            return self.add_shape(
+                item.shape,
+                position,
+                item.color,
+                item.width,
+                item.height,
+                item.direction or "right",
+                item.rotation,
+            )
         return None
 
     def clear_board(self) -> None:
@@ -681,6 +764,8 @@ class SpaceView(Gtk.Box):
         for item in tuple(self.import_items):
             self.remove_board_item(item)
         for item in tuple(self.graph_items):
+            self.remove_board_item(item)
+        for item in tuple(self.shape_items):
             self.remove_board_item(item)
         self.import_status.set_visible(False)
 
@@ -721,6 +806,22 @@ class SpaceView(Gtk.Box):
             self._set_canvas_extent("width", right)
         if bottom > self._canvas_height:
             self._set_canvas_extent("height", bottom)
+
+    def _ensure_shape_item_extent(self, item: ShapeItem) -> None:
+        right = math.ceil(item.x + item.width)
+        bottom = math.ceil(item.y + item.height)
+        if right > self._canvas_width:
+            self._set_canvas_extent("width", right)
+        if bottom > self._canvas_height:
+            self._set_canvas_extent("height", bottom)
+
+    def _on_shape_geometry_changed(self, item: ShapeItem) -> None:
+        self.board.move(
+            item,
+            item.x * self.zoom.scale,
+            item.y * self.zoom.scale,
+        )
+        self._ensure_shape_item_extent(item)
 
     def _update_history_buttons(self) -> None:
         self.tool_buttons["Undo"].set_sensitive(self.pen.can_undo)

@@ -224,6 +224,71 @@
     box-shadow: none;
 }
 
+#analysis-panel .space-shape-popover,
+#analysis-panel .space-shape-popover contents
+{
+    background-color: @surface;
+    color: @text;
+    border: 1px solid @line;
+}
+
+#analysis-panel .space-shape-option
+{
+    min-width: 68px;
+    min-height: 56px;
+    padding: 4px;
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+#analysis-panel .space-shape-option:hover
+{
+    background-color: @hover;
+}
+
+#analysis-panel .space-shape-option label
+{
+    font-size: 9px;
+}
+
+#analysis-panel .space-arrow-direction-popover,
+#analysis-panel .space-arrow-direction-popover contents
+{
+    background-color: @surface;
+    color: @text;
+    border: 1px solid @line;
+}
+
+#analysis-panel .space-arrow-direction-control
+{
+    min-width: 48px;
+    min-height: 20px;
+    padding: 1px 4px;
+    border: 1px solid @line;
+    background-color: @surface;
+    color: @text;
+    box-shadow: none;
+}
+
+#analysis-panel .space-arrow-direction-control label
+{
+    font-size: 8px;
+}
+
+#analysis-panel .space-arrow-direction-option
+{
+    min-width: 50px;
+    padding: 4px;
+}
+
+#analysis-panel .space-arrow-rotation-handle
+{
+    min-width: 14px;
+    min-height: 14px;
+    background-color: transparent;
+}
+
 #analysis-panel .space-text-box
 {
     background-color: transparent;
@@ -246,6 +311,13 @@
 {
     background-color: @accent-2;
     border: 1px solid @surface;
+}
+
+#analysis-panel .space-shape-resize-handle
+{
+    background-color: @accent-2;
+    border: 1px solid @surface;
+    border-radius: 2px;
 }
 
 #analysis-panel .space-text-box-move-handle
