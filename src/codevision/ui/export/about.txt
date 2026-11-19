@@ -1,0 +1,4 @@
+CodeVision export UI components.
+This package provides the GTK export dialog and format, section, progress, and
+result presentation. UI classes collect state through the export collector and
+delegate all generation to ExportManager; no exporter depends on GTK widgets.

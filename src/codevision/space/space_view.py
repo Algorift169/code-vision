@@ -793,9 +793,13 @@ class SpaceView(Gtk.Box):
             self._highlighted_text_box.set_highlighted(False)
             self._highlighted_text_box = None
 
-    def _on_toolbar_button_clicked(self, _button: Gtk.Widget) -> None:
+    def _on_toolbar_button_clicked(self, button: Gtk.Widget) -> None:
         self._clear_text_box_highlight()
         self.board.grab_focus()
+        if getattr(button, "get_label", lambda: None)() == "Export":
+            root = self.get_root()
+            if isinstance(root, Gtk.Window) and hasattr(root, "open_export_dialog"):
+                root.open_export_dialog("Space")
 
     def _on_color_menu_active(
         self, _button: Gtk.MenuButton, _property: object

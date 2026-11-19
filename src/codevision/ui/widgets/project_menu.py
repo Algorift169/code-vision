@@ -19,6 +19,9 @@ class ProjectMenuButton(OverlayMenuButton):
         self._items["vision"] = self._append_action(
             "Vision", self._window.show_analysis_panel
         )
+        self._items["export"] = self._append_action(
+            "Export Report...", self._window.open_export_dialog
+        )
 
     def _append_action(
         self, label: str, callback: Callable[[], None]

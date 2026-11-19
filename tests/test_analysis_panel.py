@@ -22,10 +22,9 @@ def test_analysis_panel_has_all_sections_in_order() -> None:
         "Complexity",
         "Dependency",
         "Space",
-        "Export",
     )
     assert tuple(panel.section_buttons) == panel.sections
-    assert len(panel.section_buttons) == 9
+    assert len(panel.section_buttons) == 8
     assert panel.get_size_request()[0] > 0
 
 

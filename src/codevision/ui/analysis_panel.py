@@ -24,7 +24,6 @@ SECTIONS = (
     "Complexity",
     "Dependency",
     "Space",
-    "Export",
 )
 
 
@@ -35,6 +34,7 @@ class AnalysisPanel(Gtk.Box):
         self,
         on_source_navigate: Callable[[ASTNode], None] | None = None,
         on_file_navigate: Callable[[Path], None] | None = None,
+        on_export_request: Callable[[str], None] | None = None,
     ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self._analyzer_theme = AnalyzerTheme()
@@ -50,6 +50,7 @@ class AnalysisPanel(Gtk.Box):
         self.source_file_path: Path | None = None
         self._section_buttons: dict[str, Gtk.ToggleButton] = {}
         self._project_root: Path | None = None
+        self._on_export_request = on_export_request
 
         self.navigation = Gtk.Box(
             orientation=Gtk.Orientation.HORIZONTAL, spacing=4
@@ -88,6 +89,11 @@ class AnalysisPanel(Gtk.Box):
             "clicked", lambda _button: self._zoom_current_view("zoom_in")
         )
         self.navigation_row.append(self.zoom_in_button)
+        self.export_button = Gtk.Button.new_from_icon_name("document-save-symbolic")
+        self.export_button.add_css_class("theme-toolbar-button")
+        self.export_button.set_tooltip_text("Export current analysis section")
+        self.export_button.connect("clicked", self._on_export_clicked)
+        self.navigation_row.append(self.export_button)
 
         nav_scroller = Gtk.ScrolledWindow()
         nav_scroller.set_name("analysis-navigation-scroller")
@@ -195,6 +201,10 @@ class AnalysisPanel(Gtk.Box):
         dependency_view = self._section_placeholders.get("Dependency")
         if hasattr(dependency_view, "set_project_root"):
             dependency_view.set_project_root(project_root)
+
+    def _on_export_clicked(self, _button: Gtk.Button) -> None:
+        if callable(self._on_export_request):
+            self._on_export_request(self.current_section)
 
     def _zoom_current_view(self, method_name: str) -> None:
         view = self._section_placeholders.get(self.current_section)
