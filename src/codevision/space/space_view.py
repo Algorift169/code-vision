@@ -94,7 +94,7 @@ class SpaceView(Gtk.Box):
             self.tool_buttons[label] = button
         for label, button in self.tool_buttons.items():
             if label in ("Color", "Shapes"):
-                button.connect("notify::active", self._on_color_menu_active)
+                button.connect("notify::active", self._on_space_menu_active)
             elif label == "Import":
                 button.connect("clicked", self._on_import_clicked)
             else:
@@ -824,11 +824,10 @@ class SpaceView(Gtk.Box):
                 on_file_saved=self._export_png,
             )
 
-    def _on_color_menu_active(
+    def _on_space_menu_active(
         self, _button: Gtk.MenuButton, _property: object
     ) -> None:
         self._clear_text_box_highlight()
-        self.board.grab_focus()
 
     def _ensure_text_box_extent(self, text_box: TextBox) -> None:
         right = math.ceil(text_box.x + text_box.width)
